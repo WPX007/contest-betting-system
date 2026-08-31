@@ -1,0 +1,1 @@
+ALTER TABLE "MarketOption" ADD COLUMN "injectedAmount" INTEGER NOT NULL DEFAULT 0;

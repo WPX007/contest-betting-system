@@ -1,0 +1,378 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  VIEWER
+  PLAYER
+  CAPTAIN
+  SCOREKEEPER
+  OPS_ADMIN
+  SUPER_ADMIN
+}
+
+enum Track {
+  A
+  B
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  CANCELLED
+}
+
+enum MarketStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  PENDING_REVIEW
+  SETTLED
+  VOIDED
+}
+
+enum AssetType {
+  BET_COIN
+  POINT
+}
+
+enum LedgerReason {
+  INITIAL_GRANT
+  RECHARGE
+  BET_PLACED
+  BET_REFUND
+  SETTLEMENT_RETURN
+  SETTLEMENT_PRIZE
+  SYSTEM_RECOVERY
+  PARLAY_PLACED
+  PARLAY_REFUND
+  PARLAY_PRIZE
+  REWARD
+  MARKET_INJECTION
+  POINT_EXCHANGE
+  CORRECTION
+}
+
+enum BetStatus {
+  ACTIVE
+  SETTLED
+  REFUNDED
+  VOIDED
+}
+
+enum SettlementBatchStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum ParlayRoundStatus {
+  OPEN
+  CLOSED
+  SETTLED
+  VOIDED
+}
+
+enum ParlayEntryStatus {
+  ACTIVE
+  WON
+  LOST
+  REFUNDED
+}
+
+enum ParlayLegStatus {
+  PENDING
+  WON
+  LOST
+  VOIDED
+}
+
+enum RechargeStatus {
+  PENDING
+  FIRST_CONFIRMED
+  COMPLETED
+  REJECTED
+}
+
+model User {
+  id                String        @id @default(cuid())
+  name              String
+  username          String        @unique
+  passwordHash      String
+  passwordChangedAt DateTime      @default(now())
+  role              UserRole      @default(VIEWER)
+  teamId            String?
+  team              Team?         @relation(fields: [teamId], references: [id])
+  wallets           Wallet[]
+  bets              Bet[]
+  sessions          Session[]
+  parlayEntries     ParlayEntry[]
+  rechargeRequests  RechargeRequest[] @relation("RechargeRequester")
+  rechargeFirstConfirmed RechargeRequest[] @relation("RechargeFirstConfirmer")
+  rechargeCompleted RechargeRequest[] @relation("RechargeCompleter")
+  audits            AuditLog[]    @relation("AuditActor")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Team {
+  id          String  @id @default(cuid())
+  name        String
+  track       Track
+  allianceKey String
+  members     User[]
+  homeMatches Match[] @relation("HomeTeam")
+  awayMatches Match[] @relation("AwayTeam")
+
+  @@unique([name, track])
+}
+
+model Season {
+  id        String   @id @default(cuid())
+  name      String
+  startsAt  DateTime
+  endsAt    DateTime
+  matches   Match[]
+  createdAt DateTime @default(now())
+}
+
+model Match {
+  id          String      @id @default(cuid())
+  seasonId    String
+  season      Season      @relation(fields: [seasonId], references: [id])
+  homeTeamId  String
+  homeTeam    Team        @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId  String
+  awayTeam    Team        @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  track       Track
+  bestOf      Int
+  weekNumber  Int
+  scheduledAt DateTime
+  status      MatchStatus @default(SCHEDULED)
+  homeScore   Int?
+  awayScore   Int?
+  markets     Market[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([weekNumber, scheduledAt])
+}
+
+model Market {
+  id               String              @id @default(cuid())
+  matchId          String
+  match            Match               @relation(fields: [matchId], references: [id])
+  title            String
+  status           MarketStatus        @default(DRAFT)
+  opensAt          DateTime
+  closesAt         DateTime
+  returnRatioBps   Int                 @default(2500)
+  prizeRatioBps    Int                 @default(7000)
+  recoveryRatioBps Int                 @default(500)
+  options          MarketOption[]
+  bets             Bet[]
+  batches          SettlementBatch[]
+  parlayRounds     ParlayRoundMarket[]
+  parlayLegs       ParlayLeg[]
+  closedAt         DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([status, closesAt])
+}
+
+model MarketOption {
+  id            String      @id @default(cuid())
+  marketId      String
+  market        Market      @relation(fields: [marketId], references: [id])
+  label         String
+  isWinner      Boolean     @default(false)
+  manualOddsBps Int?
+  oddsReason    String?
+  injectedAmount Int         @default(0)
+  bets          Bet[]
+  parlayLegs    ParlayLeg[]
+
+  @@unique([marketId, label])
+}
+
+model Bet {
+  id              String       @id @default(cuid())
+  idempotencyKey  String       @unique
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  marketId        String
+  market          Market       @relation(fields: [marketId], references: [id])
+  optionId        String
+  option          MarketOption @relation(fields: [optionId], references: [id])
+  stake           Int
+  acceptedOddsBps Int
+  status          BetStatus    @default(ACTIVE)
+  payout          Int?
+  settledAt       DateTime?
+  refundedAt      DateTime?
+  createdAt       DateTime     @default(now())
+
+  @@index([marketId, optionId])
+  @@index([userId, createdAt])
+}
+
+model Wallet {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  asset     AssetType
+  balance   Int           @default(0)
+  version   Int           @default(0)
+  entries   LedgerEntry[]
+  updatedAt DateTime      @updatedAt
+
+  @@unique([userId, asset])
+}
+
+model LedgerEntry {
+  id           String       @id @default(cuid())
+  walletId     String
+  wallet       Wallet       @relation(fields: [walletId], references: [id])
+  amount       Int
+  balanceAfter Int
+  reason       LedgerReason
+  reference    String
+  note         String?
+  createdAt    DateTime     @default(now())
+
+  @@index([walletId, createdAt])
+}
+
+model RechargeRequest {
+  id                 String         @id @default(cuid())
+  userId             String
+  user               User           @relation("RechargeRequester", fields: [userId], references: [id], onDelete: Cascade)
+  baseAmount         Int            @default(0)
+  bonusAmount        Int            @default(0)
+  priceMier          Int            @default(0)
+  amount             Int
+  status             RechargeStatus @default(PENDING)
+  firstConfirmedById String?
+  firstConfirmedBy   User?          @relation("RechargeFirstConfirmer", fields: [firstConfirmedById], references: [id])
+  firstConfirmedAt   DateTime?
+  completedById      String?
+  completedBy        User?          @relation("RechargeCompleter", fields: [completedById], references: [id])
+  completedAt        DateTime?
+  rejectedAt         DateTime?
+  createdAt          DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model SettlementBatch {
+  id         String                @id @default(cuid())
+  marketId   String
+  market     Market                @relation(fields: [marketId], references: [id])
+  status     SettlementBatchStatus @default(PENDING)
+  totalPool  Int
+  winnerPool Int
+  createdAt  DateTime              @default(now())
+
+  @@unique([marketId])
+}
+
+model ParlayConfig {
+  id                     String   @id @default("default")
+  ticketStake            Int      @default(100)
+  basePool               Int      @default(50000)
+  basePool4              Int      @default(50000)
+  basePool5              Int      @default(50000)
+  basePool6Plus          Int      @default(50000)
+  ticketPoolBonusBps     Int      @default(5000)
+  updatedAt              DateTime @updatedAt
+}
+
+model ParlayRound {
+  id                     String              @id @default(cuid())
+  dayKey                 String              @unique
+  ticketStake            Int
+  basePool               Int
+  ticketPoolBonusBps     Int                 @default(0)
+  carryover              Int                 @default(0)
+  closesAt               DateTime
+  status                 ParlayRoundStatus   @default(OPEN)
+  markets                ParlayRoundMarket[]
+  entries                ParlayEntry[]
+  createdAt              DateTime            @default(now())
+  settledAt              DateTime?
+}
+
+model ParlayRoundMarket {
+  id       String      @id @default(cuid())
+  roundId  String
+  round    ParlayRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  marketId String
+  market   Market      @relation(fields: [marketId], references: [id])
+  position Int
+
+  @@unique([roundId, marketId])
+  @@unique([roundId, position])
+}
+
+model ParlayEntry {
+  id             String            @id @default(cuid())
+  idempotencyKey String            @unique
+  roundId        String
+  round          ParlayRound       @relation(fields: [roundId], references: [id])
+  userId         String
+  user           User              @relation(fields: [userId], references: [id])
+  stake          Int
+  status         ParlayEntryStatus @default(ACTIVE)
+  payout         Int?
+  legs           ParlayLeg[]
+  createdAt      DateTime          @default(now())
+  settledAt      DateTime?
+
+  @@unique([roundId, userId])
+  @@index([userId, createdAt])
+}
+
+model ParlayLeg {
+  id       String          @id @default(cuid())
+  entryId  String
+  entry    ParlayEntry     @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  marketId String
+  market   Market          @relation(fields: [marketId], references: [id])
+  optionId String
+  option   MarketOption    @relation(fields: [optionId], references: [id])
+  status   ParlayLegStatus @default(PENDING)
+
+  @@unique([entryId, marketId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actor     User     @relation("AuditActor", fields: [actorId], references: [id])
+  action    String
+  target    String
+  before    String?
+  after     String?
+  createdAt DateTime @default(now())
+}
