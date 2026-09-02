@@ -39,6 +39,15 @@ export const MatchStatus = {
 export type MatchStatus = (typeof MatchStatus)[keyof typeof MatchStatus]
 
 
+export const MatchScheduleStatus = {
+  UNSET: 'UNSET',
+  PROPOSED: 'PROPOSED',
+  CONFIRMED: 'CONFIRMED'
+} as const
+
+export type MatchScheduleStatus = (typeof MatchScheduleStatus)[keyof typeof MatchScheduleStatus]
+
+
 export const MarketStatus = {
   DRAFT: 'DRAFT',
   OPEN: 'OPEN',
@@ -106,6 +115,16 @@ export const ParlayRoundStatus = {
 } as const
 
 export type ParlayRoundStatus = (typeof ParlayRoundStatus)[keyof typeof ParlayRoundStatus]
+
+
+export const ParlayScope = {
+  DAILY: 'DAILY',
+  WEEKLY: 'WEEKLY',
+  WEEKLY_A: 'WEEKLY_A',
+  WEEKLY_B: 'WEEKLY_B'
+} as const
+
+export type ParlayScope = (typeof ParlayScope)[keyof typeof ParlayScope]
 
 
 export const ParlayEntryStatus = {

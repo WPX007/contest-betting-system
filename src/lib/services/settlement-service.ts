@@ -6,6 +6,7 @@ import {
   MatchStatus,
   ParlayEntryStatus,
   ParlayLegStatus,
+  ParlayScope,
   ParlayRoundStatus,
   SettlementBatchStatus,
 } from "@/generated/prisma/enums";
@@ -301,7 +302,7 @@ export async function settleMarket(input: {
               balanceAfter,
               reason: LedgerReason.PARLAY_PRIZE,
               reference: `parlay:${entry.id}`,
-              note: `${round.dayKey} 过关竞猜奖励`,
+              note: `${round.scope === ParlayScope.WEEKLY_A ? "本周 A 组串关" : round.scope === ParlayScope.WEEKLY_B ? "本周 B 组串关" : round.scope === ParlayScope.WEEKLY ? "本周串关" : `${round.dayKey} 今日过关`}奖励`,
             },
           });
         }
@@ -312,13 +313,17 @@ export async function settleMarket(input: {
       }
       if (winners.length === 0) {
         const carryoverIncrease = round.entries.length * ticketPoolContribution(round.ticketStake, round.ticketPoolBonusBps);
-        const poolField = round.markets.length <= 3
-          ? "basePool"
-          : round.markets.length === 4
-            ? "basePool4"
-            : round.markets.length === 5
-              ? "basePool5"
-              : "basePool6Plus";
+        const poolField = round.scope === ParlayScope.WEEKLY_B
+          ? "weeklyBBasePool"
+          : round.scope === ParlayScope.WEEKLY_A || round.scope === ParlayScope.WEEKLY
+            ? "weeklyBasePool"
+          : round.markets.length <= 3
+            ? "basePool"
+            : round.markets.length === 4
+              ? "basePool4"
+              : round.markets.length === 5
+                ? "basePool5"
+                : "basePool6Plus";
         await tx.parlayConfig.update({
           where: { id: "default" },
           data: { [poolField]: { increment: carryoverIncrease } },

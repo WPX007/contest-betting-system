@@ -29,6 +29,7 @@ export type AggregateMatch = {
 export type MatchAvgAggregateOutputType = {
   bestOf: number | null
   weekNumber: number | null
+  slotIndex: number | null
   homeScore: number | null
   awayScore: number | null
 }
@@ -36,6 +37,7 @@ export type MatchAvgAggregateOutputType = {
 export type MatchSumAggregateOutputType = {
   bestOf: number | null
   weekNumber: number | null
+  slotIndex: number | null
   homeScore: number | null
   awayScore: number | null
 }
@@ -49,6 +51,14 @@ export type MatchMinAggregateOutputType = {
   bestOf: number | null
   weekNumber: number | null
   scheduledAt: Date | null
+  scheduleStatus: $Enums.MatchScheduleStatus | null
+  slotIndex: number | null
+  proposedScheduledAt: Date | null
+  proposedByUserId: string | null
+  proposedByTeamId: string | null
+  proposedAt: Date | null
+  confirmedByUserId: string | null
+  confirmedAt: Date | null
   status: $Enums.MatchStatus | null
   homeScore: number | null
   awayScore: number | null
@@ -65,6 +75,14 @@ export type MatchMaxAggregateOutputType = {
   bestOf: number | null
   weekNumber: number | null
   scheduledAt: Date | null
+  scheduleStatus: $Enums.MatchScheduleStatus | null
+  slotIndex: number | null
+  proposedScheduledAt: Date | null
+  proposedByUserId: string | null
+  proposedByTeamId: string | null
+  proposedAt: Date | null
+  confirmedByUserId: string | null
+  confirmedAt: Date | null
   status: $Enums.MatchStatus | null
   homeScore: number | null
   awayScore: number | null
@@ -81,6 +99,14 @@ export type MatchCountAggregateOutputType = {
   bestOf: number
   weekNumber: number
   scheduledAt: number
+  scheduleStatus: number
+  slotIndex: number
+  proposedScheduledAt: number
+  proposedByUserId: number
+  proposedByTeamId: number
+  proposedAt: number
+  confirmedByUserId: number
+  confirmedAt: number
   status: number
   homeScore: number
   awayScore: number
@@ -93,6 +119,7 @@ export type MatchCountAggregateOutputType = {
 export type MatchAvgAggregateInputType = {
   bestOf?: true
   weekNumber?: true
+  slotIndex?: true
   homeScore?: true
   awayScore?: true
 }
@@ -100,6 +127,7 @@ export type MatchAvgAggregateInputType = {
 export type MatchSumAggregateInputType = {
   bestOf?: true
   weekNumber?: true
+  slotIndex?: true
   homeScore?: true
   awayScore?: true
 }
@@ -113,6 +141,14 @@ export type MatchMinAggregateInputType = {
   bestOf?: true
   weekNumber?: true
   scheduledAt?: true
+  scheduleStatus?: true
+  slotIndex?: true
+  proposedScheduledAt?: true
+  proposedByUserId?: true
+  proposedByTeamId?: true
+  proposedAt?: true
+  confirmedByUserId?: true
+  confirmedAt?: true
   status?: true
   homeScore?: true
   awayScore?: true
@@ -129,6 +165,14 @@ export type MatchMaxAggregateInputType = {
   bestOf?: true
   weekNumber?: true
   scheduledAt?: true
+  scheduleStatus?: true
+  slotIndex?: true
+  proposedScheduledAt?: true
+  proposedByUserId?: true
+  proposedByTeamId?: true
+  proposedAt?: true
+  confirmedByUserId?: true
+  confirmedAt?: true
   status?: true
   homeScore?: true
   awayScore?: true
@@ -145,6 +189,14 @@ export type MatchCountAggregateInputType = {
   bestOf?: true
   weekNumber?: true
   scheduledAt?: true
+  scheduleStatus?: true
+  slotIndex?: true
+  proposedScheduledAt?: true
+  proposedByUserId?: true
+  proposedByTeamId?: true
+  proposedAt?: true
+  confirmedByUserId?: true
+  confirmedAt?: true
   status?: true
   homeScore?: true
   awayScore?: true
@@ -247,7 +299,15 @@ export type MatchGroupByOutputType = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date
+  scheduledAt: Date | null
+  scheduleStatus: $Enums.MatchScheduleStatus
+  slotIndex: number | null
+  proposedScheduledAt: Date | null
+  proposedByUserId: string | null
+  proposedByTeamId: string | null
+  proposedAt: Date | null
+  confirmedByUserId: string | null
+  confirmedAt: Date | null
   status: $Enums.MatchStatus
   homeScore: number | null
   awayScore: number | null
@@ -286,7 +346,15 @@ export type MatchWhereInput = {
   track?: Prisma.EnumTrackFilter<"Match"> | $Enums.Track
   bestOf?: Prisma.IntFilter<"Match"> | number
   weekNumber?: Prisma.IntFilter<"Match"> | number
-  scheduledAt?: Prisma.DateTimeFilter<"Match"> | Date | string
+  scheduledAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFilter<"Match"> | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.IntNullableFilter<"Match"> | number | null
+  proposedScheduledAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  proposedByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
+  proposedByTeamId?: Prisma.StringNullableFilter<"Match"> | string | null
+  proposedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  confirmedByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
+  confirmedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
   status?: Prisma.EnumMatchStatusFilter<"Match"> | $Enums.MatchStatus
   homeScore?: Prisma.IntNullableFilter<"Match"> | number | null
   awayScore?: Prisma.IntNullableFilter<"Match"> | number | null
@@ -306,7 +374,15 @@ export type MatchOrderByWithRelationInput = {
   track?: Prisma.SortOrder
   bestOf?: Prisma.SortOrder
   weekNumber?: Prisma.SortOrder
-  scheduledAt?: Prisma.SortOrder
+  scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  scheduleStatus?: Prisma.SortOrder
+  slotIndex?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedScheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedByTeamId?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  confirmedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  confirmedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   homeScore?: Prisma.SortOrderInput | Prisma.SortOrder
   awayScore?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -320,6 +396,7 @@ export type MatchOrderByWithRelationInput = {
 
 export type MatchWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  seasonId_weekNumber_track_slotIndex?: Prisma.MatchSeasonIdWeekNumberTrackSlotIndexCompoundUniqueInput
   AND?: Prisma.MatchWhereInput | Prisma.MatchWhereInput[]
   OR?: Prisma.MatchWhereInput[]
   NOT?: Prisma.MatchWhereInput | Prisma.MatchWhereInput[]
@@ -329,7 +406,15 @@ export type MatchWhereUniqueInput = Prisma.AtLeast<{
   track?: Prisma.EnumTrackFilter<"Match"> | $Enums.Track
   bestOf?: Prisma.IntFilter<"Match"> | number
   weekNumber?: Prisma.IntFilter<"Match"> | number
-  scheduledAt?: Prisma.DateTimeFilter<"Match"> | Date | string
+  scheduledAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFilter<"Match"> | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.IntNullableFilter<"Match"> | number | null
+  proposedScheduledAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  proposedByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
+  proposedByTeamId?: Prisma.StringNullableFilter<"Match"> | string | null
+  proposedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  confirmedByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
+  confirmedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
   status?: Prisma.EnumMatchStatusFilter<"Match"> | $Enums.MatchStatus
   homeScore?: Prisma.IntNullableFilter<"Match"> | number | null
   awayScore?: Prisma.IntNullableFilter<"Match"> | number | null
@@ -339,7 +424,7 @@ export type MatchWhereUniqueInput = Prisma.AtLeast<{
   homeTeam?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
   awayTeam?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
   markets?: Prisma.MarketListRelationFilter
-}, "id">
+}, "id" | "seasonId_weekNumber_track_slotIndex">
 
 export type MatchOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -349,7 +434,15 @@ export type MatchOrderByWithAggregationInput = {
   track?: Prisma.SortOrder
   bestOf?: Prisma.SortOrder
   weekNumber?: Prisma.SortOrder
-  scheduledAt?: Prisma.SortOrder
+  scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  scheduleStatus?: Prisma.SortOrder
+  slotIndex?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedScheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedByTeamId?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  confirmedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  confirmedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   homeScore?: Prisma.SortOrderInput | Prisma.SortOrder
   awayScore?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -373,7 +466,15 @@ export type MatchScalarWhereWithAggregatesInput = {
   track?: Prisma.EnumTrackWithAggregatesFilter<"Match"> | $Enums.Track
   bestOf?: Prisma.IntWithAggregatesFilter<"Match"> | number
   weekNumber?: Prisma.IntWithAggregatesFilter<"Match"> | number
-  scheduledAt?: Prisma.DateTimeWithAggregatesFilter<"Match"> | Date | string
+  scheduledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Match"> | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusWithAggregatesFilter<"Match"> | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.IntNullableWithAggregatesFilter<"Match"> | number | null
+  proposedScheduledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Match"> | Date | string | null
+  proposedByUserId?: Prisma.StringNullableWithAggregatesFilter<"Match"> | string | null
+  proposedByTeamId?: Prisma.StringNullableWithAggregatesFilter<"Match"> | string | null
+  proposedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Match"> | Date | string | null
+  confirmedByUserId?: Prisma.StringNullableWithAggregatesFilter<"Match"> | string | null
+  confirmedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Match"> | Date | string | null
   status?: Prisma.EnumMatchStatusWithAggregatesFilter<"Match"> | $Enums.MatchStatus
   homeScore?: Prisma.IntNullableWithAggregatesFilter<"Match"> | number | null
   awayScore?: Prisma.IntNullableWithAggregatesFilter<"Match"> | number | null
@@ -386,7 +487,15 @@ export type MatchCreateInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -406,7 +515,15 @@ export type MatchUncheckedCreateInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -420,7 +537,15 @@ export type MatchUpdateInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -440,7 +565,15 @@ export type MatchUncheckedUpdateInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -457,7 +590,15 @@ export type MatchCreateManyInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -470,7 +611,15 @@ export type MatchUpdateManyMutationInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -486,7 +635,15 @@ export type MatchUncheckedUpdateManyInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -504,6 +661,13 @@ export type MatchOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type MatchSeasonIdWeekNumberTrackSlotIndexCompoundUniqueInput = {
+  seasonId: string
+  weekNumber: number
+  track: $Enums.Track
+  slotIndex: number
+}
+
 export type MatchCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   seasonId?: Prisma.SortOrder
@@ -513,6 +677,14 @@ export type MatchCountOrderByAggregateInput = {
   bestOf?: Prisma.SortOrder
   weekNumber?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
+  scheduleStatus?: Prisma.SortOrder
+  slotIndex?: Prisma.SortOrder
+  proposedScheduledAt?: Prisma.SortOrder
+  proposedByUserId?: Prisma.SortOrder
+  proposedByTeamId?: Prisma.SortOrder
+  proposedAt?: Prisma.SortOrder
+  confirmedByUserId?: Prisma.SortOrder
+  confirmedAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
   homeScore?: Prisma.SortOrder
   awayScore?: Prisma.SortOrder
@@ -523,6 +695,7 @@ export type MatchCountOrderByAggregateInput = {
 export type MatchAvgOrderByAggregateInput = {
   bestOf?: Prisma.SortOrder
   weekNumber?: Prisma.SortOrder
+  slotIndex?: Prisma.SortOrder
   homeScore?: Prisma.SortOrder
   awayScore?: Prisma.SortOrder
 }
@@ -536,6 +709,14 @@ export type MatchMaxOrderByAggregateInput = {
   bestOf?: Prisma.SortOrder
   weekNumber?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
+  scheduleStatus?: Prisma.SortOrder
+  slotIndex?: Prisma.SortOrder
+  proposedScheduledAt?: Prisma.SortOrder
+  proposedByUserId?: Prisma.SortOrder
+  proposedByTeamId?: Prisma.SortOrder
+  proposedAt?: Prisma.SortOrder
+  confirmedByUserId?: Prisma.SortOrder
+  confirmedAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
   homeScore?: Prisma.SortOrder
   awayScore?: Prisma.SortOrder
@@ -552,6 +733,14 @@ export type MatchMinOrderByAggregateInput = {
   bestOf?: Prisma.SortOrder
   weekNumber?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
+  scheduleStatus?: Prisma.SortOrder
+  slotIndex?: Prisma.SortOrder
+  proposedScheduledAt?: Prisma.SortOrder
+  proposedByUserId?: Prisma.SortOrder
+  proposedByTeamId?: Prisma.SortOrder
+  proposedAt?: Prisma.SortOrder
+  confirmedByUserId?: Prisma.SortOrder
+  confirmedAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
   homeScore?: Prisma.SortOrder
   awayScore?: Prisma.SortOrder
@@ -562,6 +751,7 @@ export type MatchMinOrderByAggregateInput = {
 export type MatchSumOrderByAggregateInput = {
   bestOf?: Prisma.SortOrder
   weekNumber?: Prisma.SortOrder
+  slotIndex?: Prisma.SortOrder
   homeScore?: Prisma.SortOrder
   awayScore?: Prisma.SortOrder
 }
@@ -705,16 +895,16 @@ export type IntFieldUpdateOperationsInput = {
   divide?: number
 }
 
-export type EnumMatchStatusFieldUpdateOperationsInput = {
-  set?: $Enums.MatchStatus
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
+export type EnumMatchScheduleStatusFieldUpdateOperationsInput = {
+  set?: $Enums.MatchScheduleStatus
+}
+
+export type EnumMatchStatusFieldUpdateOperationsInput = {
+  set?: $Enums.MatchStatus
 }
 
 export type MatchCreateNestedOneWithoutMarketsInput = {
@@ -736,7 +926,15 @@ export type MatchCreateWithoutHomeTeamInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -754,7 +952,15 @@ export type MatchUncheckedCreateWithoutHomeTeamInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -777,7 +983,15 @@ export type MatchCreateWithoutAwayTeamInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -795,7 +1009,15 @@ export type MatchUncheckedCreateWithoutAwayTeamInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -840,7 +1062,15 @@ export type MatchScalarWhereInput = {
   track?: Prisma.EnumTrackFilter<"Match"> | $Enums.Track
   bestOf?: Prisma.IntFilter<"Match"> | number
   weekNumber?: Prisma.IntFilter<"Match"> | number
-  scheduledAt?: Prisma.DateTimeFilter<"Match"> | Date | string
+  scheduledAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFilter<"Match"> | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.IntNullableFilter<"Match"> | number | null
+  proposedScheduledAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  proposedByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
+  proposedByTeamId?: Prisma.StringNullableFilter<"Match"> | string | null
+  proposedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  confirmedByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
+  confirmedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
   status?: Prisma.EnumMatchStatusFilter<"Match"> | $Enums.MatchStatus
   homeScore?: Prisma.IntNullableFilter<"Match"> | number | null
   awayScore?: Prisma.IntNullableFilter<"Match"> | number | null
@@ -869,7 +1099,15 @@ export type MatchCreateWithoutSeasonInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -887,7 +1125,15 @@ export type MatchUncheckedCreateWithoutSeasonInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -926,7 +1172,15 @@ export type MatchCreateWithoutMarketsInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -945,7 +1199,15 @@ export type MatchUncheckedCreateWithoutMarketsInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -974,7 +1236,15 @@ export type MatchUpdateWithoutMarketsInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -993,7 +1263,15 @@ export type MatchUncheckedUpdateWithoutMarketsInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1008,7 +1286,15 @@ export type MatchCreateManyHomeTeamInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1023,7 +1309,15 @@ export type MatchCreateManyAwayTeamInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1036,7 +1330,15 @@ export type MatchUpdateWithoutHomeTeamInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1054,7 +1356,15 @@ export type MatchUncheckedUpdateWithoutHomeTeamInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1070,7 +1380,15 @@ export type MatchUncheckedUpdateManyWithoutHomeTeamInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1083,7 +1401,15 @@ export type MatchUpdateWithoutAwayTeamInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1101,7 +1427,15 @@ export type MatchUncheckedUpdateWithoutAwayTeamInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1117,7 +1451,15 @@ export type MatchUncheckedUpdateManyWithoutAwayTeamInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1132,7 +1474,15 @@ export type MatchCreateManySeasonInput = {
   track: $Enums.Track
   bestOf: number
   weekNumber: number
-  scheduledAt: Date | string
+  scheduledAt?: Date | string | null
+  scheduleStatus?: $Enums.MatchScheduleStatus
+  slotIndex?: number | null
+  proposedScheduledAt?: Date | string | null
+  proposedByUserId?: string | null
+  proposedByTeamId?: string | null
+  proposedAt?: Date | string | null
+  confirmedByUserId?: string | null
+  confirmedAt?: Date | string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1145,7 +1495,15 @@ export type MatchUpdateWithoutSeasonInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1163,7 +1521,15 @@ export type MatchUncheckedUpdateWithoutSeasonInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1179,7 +1545,15 @@ export type MatchUncheckedUpdateManyWithoutSeasonInput = {
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   bestOf?: Prisma.IntFieldUpdateOperationsInput | number
   weekNumber?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduleStatus?: Prisma.EnumMatchScheduleStatusFieldUpdateOperationsInput | $Enums.MatchScheduleStatus
+  slotIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proposedScheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  proposedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedByTeamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1227,6 +1601,14 @@ export type MatchSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   bestOf?: boolean
   weekNumber?: boolean
   scheduledAt?: boolean
+  scheduleStatus?: boolean
+  slotIndex?: boolean
+  proposedScheduledAt?: boolean
+  proposedByUserId?: boolean
+  proposedByTeamId?: boolean
+  proposedAt?: boolean
+  confirmedByUserId?: boolean
+  confirmedAt?: boolean
   status?: boolean
   homeScore?: boolean
   awayScore?: boolean
@@ -1248,6 +1630,14 @@ export type MatchSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   bestOf?: boolean
   weekNumber?: boolean
   scheduledAt?: boolean
+  scheduleStatus?: boolean
+  slotIndex?: boolean
+  proposedScheduledAt?: boolean
+  proposedByUserId?: boolean
+  proposedByTeamId?: boolean
+  proposedAt?: boolean
+  confirmedByUserId?: boolean
+  confirmedAt?: boolean
   status?: boolean
   homeScore?: boolean
   awayScore?: boolean
@@ -1267,6 +1657,14 @@ export type MatchSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   bestOf?: boolean
   weekNumber?: boolean
   scheduledAt?: boolean
+  scheduleStatus?: boolean
+  slotIndex?: boolean
+  proposedScheduledAt?: boolean
+  proposedByUserId?: boolean
+  proposedByTeamId?: boolean
+  proposedAt?: boolean
+  confirmedByUserId?: boolean
+  confirmedAt?: boolean
   status?: boolean
   homeScore?: boolean
   awayScore?: boolean
@@ -1286,6 +1684,14 @@ export type MatchSelectScalar = {
   bestOf?: boolean
   weekNumber?: boolean
   scheduledAt?: boolean
+  scheduleStatus?: boolean
+  slotIndex?: boolean
+  proposedScheduledAt?: boolean
+  proposedByUserId?: boolean
+  proposedByTeamId?: boolean
+  proposedAt?: boolean
+  confirmedByUserId?: boolean
+  confirmedAt?: boolean
   status?: boolean
   homeScore?: boolean
   awayScore?: boolean
@@ -1293,7 +1699,7 @@ export type MatchSelectScalar = {
   updatedAt?: boolean
 }
 
-export type MatchOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "seasonId" | "homeTeamId" | "awayTeamId" | "track" | "bestOf" | "weekNumber" | "scheduledAt" | "status" | "homeScore" | "awayScore" | "createdAt" | "updatedAt", ExtArgs["result"]["match"]>
+export type MatchOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "seasonId" | "homeTeamId" | "awayTeamId" | "track" | "bestOf" | "weekNumber" | "scheduledAt" | "scheduleStatus" | "slotIndex" | "proposedScheduledAt" | "proposedByUserId" | "proposedByTeamId" | "proposedAt" | "confirmedByUserId" | "confirmedAt" | "status" | "homeScore" | "awayScore" | "createdAt" | "updatedAt", ExtArgs["result"]["match"]>
 export type MatchInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   season?: boolean | Prisma.SeasonDefaultArgs<ExtArgs>
   homeTeam?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
@@ -1328,7 +1734,15 @@ export type $MatchPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     track: $Enums.Track
     bestOf: number
     weekNumber: number
-    scheduledAt: Date
+    scheduledAt: Date | null
+    scheduleStatus: $Enums.MatchScheduleStatus
+    slotIndex: number | null
+    proposedScheduledAt: Date | null
+    proposedByUserId: string | null
+    proposedByTeamId: string | null
+    proposedAt: Date | null
+    confirmedByUserId: string | null
+    confirmedAt: Date | null
     status: $Enums.MatchStatus
     homeScore: number | null
     awayScore: number | null
@@ -1769,6 +2183,14 @@ export interface MatchFieldRefs {
   readonly bestOf: Prisma.FieldRef<"Match", 'Int'>
   readonly weekNumber: Prisma.FieldRef<"Match", 'Int'>
   readonly scheduledAt: Prisma.FieldRef<"Match", 'DateTime'>
+  readonly scheduleStatus: Prisma.FieldRef<"Match", 'MatchScheduleStatus'>
+  readonly slotIndex: Prisma.FieldRef<"Match", 'Int'>
+  readonly proposedScheduledAt: Prisma.FieldRef<"Match", 'DateTime'>
+  readonly proposedByUserId: Prisma.FieldRef<"Match", 'String'>
+  readonly proposedByTeamId: Prisma.FieldRef<"Match", 'String'>
+  readonly proposedAt: Prisma.FieldRef<"Match", 'DateTime'>
+  readonly confirmedByUserId: Prisma.FieldRef<"Match", 'String'>
+  readonly confirmedAt: Prisma.FieldRef<"Match", 'DateTime'>
   readonly status: Prisma.FieldRef<"Match", 'MatchStatus'>
   readonly homeScore: Prisma.FieldRef<"Match", 'Int'>
   readonly awayScore: Prisma.FieldRef<"Match", 'Int'>

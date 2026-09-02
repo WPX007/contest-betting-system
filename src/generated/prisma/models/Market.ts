@@ -613,10 +613,6 @@ export type EnumMarketStatusFieldUpdateOperationsInput = {
   set?: $Enums.MarketStatus
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type MarketCreateNestedOneWithoutOptionsInput = {
   create?: Prisma.XOR<Prisma.MarketCreateWithoutOptionsInput, Prisma.MarketUncheckedCreateWithoutOptionsInput>
   connectOrCreate?: Prisma.MarketCreateOrConnectWithoutOptionsInput

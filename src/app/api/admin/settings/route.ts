@@ -20,6 +20,16 @@ export async function GET() {
           sixPlus: config.basePool6Plus,
         },
         ticketPoolBonusMultiplier: config.ticketPoolBonusBps / 10_000,
+        weeklyParlayA: {
+          ticket: config.weeklyTicketStake,
+          basePool: config.weeklyBasePool,
+          bonusMultiplier: config.weeklyTicketPoolBonusBps / 10_000,
+        },
+        weeklyParlayB: {
+          ticket: config.weeklyBTicketStake,
+          basePool: config.weeklyBBasePool,
+          bonusMultiplier: config.weeklyBTicketPoolBonusBps / 10_000,
+        },
         ratios: {
           returnPercent: (market?.returnRatioBps ?? 2500) / 100,
           recoveryPercent: (market?.recoveryRatioBps ?? 500) / 100,
@@ -51,6 +61,16 @@ export async function PATCH(request: Request) {
         sixPlus: z.number().int().min(0),
       }).optional(),
       ticketPoolBonusMultiplier: z.number().min(0).max(100).optional(),
+      weeklyParlayA: z.object({
+        ticket: z.number().int().positive(),
+        basePool: z.number().int().min(0),
+        bonusMultiplier: z.number().min(0).max(100),
+      }).optional(),
+      weeklyParlayB: z.object({
+        ticket: z.number().int().positive(),
+        basePool: z.number().int().min(0),
+        bonusMultiplier: z.number().min(0).max(100),
+      }).optional(),
       ratios: z.object({
         returnPercent: z.number().min(0).max(100),
         recoveryPercent: z.number().min(0).max(100),
@@ -66,7 +86,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "结算比例合计必须为 100%" }, { status: 400 });
     }
     await prisma.$transaction(async (tx) => {
-      if (input.parlayTicket !== undefined || input.parlayBasePools !== undefined || input.ticketPoolBonusMultiplier !== undefined || input.pointRewards !== undefined) {
+      if (input.parlayTicket !== undefined || input.parlayBasePools !== undefined || input.ticketPoolBonusMultiplier !== undefined || input.weeklyParlayA !== undefined || input.weeklyParlayB !== undefined || input.pointRewards !== undefined) {
         await tx.parlayConfig.update({
           where: { id: "default" },
           data: {
@@ -81,6 +101,16 @@ export async function PATCH(request: Request) {
               ticketPoolBonusBps: Math.round(input.ticketPoolBonusMultiplier * 10_000),
             } : {}),
             ...(input.pointRewards ?? {}),
+            ...(input.weeklyParlayA ? {
+              weeklyTicketStake: input.weeklyParlayA.ticket,
+              weeklyBasePool: input.weeklyParlayA.basePool,
+              weeklyTicketPoolBonusBps: Math.round(input.weeklyParlayA.bonusMultiplier * 10_000),
+            } : {}),
+            ...(input.weeklyParlayB ? {
+              weeklyBTicketStake: input.weeklyParlayB.ticket,
+              weeklyBBasePool: input.weeklyParlayB.basePool,
+              weeklyBTicketPoolBonusBps: Math.round(input.weeklyParlayB.bonusMultiplier * 10_000),
+            } : {}),
           },
         });
       }

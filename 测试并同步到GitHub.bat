@@ -78,7 +78,7 @@ if not defined COMMIT_MESSAGE set "COMMIT_MESSAGE=sync: %date% %time:~0,8%"
 git add -A
 if errorlevel 1 goto :failed
 
-git diff --cached --check
+git diff --cached --check -- . ":(exclude)src/generated/prisma/**"
 if errorlevel 1 (
   echo ERROR: Git found whitespace errors. Nothing was committed.
   goto :failed

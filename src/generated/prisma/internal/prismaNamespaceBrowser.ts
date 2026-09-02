@@ -115,7 +115,8 @@ export const TeamScalarFieldEnum = {
   id: 'id',
   name: 'name',
   track: 'track',
-  allianceKey: 'allianceKey'
+  allianceKey: 'allianceKey',
+  scheduleOrder: 'scheduleOrder'
 } as const
 
 export type TeamScalarFieldEnum = (typeof TeamScalarFieldEnum)[keyof typeof TeamScalarFieldEnum]
@@ -141,6 +142,14 @@ export const MatchScalarFieldEnum = {
   bestOf: 'bestOf',
   weekNumber: 'weekNumber',
   scheduledAt: 'scheduledAt',
+  scheduleStatus: 'scheduleStatus',
+  slotIndex: 'slotIndex',
+  proposedScheduledAt: 'proposedScheduledAt',
+  proposedByUserId: 'proposedByUserId',
+  proposedByTeamId: 'proposedByTeamId',
+  proposedAt: 'proposedAt',
+  confirmedByUserId: 'confirmedByUserId',
+  confirmedAt: 'confirmedAt',
   status: 'status',
   homeScore: 'homeScore',
   awayScore: 'awayScore',
@@ -268,6 +277,12 @@ export const ParlayConfigScalarFieldEnum = {
   smallGameWinPoints: 'smallGameWinPoints',
   allianceGameWinPoints: 'allianceGameWinPoints',
   seriesWinPoints: 'seriesWinPoints',
+  weeklyTicketStake: 'weeklyTicketStake',
+  weeklyBasePool: 'weeklyBasePool',
+  weeklyTicketPoolBonusBps: 'weeklyTicketPoolBonusBps',
+  weeklyBTicketStake: 'weeklyBTicketStake',
+  weeklyBBasePool: 'weeklyBBasePool',
+  weeklyBTicketPoolBonusBps: 'weeklyBTicketPoolBonusBps',
   updatedAt: 'updatedAt'
 } as const
 
@@ -277,6 +292,7 @@ export type ParlayConfigScalarFieldEnum = (typeof ParlayConfigScalarFieldEnum)[k
 export const ParlayRoundScalarFieldEnum = {
   id: 'id',
   dayKey: 'dayKey',
+  scope: 'scope',
   ticketStake: 'ticketStake',
   basePool: 'basePool',
   ticketPoolBonusBps: 'ticketPoolBonusBps',

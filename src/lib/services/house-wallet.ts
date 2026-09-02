@@ -1,5 +1,6 @@
-import { AssetType, BetStatus, LedgerReason, MarketStatus, ParlayRoundStatus, UserRole } from "@/generated/prisma/enums";
+import { AssetType, BetStatus, LedgerReason, MarketStatus, ParlayRoundStatus, ParlayScope, UserRole } from "@/generated/prisma/enums";
 import { Prisma } from "@/generated/prisma/client";
+import { currentCompetitionWeek, weeklyParlayKey } from "@/lib/competition-week";
 import { calculateParlayPool, ticketPoolContribution } from "@/lib/parlay-pool";
 import { prisma } from "@/lib/prisma";
 import { currentShanghaiDayKey, getParlayOffer } from "@/lib/services/parlay-service";
@@ -19,6 +20,7 @@ export type HouseTreasuryDetails = HouseTreasury & {
   marketInjections: Array<{ id: string; amount: number; note: string | null; reference: string; createdAt: string }>;
   parlayRounds: Array<{
     dayKey: string;
+    scope: string;
     status: string;
     marketCount: number;
     entryCount: number;
@@ -175,8 +177,8 @@ export async function getHouseTreasury(): Promise<HouseTreasury> {
     parlayTicketBonus += extra * round._count.entries;
   }
   const todayKey = currentShanghaiDayKey();
-  if (!rounds.some((round) => round.dayKey === todayKey)) {
-    const offer = await getParlayOffer(todayKey);
+  if (!rounds.some((round) => round.scope === ParlayScope.DAILY && round.dayKey === todayKey)) {
+    const offer = await getParlayOffer(ParlayScope.DAILY, todayKey);
     parlayPool += calculateParlayPool({
       basePool: offer.basePool,
       carryover: offer.carryover,
@@ -186,6 +188,22 @@ export async function getHouseTreasury(): Promise<HouseTreasury> {
     });
     const extra = ticketPoolContribution(offer.ticketStake, offer.ticketPoolBonusBps) - offer.ticketStake;
     parlayTicketBonus += extra * offer._count.entries;
+  }
+  for (const weekly of [
+    { scope: ParlayScope.WEEKLY_A, key: weeklyParlayKey(currentCompetitionWeek(), "A") },
+    { scope: ParlayScope.WEEKLY_B, key: weeklyParlayKey(currentCompetitionWeek(), "B") },
+  ]) {
+    if (!rounds.some((round) => round.scope === weekly.scope && round.dayKey === weekly.key)) {
+      const offer = await getParlayOffer(weekly.scope, weekly.key);
+      if (offer.markets.length !== 6 || offer.closesAt <= new Date()) continue;
+      parlayPool += calculateParlayPool({
+        basePool: offer.basePool,
+        carryover: offer.carryover,
+        ticketStake: offer.ticketStake,
+        ticketPoolBonusBps: offer.ticketPoolBonusBps,
+        entryCount: offer._count.entries,
+      });
+    }
   }
   return {
     rake,
@@ -225,6 +243,7 @@ export async function getHouseTreasuryDetails(): Promise<HouseTreasuryDetails> {
     const ticketContribution = ticketPoolContribution(round.ticketStake, round.ticketPoolBonusBps);
     return {
       dayKey: round.dayKey,
+      scope: round.scope,
       status: round.status,
       marketCount: round.markets.length,
       entryCount: round._count.entries,
@@ -244,11 +263,12 @@ export async function getHouseTreasuryDetails(): Promise<HouseTreasuryDetails> {
     };
   });
   const todayKey = currentShanghaiDayKey();
-  if (!parlayRounds.some((round) => round.dayKey === todayKey)) {
-    const offer = await getParlayOffer(todayKey);
+  if (!parlayRounds.some((round) => round.scope === ParlayScope.DAILY && round.dayKey === todayKey)) {
+    const offer = await getParlayOffer(ParlayScope.DAILY, todayKey);
     const ticketContribution = ticketPoolContribution(offer.ticketStake, offer.ticketPoolBonusBps);
     parlayRounds.push({
       dayKey: offer.dayKey,
+      scope: offer.scope,
       status: offer.status,
       marketCount: offer.markets.length,
       entryCount: offer._count.entries,
@@ -266,6 +286,36 @@ export async function getHouseTreasuryDetails(): Promise<HouseTreasuryDetails> {
       }),
       closesAt: offer.closesAt.toISOString(),
     });
+  }
+  for (const weekly of [
+    { scope: ParlayScope.WEEKLY_A, key: weeklyParlayKey(currentCompetitionWeek(), "A") },
+    { scope: ParlayScope.WEEKLY_B, key: weeklyParlayKey(currentCompetitionWeek(), "B") },
+  ]) {
+    if (!parlayRounds.some((round) => round.scope === weekly.scope && round.dayKey === weekly.key)) {
+      const offer = await getParlayOffer(weekly.scope, weekly.key);
+      if (offer.markets.length !== 6 || offer.closesAt <= new Date()) continue;
+      const ticketContribution = ticketPoolContribution(offer.ticketStake, offer.ticketPoolBonusBps);
+      parlayRounds.push({
+        dayKey: offer.dayKey,
+        scope: offer.scope,
+        status: offer.status,
+        marketCount: offer.markets.length,
+        entryCount: offer._count.entries,
+        basePool: offer.basePool,
+        carryover: offer.carryover,
+        ticketStake: offer.ticketStake,
+        ticketContribution,
+        ticketBonus: 0,
+        pool: calculateParlayPool({
+          basePool: offer.basePool,
+          carryover: offer.carryover,
+          ticketStake: offer.ticketStake,
+          ticketPoolBonusBps: offer.ticketPoolBonusBps,
+          entryCount: offer._count.entries,
+        }),
+        closesAt: offer.closesAt.toISOString(),
+      });
+    }
   }
   return {
     ...treasury,

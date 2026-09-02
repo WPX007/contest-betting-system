@@ -10,6 +10,7 @@ export async function GET() {
     return NextResponse.json({
       data: entries.map((entry) => ({
         id: entry.id,
+        scope: entry.round.scope,
         dayKey: entry.round.dayKey,
         stake: entry.stake,
         status: entry.status,

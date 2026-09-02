@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { ParlayScope } from "@/generated/prisma/enums";
 import { authErrorResponse, requireUser } from "@/lib/auth/session";
 import { calculateParlayPool, ticketPoolContribution } from "@/lib/parlay-pool";
 import { getParlayOffer, joinParlay } from "@/lib/services/parlay-service";
@@ -7,6 +8,7 @@ import { getParlayOffer, joinParlay } from "@/lib/services/parlay-service";
 function offerView(offer: Awaited<ReturnType<typeof getParlayOffer>>) {
   return {
     id: offer.id,
+    scope: offer.scope,
     dayKey: offer.dayKey,
     ticketStake: offer.ticketStake,
     basePool: offer.basePool,
@@ -27,7 +29,10 @@ function offerView(offer: Awaited<ReturnType<typeof getParlayOffer>>) {
       position,
       id: market.id,
       matchup: `${market.match.homeTeam.name} vs ${market.match.awayTeam.name}`,
-      time: market.match.scheduledAt.toISOString(),
+      home: market.match.homeTeam.name,
+      away: market.match.awayTeam.name,
+      track: market.match.track,
+      scheduledAt: market.match.scheduledAt?.toISOString() ?? null,
       status: market.status,
       options: market.options.map((option) => ({ id: option.id, label: option.label })),
     })),
@@ -37,8 +42,14 @@ function offerView(offer: Awaited<ReturnType<typeof getParlayOffer>>) {
 export async function GET(request: Request) {
   try {
     await requireUser();
-    const dayKey = new URL(request.url).searchParams.get("day") ?? undefined;
-    return NextResponse.json({ data: offerView(await getParlayOffer(dayKey)) });
+    const params = new URL(request.url).searchParams;
+    const scope = params.get("scope") === "weekly_a"
+      ? ParlayScope.WEEKLY_A
+      : params.get("scope") === "weekly_b"
+        ? ParlayScope.WEEKLY_B
+        : ParlayScope.DAILY;
+    const dayKey = params.get("period") ?? params.get("day") ?? undefined;
+    return NextResponse.json({ data: offerView(await getParlayOffer(scope, dayKey)) });
   } catch (error) {
     const authError = authErrorResponse(error);
     if (authError) return NextResponse.json({ error: authError.message }, { status: authError.status });

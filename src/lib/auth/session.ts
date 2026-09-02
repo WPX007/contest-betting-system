@@ -85,6 +85,14 @@ export async function requireAdmin() {
   return user;
 }
 
+export async function requireCaptain() {
+  const user = await requireUser();
+  if (user.role !== UserRole.CAPTAIN || !user.teamId) {
+    throw new AuthorizationError("只有对阵双方的队长可以设置或确认比赛时间");
+  }
+  return user;
+}
+
 export function authErrorResponse(error: unknown) {
   if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
     return { status: error.status, message: error.message };

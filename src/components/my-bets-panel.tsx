@@ -22,6 +22,7 @@ export type BetOrder = {
 
 export type ParlayOrder = {
   id: string;
+  scope: "DAILY" | "WEEKLY" | "WEEKLY_A" | "WEEKLY_B";
   dayKey: string;
   stake: number;
   status: string;
@@ -33,6 +34,13 @@ export type ParlayOrder = {
 };
 
 const money = new Intl.NumberFormat("zh-CN");
+const parlayTitle = (order: ParlayOrder) => order.scope === "WEEKLY_A"
+  ? `第 ${order.dayKey.match(/\d+/)?.[0] ?? ""} 周 A 组过关`
+  : order.scope === "WEEKLY_B"
+    ? `第 ${order.dayKey.match(/\d+/)?.[0] ?? ""} 周 B 组过关`
+    : order.scope === "WEEKLY"
+      ? `第 ${order.dayKey.match(/\d+/)?.[0] ?? ""} 周过关`
+      : `${order.dayKey} 今日过关`;
 
 export function MyBetsPanel({ bets, parlays, loading }: { bets: BetOrder[]; parlays: ParlayOrder[]; loading: boolean }) {
   const [kind, setKind] = useState<"SINGLE" | "PARLAY">("SINGLE");
@@ -43,7 +51,7 @@ export function MyBetsPanel({ bets, parlays, loading }: { bets: BetOrder[]; parl
       {bets.map((bet) => <div className="tr" key={bet.id}><span><strong>{bet.matchup}</strong><small>第 {bet.week} 周 · {bet.optionLabel} · {new Date(bet.createdAt).toLocaleString("zh-CN", { hour12: false })}</small></span><span>{money.format(bet.stake)}<small>受理 {bet.acceptedOdds.toFixed(2)}×</small></span><span><b className={`status ${bet.status === "SETTLED" ? "settled" : "open"}`}>{orderStatus(bet)}</b><small>{bet.score ?? ""}</small></span><span className={(bet.payout ?? 0) > 0 ? "positive" : ""}>{bet.payout === null ? "—" : `+${money.format(bet.payout)}`}</span></div>)}
       {!loading && bets.length === 0 && <div className="order-empty">暂无单场竞猜订单</div>}
     </div> : <div className="parlay-order-list">
-      {parlays.map((order) => <article className="parlay-order-card" key={order.id}><header><div><strong>{order.dayKey} 过关竞猜</strong><small>{new Date(order.createdAt).toLocaleString("zh-CN", { hour12: false })}</small></div><b className={`entry-status-${order.status.toLowerCase()}`}>{order.status === "ACTIVE" ? "进行中" : order.status === "WON" ? "闯关成功" : order.status === "LOST" ? "闯关失败" : "已退款"}</b></header><div>{order.legs.map((leg, index) => <p className={`leg-status-${leg.status.toLowerCase()}`} key={leg.id}><span>{index + 1}. {leg.matchup}</span><strong>{leg.optionLabel}</strong><em>{leg.status === "PENDING" ? "待赛果" : leg.status === "WON" ? "命中" : "未命中"}</em></p>)}</div><footer><span>门票 {money.format(order.stake)} · 截止 {new Date(order.closesAt).toLocaleString("zh-CN", { hour12: false })}</span><strong>{order.payout ? `到账 ${money.format(order.payout)}` : `奖池 ${money.format(order.pool)}`}</strong></footer></article>)}
+      {parlays.map((order) => <article className="parlay-order-card" key={order.id}><header><div><strong>{parlayTitle(order)}</strong><small>{new Date(order.createdAt).toLocaleString("zh-CN", { hour12: false })}</small></div><b className={`entry-status-${order.status.toLowerCase()}`}>{order.status === "ACTIVE" ? "进行中" : order.status === "WON" ? "闯关成功" : order.status === "LOST" ? "闯关失败" : "已退款"}</b></header><div>{order.legs.map((leg, index) => <p className={`leg-status-${leg.status.toLowerCase()}`} key={leg.id}><span>{index + 1}. {leg.matchup}</span><strong>{leg.optionLabel}</strong><em>{leg.status === "PENDING" ? "待赛果" : leg.status === "WON" ? "命中" : "未命中"}</em></p>)}</div><footer><span>门票 {money.format(order.stake)} · 截止 {new Date(order.closesAt).toLocaleString("zh-CN", { hour12: false })}</span><strong>{order.payout ? `到账 ${money.format(order.payout)}` : `奖池 ${money.format(order.pool)}`}</strong></footer></article>)}
       {!loading && parlays.length === 0 && <div className="order-empty">暂无过关竞猜订单</div>}
     </div>}
   </section>;

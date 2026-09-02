@@ -32,6 +32,7 @@ export async function GET() {
     return NextResponse.json({
       data: rounds.map((round) => ({
         id: round.id,
+        scope: round.scope,
         dayKey: round.dayKey,
         status: round.status,
         ticketStake: round.ticketStake,

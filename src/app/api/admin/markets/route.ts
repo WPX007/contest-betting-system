@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { LedgerReason, MarketStatus, MatchStatus, Track } from "@/generated/prisma/enums";
+import { LedgerReason, MatchScheduleStatus, MarketStatus, MatchStatus, Track } from "@/generated/prisma/enums";
 import { authErrorResponse, requireAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { debitHouseWallet } from "@/lib/services/house-wallet";
 import { listMarkets } from "@/lib/services/market-service";
+import { adminRescheduleMatch } from "@/lib/services/match-schedule-service";
 import { refundMarket, settleMarket } from "@/lib/services/settlement-service";
 
 const createSchema = z.object({
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
   try {
     const admin = await requireAdmin();
     const input = createSchema.parse(await request.json());
+    if (input.week <= 11) throw new Error("前 11 周为固定对阵，请由双方队长确认比赛时间");
     if (input.homeTeamId === input.awayTeamId) throw new Error("主队和客队不能相同");
     const [home, away] = await Promise.all([
       prisma.team.findUniqueOrThrow({ where: { id: input.homeTeamId } }),
@@ -47,6 +49,7 @@ export async function POST(request: Request) {
           bestOf: 2,
           weekNumber: input.week,
           scheduledAt,
+          scheduleStatus: MatchScheduleStatus.CONFIRMED,
           status: MatchStatus.SCHEDULED,
         },
       });
@@ -182,8 +185,14 @@ export async function PATCH(request: Request) {
       });
       return NextResponse.json({ data: result });
     }
+    if (action === "RESCHEDULE") {
+      const input = z.object({ matchId: z.string().min(1), scheduledAt: z.string().datetime() }).parse(body);
+      await adminRescheduleMatch(admin.id, input.matchId, new Date(input.scheduledAt));
+      return NextResponse.json({ data: { rescheduled: true } });
+    }
     if (action === "CONFIGURE") {
       const input = createSchema.extend({ marketId: z.string() }).parse(body);
+      if (input.week <= 11) throw new Error("前 11 周固定对阵不可修改；已确认时间请使用管理员改时");
       const activeBets = await prisma.bet.count({ where: { marketId: input.marketId, status: "ACTIVE" } });
       if (activeBets > 0) await refundMarket(input.marketId, "比赛重新配置，原订单退款");
       const [home, away, market] = await Promise.all([
@@ -195,7 +204,7 @@ export async function PATCH(request: Request) {
       await prisma.$transaction([
         prisma.match.update({
           where: { id: market.matchId },
-          data: { weekNumber: input.week, track: input.track as Track, homeTeamId: home.id, awayTeamId: away.id, scheduledAt, status: MatchStatus.SCHEDULED, homeScore: null, awayScore: null },
+          data: { weekNumber: input.week, track: input.track as Track, homeTeamId: home.id, awayTeamId: away.id, scheduledAt, scheduleStatus: MatchScheduleStatus.CONFIRMED, status: MatchStatus.SCHEDULED, homeScore: null, awayScore: null },
         }),
         prisma.market.update({
           where: { id: market.id },

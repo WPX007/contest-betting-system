@@ -12,6 +12,7 @@ import {
 } from "../src/generated/prisma/client";
 import { getMarketsForWeek } from "../src/lib/demo-data";
 import { hashPassword } from "../src/lib/auth/password";
+import { ensureFixedRegularSeasonSchedule } from "../src/lib/services/fixed-schedule-service";
 
 const prisma = new PrismaClient({
   adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./dev.db" }),
@@ -23,14 +24,15 @@ async function main() {
     select: { id: true },
   });
   if (importedTeam) {
-    console.log("Imported real roster detected; skipped all demo teams, users, matches and orders.");
+    const schedule = await ensureFixedRegularSeasonSchedule(prisma);
+    console.log(`Imported real roster detected; skipped demo data and created ${schedule.created} missing fixed matches.`);
     return;
   }
 
   const season = await prisma.season.upsert({
     where: { id: "season-2026" },
-    update: { startsAt: new Date("2026-07-27T00:00:00+08:00"), endsAt: new Date("2026-11-08T23:59:59+08:00") },
-    create: { id: "season-2026", name: "2026–2027 内部策划赛", startsAt: new Date("2026-07-27T00:00:00+08:00"), endsAt: new Date("2026-11-08T23:59:59+08:00") },
+    update: { name: "2027年“策划杯”秋季赛", startsAt: new Date("2026-07-27T00:00:00+08:00"), endsAt: new Date("2026-11-08T23:59:59+08:00") },
+    create: { id: "season-2026", name: "2027年“策划杯”秋季赛", startsAt: new Date("2026-07-27T00:00:00+08:00"), endsAt: new Date("2026-11-08T23:59:59+08:00") },
   });
 
   for (let index = 1; index <= 12; index += 1) {
@@ -160,6 +162,12 @@ async function main() {
       basePool5: 50_000,
       basePool6Plus: 50_000,
       ticketPoolBonusBps: 5_000,
+      weeklyTicketStake: 100,
+      weeklyBasePool: 12_000,
+      weeklyTicketPoolBonusBps: 5_000,
+      weeklyBTicketStake: 100,
+      weeklyBBasePool: 12_000,
+      weeklyBTicketPoolBonusBps: 5_000,
     },
   });
 
@@ -236,7 +244,8 @@ async function main() {
     },
   });
 
-  console.log(`Seeded ${season.name}: 24 teams, ${users.length} users, 48 matches and demo orders.`);
+  const schedule = await ensureFixedRegularSeasonSchedule(prisma);
+  console.log(`Seeded ${season.name}: 24 teams, ${users.length} users, and ${schedule.created} missing fixed matches.`);
 }
 
 main()

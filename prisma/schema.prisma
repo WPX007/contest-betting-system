@@ -28,6 +28,12 @@ enum MatchStatus {
   CANCELLED
 }
 
+enum MatchScheduleStatus {
+  UNSET
+  PROPOSED
+  CONFIRMED
+}
+
 enum MarketStatus {
   DRAFT
   OPEN
@@ -77,6 +83,13 @@ enum ParlayRoundStatus {
   CLOSED
   SETTLED
   VOIDED
+}
+
+enum ParlayScope {
+  DAILY
+  WEEKLY
+  WEEKLY_A
+  WEEKLY_B
 }
 
 enum ParlayEntryStatus {
@@ -139,11 +152,13 @@ model Team {
   name        String
   track       Track
   allianceKey String
+  scheduleOrder Int?
   members     User[]
   homeMatches Match[] @relation("HomeTeam")
   awayMatches Match[] @relation("AwayTeam")
 
   @@unique([name, track])
+  @@unique([track, scheduleOrder])
 }
 
 model Season {
@@ -166,8 +181,16 @@ model Match {
   track       Track
   bestOf      Int
   weekNumber  Int
-  scheduledAt DateTime
-  status      MatchStatus @default(SCHEDULED)
+  scheduledAt          DateTime?
+  scheduleStatus       MatchScheduleStatus @default(UNSET)
+  slotIndex            Int?
+  proposedScheduledAt  DateTime?
+  proposedByUserId     String?
+  proposedByTeamId     String?
+  proposedAt           DateTime?
+  confirmedByUserId    String?
+  confirmedAt          DateTime?
+  status               MatchStatus @default(SCHEDULED)
   homeScore   Int?
   awayScore   Int?
   markets     Market[]
@@ -175,6 +198,7 @@ model Match {
   updatedAt   DateTime    @updatedAt
 
   @@index([weekNumber, scheduledAt])
+  @@unique([seasonId, weekNumber, track, slotIndex])
 }
 
 model Market {
@@ -308,12 +332,19 @@ model ParlayConfig {
   smallGameWinPoints     Int      @default(10)
   allianceGameWinPoints  Int      @default(5)
   seriesWinPoints        Int      @default(20)
+  weeklyTicketStake      Int      @default(100)
+  weeklyBasePool         Int      @default(12000)
+  weeklyTicketPoolBonusBps Int    @default(5000)
+  weeklyBTicketStake     Int      @default(100)
+  weeklyBBasePool        Int      @default(12000)
+  weeklyBTicketPoolBonusBps Int   @default(5000)
   updatedAt              DateTime @updatedAt
 }
 
 model ParlayRound {
   id                     String              @id @default(cuid())
-  dayKey                 String              @unique
+  dayKey                 String
+  scope                  ParlayScope         @default(DAILY)
   ticketStake            Int
   basePool               Int
   ticketPoolBonusBps     Int                 @default(0)
@@ -324,6 +355,8 @@ model ParlayRound {
   entries                ParlayEntry[]
   createdAt              DateTime            @default(now())
   settledAt              DateTime?
+
+  @@unique([scope, dayKey])
 }
 
 model ParlayRoundMarket {

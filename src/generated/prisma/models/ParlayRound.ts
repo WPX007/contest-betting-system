@@ -43,6 +43,7 @@ export type ParlayRoundSumAggregateOutputType = {
 export type ParlayRoundMinAggregateOutputType = {
   id: string | null
   dayKey: string | null
+  scope: $Enums.ParlayScope | null
   ticketStake: number | null
   basePool: number | null
   ticketPoolBonusBps: number | null
@@ -56,6 +57,7 @@ export type ParlayRoundMinAggregateOutputType = {
 export type ParlayRoundMaxAggregateOutputType = {
   id: string | null
   dayKey: string | null
+  scope: $Enums.ParlayScope | null
   ticketStake: number | null
   basePool: number | null
   ticketPoolBonusBps: number | null
@@ -69,6 +71,7 @@ export type ParlayRoundMaxAggregateOutputType = {
 export type ParlayRoundCountAggregateOutputType = {
   id: number
   dayKey: number
+  scope: number
   ticketStake: number
   basePool: number
   ticketPoolBonusBps: number
@@ -98,6 +101,7 @@ export type ParlayRoundSumAggregateInputType = {
 export type ParlayRoundMinAggregateInputType = {
   id?: true
   dayKey?: true
+  scope?: true
   ticketStake?: true
   basePool?: true
   ticketPoolBonusBps?: true
@@ -111,6 +115,7 @@ export type ParlayRoundMinAggregateInputType = {
 export type ParlayRoundMaxAggregateInputType = {
   id?: true
   dayKey?: true
+  scope?: true
   ticketStake?: true
   basePool?: true
   ticketPoolBonusBps?: true
@@ -124,6 +129,7 @@ export type ParlayRoundMaxAggregateInputType = {
 export type ParlayRoundCountAggregateInputType = {
   id?: true
   dayKey?: true
+  scope?: true
   ticketStake?: true
   basePool?: true
   ticketPoolBonusBps?: true
@@ -224,6 +230,7 @@ export type ParlayRoundGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 export type ParlayRoundGroupByOutputType = {
   id: string
   dayKey: string
+  scope: $Enums.ParlayScope
   ticketStake: number
   basePool: number
   ticketPoolBonusBps: number
@@ -260,6 +267,7 @@ export type ParlayRoundWhereInput = {
   NOT?: Prisma.ParlayRoundWhereInput | Prisma.ParlayRoundWhereInput[]
   id?: Prisma.StringFilter<"ParlayRound"> | string
   dayKey?: Prisma.StringFilter<"ParlayRound"> | string
+  scope?: Prisma.EnumParlayScopeFilter<"ParlayRound"> | $Enums.ParlayScope
   ticketStake?: Prisma.IntFilter<"ParlayRound"> | number
   basePool?: Prisma.IntFilter<"ParlayRound"> | number
   ticketPoolBonusBps?: Prisma.IntFilter<"ParlayRound"> | number
@@ -275,6 +283,7 @@ export type ParlayRoundWhereInput = {
 export type ParlayRoundOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   dayKey?: Prisma.SortOrder
+  scope?: Prisma.SortOrder
   ticketStake?: Prisma.SortOrder
   basePool?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
@@ -289,10 +298,12 @@ export type ParlayRoundOrderByWithRelationInput = {
 
 export type ParlayRoundWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  dayKey?: string
+  scope_dayKey?: Prisma.ParlayRoundScopeDayKeyCompoundUniqueInput
   AND?: Prisma.ParlayRoundWhereInput | Prisma.ParlayRoundWhereInput[]
   OR?: Prisma.ParlayRoundWhereInput[]
   NOT?: Prisma.ParlayRoundWhereInput | Prisma.ParlayRoundWhereInput[]
+  dayKey?: Prisma.StringFilter<"ParlayRound"> | string
+  scope?: Prisma.EnumParlayScopeFilter<"ParlayRound"> | $Enums.ParlayScope
   ticketStake?: Prisma.IntFilter<"ParlayRound"> | number
   basePool?: Prisma.IntFilter<"ParlayRound"> | number
   ticketPoolBonusBps?: Prisma.IntFilter<"ParlayRound"> | number
@@ -303,11 +314,12 @@ export type ParlayRoundWhereUniqueInput = Prisma.AtLeast<{
   settledAt?: Prisma.DateTimeNullableFilter<"ParlayRound"> | Date | string | null
   markets?: Prisma.ParlayRoundMarketListRelationFilter
   entries?: Prisma.ParlayEntryListRelationFilter
-}, "id" | "dayKey">
+}, "id" | "scope_dayKey">
 
 export type ParlayRoundOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   dayKey?: Prisma.SortOrder
+  scope?: Prisma.SortOrder
   ticketStake?: Prisma.SortOrder
   basePool?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
@@ -329,6 +341,7 @@ export type ParlayRoundScalarWhereWithAggregatesInput = {
   NOT?: Prisma.ParlayRoundScalarWhereWithAggregatesInput | Prisma.ParlayRoundScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"ParlayRound"> | string
   dayKey?: Prisma.StringWithAggregatesFilter<"ParlayRound"> | string
+  scope?: Prisma.EnumParlayScopeWithAggregatesFilter<"ParlayRound"> | $Enums.ParlayScope
   ticketStake?: Prisma.IntWithAggregatesFilter<"ParlayRound"> | number
   basePool?: Prisma.IntWithAggregatesFilter<"ParlayRound"> | number
   ticketPoolBonusBps?: Prisma.IntWithAggregatesFilter<"ParlayRound"> | number
@@ -342,6 +355,7 @@ export type ParlayRoundScalarWhereWithAggregatesInput = {
 export type ParlayRoundCreateInput = {
   id?: string
   dayKey: string
+  scope?: $Enums.ParlayScope
   ticketStake: number
   basePool: number
   ticketPoolBonusBps?: number
@@ -357,6 +371,7 @@ export type ParlayRoundCreateInput = {
 export type ParlayRoundUncheckedCreateInput = {
   id?: string
   dayKey: string
+  scope?: $Enums.ParlayScope
   ticketStake: number
   basePool: number
   ticketPoolBonusBps?: number
@@ -372,6 +387,7 @@ export type ParlayRoundUncheckedCreateInput = {
 export type ParlayRoundUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   dayKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scope?: Prisma.EnumParlayScopeFieldUpdateOperationsInput | $Enums.ParlayScope
   ticketStake?: Prisma.IntFieldUpdateOperationsInput | number
   basePool?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
@@ -387,6 +403,7 @@ export type ParlayRoundUpdateInput = {
 export type ParlayRoundUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   dayKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scope?: Prisma.EnumParlayScopeFieldUpdateOperationsInput | $Enums.ParlayScope
   ticketStake?: Prisma.IntFieldUpdateOperationsInput | number
   basePool?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
@@ -402,6 +419,7 @@ export type ParlayRoundUncheckedUpdateInput = {
 export type ParlayRoundCreateManyInput = {
   id?: string
   dayKey: string
+  scope?: $Enums.ParlayScope
   ticketStake: number
   basePool: number
   ticketPoolBonusBps?: number
@@ -415,6 +433,7 @@ export type ParlayRoundCreateManyInput = {
 export type ParlayRoundUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   dayKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scope?: Prisma.EnumParlayScopeFieldUpdateOperationsInput | $Enums.ParlayScope
   ticketStake?: Prisma.IntFieldUpdateOperationsInput | number
   basePool?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
@@ -428,6 +447,7 @@ export type ParlayRoundUpdateManyMutationInput = {
 export type ParlayRoundUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   dayKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scope?: Prisma.EnumParlayScopeFieldUpdateOperationsInput | $Enums.ParlayScope
   ticketStake?: Prisma.IntFieldUpdateOperationsInput | number
   basePool?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
@@ -438,9 +458,15 @@ export type ParlayRoundUncheckedUpdateManyInput = {
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
+export type ParlayRoundScopeDayKeyCompoundUniqueInput = {
+  scope: $Enums.ParlayScope
+  dayKey: string
+}
+
 export type ParlayRoundCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   dayKey?: Prisma.SortOrder
+  scope?: Prisma.SortOrder
   ticketStake?: Prisma.SortOrder
   basePool?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
@@ -461,6 +487,7 @@ export type ParlayRoundAvgOrderByAggregateInput = {
 export type ParlayRoundMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   dayKey?: Prisma.SortOrder
+  scope?: Prisma.SortOrder
   ticketStake?: Prisma.SortOrder
   basePool?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
@@ -474,6 +501,7 @@ export type ParlayRoundMaxOrderByAggregateInput = {
 export type ParlayRoundMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   dayKey?: Prisma.SortOrder
+  scope?: Prisma.SortOrder
   ticketStake?: Prisma.SortOrder
   basePool?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
@@ -494,6 +522,10 @@ export type ParlayRoundSumOrderByAggregateInput = {
 export type ParlayRoundScalarRelationFilter = {
   is?: Prisma.ParlayRoundWhereInput
   isNot?: Prisma.ParlayRoundWhereInput
+}
+
+export type EnumParlayScopeFieldUpdateOperationsInput = {
+  set?: $Enums.ParlayScope
 }
 
 export type EnumParlayRoundStatusFieldUpdateOperationsInput = {
@@ -531,6 +563,7 @@ export type ParlayRoundUpdateOneRequiredWithoutEntriesNestedInput = {
 export type ParlayRoundCreateWithoutMarketsInput = {
   id?: string
   dayKey: string
+  scope?: $Enums.ParlayScope
   ticketStake: number
   basePool: number
   ticketPoolBonusBps?: number
@@ -545,6 +578,7 @@ export type ParlayRoundCreateWithoutMarketsInput = {
 export type ParlayRoundUncheckedCreateWithoutMarketsInput = {
   id?: string
   dayKey: string
+  scope?: $Enums.ParlayScope
   ticketStake: number
   basePool: number
   ticketPoolBonusBps?: number
@@ -575,6 +609,7 @@ export type ParlayRoundUpdateToOneWithWhereWithoutMarketsInput = {
 export type ParlayRoundUpdateWithoutMarketsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   dayKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scope?: Prisma.EnumParlayScopeFieldUpdateOperationsInput | $Enums.ParlayScope
   ticketStake?: Prisma.IntFieldUpdateOperationsInput | number
   basePool?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
@@ -589,6 +624,7 @@ export type ParlayRoundUpdateWithoutMarketsInput = {
 export type ParlayRoundUncheckedUpdateWithoutMarketsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   dayKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scope?: Prisma.EnumParlayScopeFieldUpdateOperationsInput | $Enums.ParlayScope
   ticketStake?: Prisma.IntFieldUpdateOperationsInput | number
   basePool?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
@@ -603,6 +639,7 @@ export type ParlayRoundUncheckedUpdateWithoutMarketsInput = {
 export type ParlayRoundCreateWithoutEntriesInput = {
   id?: string
   dayKey: string
+  scope?: $Enums.ParlayScope
   ticketStake: number
   basePool: number
   ticketPoolBonusBps?: number
@@ -617,6 +654,7 @@ export type ParlayRoundCreateWithoutEntriesInput = {
 export type ParlayRoundUncheckedCreateWithoutEntriesInput = {
   id?: string
   dayKey: string
+  scope?: $Enums.ParlayScope
   ticketStake: number
   basePool: number
   ticketPoolBonusBps?: number
@@ -647,6 +685,7 @@ export type ParlayRoundUpdateToOneWithWhereWithoutEntriesInput = {
 export type ParlayRoundUpdateWithoutEntriesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   dayKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scope?: Prisma.EnumParlayScopeFieldUpdateOperationsInput | $Enums.ParlayScope
   ticketStake?: Prisma.IntFieldUpdateOperationsInput | number
   basePool?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
@@ -661,6 +700,7 @@ export type ParlayRoundUpdateWithoutEntriesInput = {
 export type ParlayRoundUncheckedUpdateWithoutEntriesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   dayKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scope?: Prisma.EnumParlayScopeFieldUpdateOperationsInput | $Enums.ParlayScope
   ticketStake?: Prisma.IntFieldUpdateOperationsInput | number
   basePool?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
@@ -715,6 +755,7 @@ export type ParlayRoundCountOutputTypeCountEntriesArgs<ExtArgs extends runtime.T
 export type ParlayRoundSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   dayKey?: boolean
+  scope?: boolean
   ticketStake?: boolean
   basePool?: boolean
   ticketPoolBonusBps?: boolean
@@ -731,6 +772,7 @@ export type ParlayRoundSelect<ExtArgs extends runtime.Types.Extensions.InternalA
 export type ParlayRoundSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   dayKey?: boolean
+  scope?: boolean
   ticketStake?: boolean
   basePool?: boolean
   ticketPoolBonusBps?: boolean
@@ -744,6 +786,7 @@ export type ParlayRoundSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
 export type ParlayRoundSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   dayKey?: boolean
+  scope?: boolean
   ticketStake?: boolean
   basePool?: boolean
   ticketPoolBonusBps?: boolean
@@ -757,6 +800,7 @@ export type ParlayRoundSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
 export type ParlayRoundSelectScalar = {
   id?: boolean
   dayKey?: boolean
+  scope?: boolean
   ticketStake?: boolean
   basePool?: boolean
   ticketPoolBonusBps?: boolean
@@ -767,7 +811,7 @@ export type ParlayRoundSelectScalar = {
   settledAt?: boolean
 }
 
-export type ParlayRoundOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "dayKey" | "ticketStake" | "basePool" | "ticketPoolBonusBps" | "carryover" | "closesAt" | "status" | "createdAt" | "settledAt", ExtArgs["result"]["parlayRound"]>
+export type ParlayRoundOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "dayKey" | "scope" | "ticketStake" | "basePool" | "ticketPoolBonusBps" | "carryover" | "closesAt" | "status" | "createdAt" | "settledAt", ExtArgs["result"]["parlayRound"]>
 export type ParlayRoundInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   markets?: boolean | Prisma.ParlayRound$marketsArgs<ExtArgs>
   entries?: boolean | Prisma.ParlayRound$entriesArgs<ExtArgs>
@@ -785,6 +829,7 @@ export type $ParlayRoundPayload<ExtArgs extends runtime.Types.Extensions.Interna
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     dayKey: string
+    scope: $Enums.ParlayScope
     ticketStake: number
     basePool: number
     ticketPoolBonusBps: number
@@ -1220,6 +1265,7 @@ export interface Prisma__ParlayRoundClient<T, Null = never, ExtArgs extends runt
 export interface ParlayRoundFieldRefs {
   readonly id: Prisma.FieldRef<"ParlayRound", 'String'>
   readonly dayKey: Prisma.FieldRef<"ParlayRound", 'String'>
+  readonly scope: Prisma.FieldRef<"ParlayRound", 'ParlayScope'>
   readonly ticketStake: Prisma.FieldRef<"ParlayRound", 'Int'>
   readonly basePool: Prisma.FieldRef<"ParlayRound", 'Int'>
   readonly ticketPoolBonusBps: Prisma.FieldRef<"ParlayRound", 'Int'>

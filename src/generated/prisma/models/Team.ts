@@ -20,8 +20,18 @@ export type TeamModel = runtime.Types.Result.DefaultSelection<Prisma.$TeamPayloa
 
 export type AggregateTeam = {
   _count: TeamCountAggregateOutputType | null
+  _avg: TeamAvgAggregateOutputType | null
+  _sum: TeamSumAggregateOutputType | null
   _min: TeamMinAggregateOutputType | null
   _max: TeamMaxAggregateOutputType | null
+}
+
+export type TeamAvgAggregateOutputType = {
+  scheduleOrder: number | null
+}
+
+export type TeamSumAggregateOutputType = {
+  scheduleOrder: number | null
 }
 
 export type TeamMinAggregateOutputType = {
@@ -29,6 +39,7 @@ export type TeamMinAggregateOutputType = {
   name: string | null
   track: $Enums.Track | null
   allianceKey: string | null
+  scheduleOrder: number | null
 }
 
 export type TeamMaxAggregateOutputType = {
@@ -36,6 +47,7 @@ export type TeamMaxAggregateOutputType = {
   name: string | null
   track: $Enums.Track | null
   allianceKey: string | null
+  scheduleOrder: number | null
 }
 
 export type TeamCountAggregateOutputType = {
@@ -43,15 +55,25 @@ export type TeamCountAggregateOutputType = {
   name: number
   track: number
   allianceKey: number
+  scheduleOrder: number
   _all: number
 }
 
+
+export type TeamAvgAggregateInputType = {
+  scheduleOrder?: true
+}
+
+export type TeamSumAggregateInputType = {
+  scheduleOrder?: true
+}
 
 export type TeamMinAggregateInputType = {
   id?: true
   name?: true
   track?: true
   allianceKey?: true
+  scheduleOrder?: true
 }
 
 export type TeamMaxAggregateInputType = {
@@ -59,6 +81,7 @@ export type TeamMaxAggregateInputType = {
   name?: true
   track?: true
   allianceKey?: true
+  scheduleOrder?: true
 }
 
 export type TeamCountAggregateInputType = {
@@ -66,6 +89,7 @@ export type TeamCountAggregateInputType = {
   name?: true
   track?: true
   allianceKey?: true
+  scheduleOrder?: true
   _all?: true
 }
 
@@ -107,6 +131,18 @@ export type TeamAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: TeamAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: TeamSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: TeamMinAggregateInputType
@@ -137,6 +173,8 @@ export type TeamGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: TeamCountAggregateInputType | true
+  _avg?: TeamAvgAggregateInputType
+  _sum?: TeamSumAggregateInputType
   _min?: TeamMinAggregateInputType
   _max?: TeamMaxAggregateInputType
 }
@@ -146,7 +184,10 @@ export type TeamGroupByOutputType = {
   name: string
   track: $Enums.Track
   allianceKey: string
+  scheduleOrder: number | null
   _count: TeamCountAggregateOutputType | null
+  _avg: TeamAvgAggregateOutputType | null
+  _sum: TeamSumAggregateOutputType | null
   _min: TeamMinAggregateOutputType | null
   _max: TeamMaxAggregateOutputType | null
 }
@@ -174,6 +215,7 @@ export type TeamWhereInput = {
   name?: Prisma.StringFilter<"Team"> | string
   track?: Prisma.EnumTrackFilter<"Team"> | $Enums.Track
   allianceKey?: Prisma.StringFilter<"Team"> | string
+  scheduleOrder?: Prisma.IntNullableFilter<"Team"> | number | null
   members?: Prisma.UserListRelationFilter
   homeMatches?: Prisma.MatchListRelationFilter
   awayMatches?: Prisma.MatchListRelationFilter
@@ -184,6 +226,7 @@ export type TeamOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   track?: Prisma.SortOrder
   allianceKey?: Prisma.SortOrder
+  scheduleOrder?: Prisma.SortOrderInput | Prisma.SortOrder
   members?: Prisma.UserOrderByRelationAggregateInput
   homeMatches?: Prisma.MatchOrderByRelationAggregateInput
   awayMatches?: Prisma.MatchOrderByRelationAggregateInput
@@ -192,25 +235,30 @@ export type TeamOrderByWithRelationInput = {
 export type TeamWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   name_track?: Prisma.TeamNameTrackCompoundUniqueInput
+  track_scheduleOrder?: Prisma.TeamTrackScheduleOrderCompoundUniqueInput
   AND?: Prisma.TeamWhereInput | Prisma.TeamWhereInput[]
   OR?: Prisma.TeamWhereInput[]
   NOT?: Prisma.TeamWhereInput | Prisma.TeamWhereInput[]
   name?: Prisma.StringFilter<"Team"> | string
   track?: Prisma.EnumTrackFilter<"Team"> | $Enums.Track
   allianceKey?: Prisma.StringFilter<"Team"> | string
+  scheduleOrder?: Prisma.IntNullableFilter<"Team"> | number | null
   members?: Prisma.UserListRelationFilter
   homeMatches?: Prisma.MatchListRelationFilter
   awayMatches?: Prisma.MatchListRelationFilter
-}, "id" | "name_track">
+}, "id" | "name_track" | "track_scheduleOrder">
 
 export type TeamOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   track?: Prisma.SortOrder
   allianceKey?: Prisma.SortOrder
+  scheduleOrder?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.TeamCountOrderByAggregateInput
+  _avg?: Prisma.TeamAvgOrderByAggregateInput
   _max?: Prisma.TeamMaxOrderByAggregateInput
   _min?: Prisma.TeamMinOrderByAggregateInput
+  _sum?: Prisma.TeamSumOrderByAggregateInput
 }
 
 export type TeamScalarWhereWithAggregatesInput = {
@@ -221,6 +269,7 @@ export type TeamScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"Team"> | string
   track?: Prisma.EnumTrackWithAggregatesFilter<"Team"> | $Enums.Track
   allianceKey?: Prisma.StringWithAggregatesFilter<"Team"> | string
+  scheduleOrder?: Prisma.IntNullableWithAggregatesFilter<"Team"> | number | null
 }
 
 export type TeamCreateInput = {
@@ -228,6 +277,7 @@ export type TeamCreateInput = {
   name: string
   track: $Enums.Track
   allianceKey: string
+  scheduleOrder?: number | null
   members?: Prisma.UserCreateNestedManyWithoutTeamInput
   homeMatches?: Prisma.MatchCreateNestedManyWithoutHomeTeamInput
   awayMatches?: Prisma.MatchCreateNestedManyWithoutAwayTeamInput
@@ -238,6 +288,7 @@ export type TeamUncheckedCreateInput = {
   name: string
   track: $Enums.Track
   allianceKey: string
+  scheduleOrder?: number | null
   members?: Prisma.UserUncheckedCreateNestedManyWithoutTeamInput
   homeMatches?: Prisma.MatchUncheckedCreateNestedManyWithoutHomeTeamInput
   awayMatches?: Prisma.MatchUncheckedCreateNestedManyWithoutAwayTeamInput
@@ -248,6 +299,7 @@ export type TeamUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   allianceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduleOrder?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   members?: Prisma.UserUpdateManyWithoutTeamNestedInput
   homeMatches?: Prisma.MatchUpdateManyWithoutHomeTeamNestedInput
   awayMatches?: Prisma.MatchUpdateManyWithoutAwayTeamNestedInput
@@ -258,6 +310,7 @@ export type TeamUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   allianceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduleOrder?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   members?: Prisma.UserUncheckedUpdateManyWithoutTeamNestedInput
   homeMatches?: Prisma.MatchUncheckedUpdateManyWithoutHomeTeamNestedInput
   awayMatches?: Prisma.MatchUncheckedUpdateManyWithoutAwayTeamNestedInput
@@ -268,6 +321,7 @@ export type TeamCreateManyInput = {
   name: string
   track: $Enums.Track
   allianceKey: string
+  scheduleOrder?: number | null
 }
 
 export type TeamUpdateManyMutationInput = {
@@ -275,6 +329,7 @@ export type TeamUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   allianceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduleOrder?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type TeamUncheckedUpdateManyInput = {
@@ -282,6 +337,7 @@ export type TeamUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   allianceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduleOrder?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type TeamNullableScalarRelationFilter = {
@@ -294,11 +350,21 @@ export type TeamNameTrackCompoundUniqueInput = {
   track: $Enums.Track
 }
 
+export type TeamTrackScheduleOrderCompoundUniqueInput = {
+  track: $Enums.Track
+  scheduleOrder: number
+}
+
 export type TeamCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   track?: Prisma.SortOrder
   allianceKey?: Prisma.SortOrder
+  scheduleOrder?: Prisma.SortOrder
+}
+
+export type TeamAvgOrderByAggregateInput = {
+  scheduleOrder?: Prisma.SortOrder
 }
 
 export type TeamMaxOrderByAggregateInput = {
@@ -306,6 +372,7 @@ export type TeamMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   track?: Prisma.SortOrder
   allianceKey?: Prisma.SortOrder
+  scheduleOrder?: Prisma.SortOrder
 }
 
 export type TeamMinOrderByAggregateInput = {
@@ -313,6 +380,11 @@ export type TeamMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   track?: Prisma.SortOrder
   allianceKey?: Prisma.SortOrder
+  scheduleOrder?: Prisma.SortOrder
+}
+
+export type TeamSumOrderByAggregateInput = {
+  scheduleOrder?: Prisma.SortOrder
 }
 
 export type TeamScalarRelationFilter = {
@@ -338,6 +410,14 @@ export type TeamUpdateOneWithoutMembersNestedInput = {
 
 export type EnumTrackFieldUpdateOperationsInput = {
   set?: $Enums.Track
+}
+
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
 }
 
 export type TeamCreateNestedOneWithoutHomeMatchesInput = {
@@ -373,6 +453,7 @@ export type TeamCreateWithoutMembersInput = {
   name: string
   track: $Enums.Track
   allianceKey: string
+  scheduleOrder?: number | null
   homeMatches?: Prisma.MatchCreateNestedManyWithoutHomeTeamInput
   awayMatches?: Prisma.MatchCreateNestedManyWithoutAwayTeamInput
 }
@@ -382,6 +463,7 @@ export type TeamUncheckedCreateWithoutMembersInput = {
   name: string
   track: $Enums.Track
   allianceKey: string
+  scheduleOrder?: number | null
   homeMatches?: Prisma.MatchUncheckedCreateNestedManyWithoutHomeTeamInput
   awayMatches?: Prisma.MatchUncheckedCreateNestedManyWithoutAwayTeamInput
 }
@@ -407,6 +489,7 @@ export type TeamUpdateWithoutMembersInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   allianceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduleOrder?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   homeMatches?: Prisma.MatchUpdateManyWithoutHomeTeamNestedInput
   awayMatches?: Prisma.MatchUpdateManyWithoutAwayTeamNestedInput
 }
@@ -416,6 +499,7 @@ export type TeamUncheckedUpdateWithoutMembersInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   allianceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduleOrder?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   homeMatches?: Prisma.MatchUncheckedUpdateManyWithoutHomeTeamNestedInput
   awayMatches?: Prisma.MatchUncheckedUpdateManyWithoutAwayTeamNestedInput
 }
@@ -425,6 +509,7 @@ export type TeamCreateWithoutHomeMatchesInput = {
   name: string
   track: $Enums.Track
   allianceKey: string
+  scheduleOrder?: number | null
   members?: Prisma.UserCreateNestedManyWithoutTeamInput
   awayMatches?: Prisma.MatchCreateNestedManyWithoutAwayTeamInput
 }
@@ -434,6 +519,7 @@ export type TeamUncheckedCreateWithoutHomeMatchesInput = {
   name: string
   track: $Enums.Track
   allianceKey: string
+  scheduleOrder?: number | null
   members?: Prisma.UserUncheckedCreateNestedManyWithoutTeamInput
   awayMatches?: Prisma.MatchUncheckedCreateNestedManyWithoutAwayTeamInput
 }
@@ -448,6 +534,7 @@ export type TeamCreateWithoutAwayMatchesInput = {
   name: string
   track: $Enums.Track
   allianceKey: string
+  scheduleOrder?: number | null
   members?: Prisma.UserCreateNestedManyWithoutTeamInput
   homeMatches?: Prisma.MatchCreateNestedManyWithoutHomeTeamInput
 }
@@ -457,6 +544,7 @@ export type TeamUncheckedCreateWithoutAwayMatchesInput = {
   name: string
   track: $Enums.Track
   allianceKey: string
+  scheduleOrder?: number | null
   members?: Prisma.UserUncheckedCreateNestedManyWithoutTeamInput
   homeMatches?: Prisma.MatchUncheckedCreateNestedManyWithoutHomeTeamInput
 }
@@ -482,6 +570,7 @@ export type TeamUpdateWithoutHomeMatchesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   allianceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduleOrder?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   members?: Prisma.UserUpdateManyWithoutTeamNestedInput
   awayMatches?: Prisma.MatchUpdateManyWithoutAwayTeamNestedInput
 }
@@ -491,6 +580,7 @@ export type TeamUncheckedUpdateWithoutHomeMatchesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   allianceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduleOrder?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   members?: Prisma.UserUncheckedUpdateManyWithoutTeamNestedInput
   awayMatches?: Prisma.MatchUncheckedUpdateManyWithoutAwayTeamNestedInput
 }
@@ -511,6 +601,7 @@ export type TeamUpdateWithoutAwayMatchesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   allianceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduleOrder?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   members?: Prisma.UserUpdateManyWithoutTeamNestedInput
   homeMatches?: Prisma.MatchUpdateManyWithoutHomeTeamNestedInput
 }
@@ -520,6 +611,7 @@ export type TeamUncheckedUpdateWithoutAwayMatchesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   track?: Prisma.EnumTrackFieldUpdateOperationsInput | $Enums.Track
   allianceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduleOrder?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   members?: Prisma.UserUncheckedUpdateManyWithoutTeamNestedInput
   homeMatches?: Prisma.MatchUncheckedUpdateManyWithoutHomeTeamNestedInput
 }
@@ -578,6 +670,7 @@ export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   name?: boolean
   track?: boolean
   allianceKey?: boolean
+  scheduleOrder?: boolean
   members?: boolean | Prisma.Team$membersArgs<ExtArgs>
   homeMatches?: boolean | Prisma.Team$homeMatchesArgs<ExtArgs>
   awayMatches?: boolean | Prisma.Team$awayMatchesArgs<ExtArgs>
@@ -589,6 +682,7 @@ export type TeamSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   name?: boolean
   track?: boolean
   allianceKey?: boolean
+  scheduleOrder?: boolean
 }, ExtArgs["result"]["team"]>
 
 export type TeamSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -596,6 +690,7 @@ export type TeamSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   name?: boolean
   track?: boolean
   allianceKey?: boolean
+  scheduleOrder?: boolean
 }, ExtArgs["result"]["team"]>
 
 export type TeamSelectScalar = {
@@ -603,9 +698,10 @@ export type TeamSelectScalar = {
   name?: boolean
   track?: boolean
   allianceKey?: boolean
+  scheduleOrder?: boolean
 }
 
-export type TeamOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "track" | "allianceKey", ExtArgs["result"]["team"]>
+export type TeamOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "track" | "allianceKey" | "scheduleOrder", ExtArgs["result"]["team"]>
 export type TeamInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   members?: boolean | Prisma.Team$membersArgs<ExtArgs>
   homeMatches?: boolean | Prisma.Team$homeMatchesArgs<ExtArgs>
@@ -627,6 +723,7 @@ export type $TeamPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     name: string
     track: $Enums.Track
     allianceKey: string
+    scheduleOrder: number | null
   }, ExtArgs["result"]["team"]>
   composites: {}
 }
@@ -1057,6 +1154,7 @@ export interface TeamFieldRefs {
   readonly name: Prisma.FieldRef<"Team", 'String'>
   readonly track: Prisma.FieldRef<"Team", 'Track'>
   readonly allianceKey: Prisma.FieldRef<"Team", 'String'>
+  readonly scheduleOrder: Prisma.FieldRef<"Team", 'Int'>
 }
     
 

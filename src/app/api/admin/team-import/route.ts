@@ -4,6 +4,7 @@ import { AssetType, LedgerReason, Track, UserRole } from "@/generated/prisma/enu
 import { hashPassword } from "@/lib/auth/password";
 import { authErrorResponse, requireAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import { ensureFixedRegularSeasonSchedule } from "@/lib/services/fixed-schedule-service";
 import { IMPORT_INITIAL_COINS, parseTeamWorkbook, prepareImportedRoster } from "@/lib/team-import";
 
 export const runtime = "nodejs";
@@ -207,9 +208,11 @@ export async function POST(request: Request) {
 
       await tx.team.deleteMany({});
       const teamRecords: Array<{ id: string; name: string; track: Track; allianceKey: string }> = [];
+      const trackOrder: Record<Track, number> = { [Track.A]: 0, [Track.B]: 0 };
       for (const team of importedTeams) {
+        trackOrder[team.track] += 1;
         const created = await tx.team.create({
-          data: { name: team.name, track: team.track, allianceKey: `solo:pending` },
+          data: { name: team.name, track: team.track, scheduleOrder: trackOrder[team.track], allianceKey: `solo:pending` },
         });
         await tx.team.update({ where: { id: created.id }, data: { allianceKey: `solo:${created.id}` } });
         teamRecords.push(created);
@@ -267,6 +270,7 @@ export async function POST(request: Request) {
         });
       }
 
+      const schedule = await ensureFixedRegularSeasonSchedule(tx);
       await tx.auditLog.create({
         data: {
           actorId: admin.id,
@@ -277,6 +281,7 @@ export async function POST(request: Request) {
             removedUserCount: removedUsers.length,
             allianceGroupCount: liveAlliances.length,
             initialCoins: IMPORT_INITIAL_COINS,
+            fixedMatchesCreated: schedule.created,
           }),
         },
       });
@@ -284,6 +289,7 @@ export async function POST(request: Request) {
       return {
         assignments: createdAssignments,
         alliances: liveAlliances,
+        fixedMatchesCreated: schedule.created,
       };
     }, { timeout: 60_000 });
 
@@ -298,6 +304,7 @@ export async function POST(request: Request) {
           assignmentCount: applied.assignments.length,
           changedAssignmentCount: applied.assignments.length,
           allianceGroupCount: applied.alliances.length,
+          fixedMatchesCreated: applied.fixedMatchesCreated,
         },
       },
     });
