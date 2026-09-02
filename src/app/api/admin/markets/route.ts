@@ -5,7 +5,7 @@ import { authErrorResponse, requireAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { debitHouseWallet } from "@/lib/services/house-wallet";
 import { listMarkets } from "@/lib/services/market-service";
-import { adminRescheduleMatch } from "@/lib/services/match-schedule-service";
+import { adminConfigureMatchPairing, adminRescheduleMatch } from "@/lib/services/match-schedule-service";
 import { refundMarket, settleMarket } from "@/lib/services/settlement-service";
 
 const createSchema = z.object({
@@ -189,6 +189,15 @@ export async function PATCH(request: Request) {
       const input = z.object({ matchId: z.string().min(1), scheduledAt: z.string().datetime() }).parse(body);
       await adminRescheduleMatch(admin.id, input.matchId, new Date(input.scheduledAt));
       return NextResponse.json({ data: { rescheduled: true } });
+    }
+    if (action === "PAIRING") {
+      const input = z.object({
+        matchId: z.string().min(1),
+        homeTeamId: z.string().min(1),
+        awayTeamId: z.string().min(1),
+      }).parse(body);
+      await adminConfigureMatchPairing(admin.id, input.matchId, input.homeTeamId, input.awayTeamId);
+      return NextResponse.json({ data: { configured: true } });
     }
     if (action === "CONFIGURE") {
       const input = createSchema.extend({ marketId: z.string() }).parse(body);

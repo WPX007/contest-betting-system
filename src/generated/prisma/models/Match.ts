@@ -59,6 +59,8 @@ export type MatchMinAggregateOutputType = {
   proposedAt: Date | null
   confirmedByUserId: string | null
   confirmedAt: Date | null
+  pairingConfiguredAt: Date | null
+  pairingConfiguredByUserId: string | null
   status: $Enums.MatchStatus | null
   homeScore: number | null
   awayScore: number | null
@@ -83,6 +85,8 @@ export type MatchMaxAggregateOutputType = {
   proposedAt: Date | null
   confirmedByUserId: string | null
   confirmedAt: Date | null
+  pairingConfiguredAt: Date | null
+  pairingConfiguredByUserId: string | null
   status: $Enums.MatchStatus | null
   homeScore: number | null
   awayScore: number | null
@@ -107,6 +111,8 @@ export type MatchCountAggregateOutputType = {
   proposedAt: number
   confirmedByUserId: number
   confirmedAt: number
+  pairingConfiguredAt: number
+  pairingConfiguredByUserId: number
   status: number
   homeScore: number
   awayScore: number
@@ -149,6 +155,8 @@ export type MatchMinAggregateInputType = {
   proposedAt?: true
   confirmedByUserId?: true
   confirmedAt?: true
+  pairingConfiguredAt?: true
+  pairingConfiguredByUserId?: true
   status?: true
   homeScore?: true
   awayScore?: true
@@ -173,6 +181,8 @@ export type MatchMaxAggregateInputType = {
   proposedAt?: true
   confirmedByUserId?: true
   confirmedAt?: true
+  pairingConfiguredAt?: true
+  pairingConfiguredByUserId?: true
   status?: true
   homeScore?: true
   awayScore?: true
@@ -197,6 +207,8 @@ export type MatchCountAggregateInputType = {
   proposedAt?: true
   confirmedByUserId?: true
   confirmedAt?: true
+  pairingConfiguredAt?: true
+  pairingConfiguredByUserId?: true
   status?: true
   homeScore?: true
   awayScore?: true
@@ -308,6 +320,8 @@ export type MatchGroupByOutputType = {
   proposedAt: Date | null
   confirmedByUserId: string | null
   confirmedAt: Date | null
+  pairingConfiguredAt: Date | null
+  pairingConfiguredByUserId: string | null
   status: $Enums.MatchStatus
   homeScore: number | null
   awayScore: number | null
@@ -355,6 +369,8 @@ export type MatchWhereInput = {
   proposedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
   confirmedByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
   confirmedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  pairingConfiguredAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  pairingConfiguredByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
   status?: Prisma.EnumMatchStatusFilter<"Match"> | $Enums.MatchStatus
   homeScore?: Prisma.IntNullableFilter<"Match"> | number | null
   awayScore?: Prisma.IntNullableFilter<"Match"> | number | null
@@ -383,6 +399,8 @@ export type MatchOrderByWithRelationInput = {
   proposedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   confirmedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   confirmedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  pairingConfiguredAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  pairingConfiguredByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   homeScore?: Prisma.SortOrderInput | Prisma.SortOrder
   awayScore?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -415,6 +433,8 @@ export type MatchWhereUniqueInput = Prisma.AtLeast<{
   proposedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
   confirmedByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
   confirmedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  pairingConfiguredAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  pairingConfiguredByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
   status?: Prisma.EnumMatchStatusFilter<"Match"> | $Enums.MatchStatus
   homeScore?: Prisma.IntNullableFilter<"Match"> | number | null
   awayScore?: Prisma.IntNullableFilter<"Match"> | number | null
@@ -443,6 +463,8 @@ export type MatchOrderByWithAggregationInput = {
   proposedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   confirmedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   confirmedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  pairingConfiguredAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  pairingConfiguredByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   homeScore?: Prisma.SortOrderInput | Prisma.SortOrder
   awayScore?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -475,6 +497,8 @@ export type MatchScalarWhereWithAggregatesInput = {
   proposedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Match"> | Date | string | null
   confirmedByUserId?: Prisma.StringNullableWithAggregatesFilter<"Match"> | string | null
   confirmedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Match"> | Date | string | null
+  pairingConfiguredAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Match"> | Date | string | null
+  pairingConfiguredByUserId?: Prisma.StringNullableWithAggregatesFilter<"Match"> | string | null
   status?: Prisma.EnumMatchStatusWithAggregatesFilter<"Match"> | $Enums.MatchStatus
   homeScore?: Prisma.IntNullableWithAggregatesFilter<"Match"> | number | null
   awayScore?: Prisma.IntNullableWithAggregatesFilter<"Match"> | number | null
@@ -496,6 +520,8 @@ export type MatchCreateInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -524,6 +550,8 @@ export type MatchUncheckedCreateInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -546,6 +574,8 @@ export type MatchUpdateInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -574,6 +604,8 @@ export type MatchUncheckedUpdateInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -599,6 +631,8 @@ export type MatchCreateManyInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -620,6 +654,8 @@ export type MatchUpdateManyMutationInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -644,6 +680,8 @@ export type MatchUncheckedUpdateManyInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -685,6 +723,8 @@ export type MatchCountOrderByAggregateInput = {
   proposedAt?: Prisma.SortOrder
   confirmedByUserId?: Prisma.SortOrder
   confirmedAt?: Prisma.SortOrder
+  pairingConfiguredAt?: Prisma.SortOrder
+  pairingConfiguredByUserId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   homeScore?: Prisma.SortOrder
   awayScore?: Prisma.SortOrder
@@ -717,6 +757,8 @@ export type MatchMaxOrderByAggregateInput = {
   proposedAt?: Prisma.SortOrder
   confirmedByUserId?: Prisma.SortOrder
   confirmedAt?: Prisma.SortOrder
+  pairingConfiguredAt?: Prisma.SortOrder
+  pairingConfiguredByUserId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   homeScore?: Prisma.SortOrder
   awayScore?: Prisma.SortOrder
@@ -741,6 +783,8 @@ export type MatchMinOrderByAggregateInput = {
   proposedAt?: Prisma.SortOrder
   confirmedByUserId?: Prisma.SortOrder
   confirmedAt?: Prisma.SortOrder
+  pairingConfiguredAt?: Prisma.SortOrder
+  pairingConfiguredByUserId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   homeScore?: Prisma.SortOrder
   awayScore?: Prisma.SortOrder
@@ -935,6 +979,8 @@ export type MatchCreateWithoutHomeTeamInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -961,6 +1007,8 @@ export type MatchUncheckedCreateWithoutHomeTeamInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -992,6 +1040,8 @@ export type MatchCreateWithoutAwayTeamInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1018,6 +1068,8 @@ export type MatchUncheckedCreateWithoutAwayTeamInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1071,6 +1123,8 @@ export type MatchScalarWhereInput = {
   proposedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
   confirmedByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
   confirmedAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  pairingConfiguredAt?: Prisma.DateTimeNullableFilter<"Match"> | Date | string | null
+  pairingConfiguredByUserId?: Prisma.StringNullableFilter<"Match"> | string | null
   status?: Prisma.EnumMatchStatusFilter<"Match"> | $Enums.MatchStatus
   homeScore?: Prisma.IntNullableFilter<"Match"> | number | null
   awayScore?: Prisma.IntNullableFilter<"Match"> | number | null
@@ -1108,6 +1162,8 @@ export type MatchCreateWithoutSeasonInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1134,6 +1190,8 @@ export type MatchUncheckedCreateWithoutSeasonInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1181,6 +1239,8 @@ export type MatchCreateWithoutMarketsInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1208,6 +1268,8 @@ export type MatchUncheckedCreateWithoutMarketsInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1245,6 +1307,8 @@ export type MatchUpdateWithoutMarketsInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1272,6 +1336,8 @@ export type MatchUncheckedUpdateWithoutMarketsInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1295,6 +1361,8 @@ export type MatchCreateManyHomeTeamInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1318,6 +1386,8 @@ export type MatchCreateManyAwayTeamInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1339,6 +1409,8 @@ export type MatchUpdateWithoutHomeTeamInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1365,6 +1437,8 @@ export type MatchUncheckedUpdateWithoutHomeTeamInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1389,6 +1463,8 @@ export type MatchUncheckedUpdateManyWithoutHomeTeamInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1410,6 +1486,8 @@ export type MatchUpdateWithoutAwayTeamInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1436,6 +1514,8 @@ export type MatchUncheckedUpdateWithoutAwayTeamInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1460,6 +1540,8 @@ export type MatchUncheckedUpdateManyWithoutAwayTeamInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1483,6 +1565,8 @@ export type MatchCreateManySeasonInput = {
   proposedAt?: Date | string | null
   confirmedByUserId?: string | null
   confirmedAt?: Date | string | null
+  pairingConfiguredAt?: Date | string | null
+  pairingConfiguredByUserId?: string | null
   status?: $Enums.MatchStatus
   homeScore?: number | null
   awayScore?: number | null
@@ -1504,6 +1588,8 @@ export type MatchUpdateWithoutSeasonInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1530,6 +1616,8 @@ export type MatchUncheckedUpdateWithoutSeasonInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1554,6 +1642,8 @@ export type MatchUncheckedUpdateManyWithoutSeasonInput = {
   proposedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   confirmedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pairingConfiguredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMatchStatusFieldUpdateOperationsInput | $Enums.MatchStatus
   homeScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   awayScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1609,6 +1699,8 @@ export type MatchSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   proposedAt?: boolean
   confirmedByUserId?: boolean
   confirmedAt?: boolean
+  pairingConfiguredAt?: boolean
+  pairingConfiguredByUserId?: boolean
   status?: boolean
   homeScore?: boolean
   awayScore?: boolean
@@ -1638,6 +1730,8 @@ export type MatchSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   proposedAt?: boolean
   confirmedByUserId?: boolean
   confirmedAt?: boolean
+  pairingConfiguredAt?: boolean
+  pairingConfiguredByUserId?: boolean
   status?: boolean
   homeScore?: boolean
   awayScore?: boolean
@@ -1665,6 +1759,8 @@ export type MatchSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   proposedAt?: boolean
   confirmedByUserId?: boolean
   confirmedAt?: boolean
+  pairingConfiguredAt?: boolean
+  pairingConfiguredByUserId?: boolean
   status?: boolean
   homeScore?: boolean
   awayScore?: boolean
@@ -1692,6 +1788,8 @@ export type MatchSelectScalar = {
   proposedAt?: boolean
   confirmedByUserId?: boolean
   confirmedAt?: boolean
+  pairingConfiguredAt?: boolean
+  pairingConfiguredByUserId?: boolean
   status?: boolean
   homeScore?: boolean
   awayScore?: boolean
@@ -1699,7 +1797,7 @@ export type MatchSelectScalar = {
   updatedAt?: boolean
 }
 
-export type MatchOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "seasonId" | "homeTeamId" | "awayTeamId" | "track" | "bestOf" | "weekNumber" | "scheduledAt" | "scheduleStatus" | "slotIndex" | "proposedScheduledAt" | "proposedByUserId" | "proposedByTeamId" | "proposedAt" | "confirmedByUserId" | "confirmedAt" | "status" | "homeScore" | "awayScore" | "createdAt" | "updatedAt", ExtArgs["result"]["match"]>
+export type MatchOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "seasonId" | "homeTeamId" | "awayTeamId" | "track" | "bestOf" | "weekNumber" | "scheduledAt" | "scheduleStatus" | "slotIndex" | "proposedScheduledAt" | "proposedByUserId" | "proposedByTeamId" | "proposedAt" | "confirmedByUserId" | "confirmedAt" | "pairingConfiguredAt" | "pairingConfiguredByUserId" | "status" | "homeScore" | "awayScore" | "createdAt" | "updatedAt", ExtArgs["result"]["match"]>
 export type MatchInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   season?: boolean | Prisma.SeasonDefaultArgs<ExtArgs>
   homeTeam?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
@@ -1743,6 +1841,8 @@ export type $MatchPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     proposedAt: Date | null
     confirmedByUserId: string | null
     confirmedAt: Date | null
+    pairingConfiguredAt: Date | null
+    pairingConfiguredByUserId: string | null
     status: $Enums.MatchStatus
     homeScore: number | null
     awayScore: number | null
@@ -2191,6 +2291,8 @@ export interface MatchFieldRefs {
   readonly proposedAt: Prisma.FieldRef<"Match", 'DateTime'>
   readonly confirmedByUserId: Prisma.FieldRef<"Match", 'String'>
   readonly confirmedAt: Prisma.FieldRef<"Match", 'DateTime'>
+  readonly pairingConfiguredAt: Prisma.FieldRef<"Match", 'DateTime'>
+  readonly pairingConfiguredByUserId: Prisma.FieldRef<"Match", 'String'>
   readonly status: Prisma.FieldRef<"Match", 'MatchStatus'>
   readonly homeScore: Prisma.FieldRef<"Match", 'Int'>
   readonly awayScore: Prisma.FieldRef<"Match", 'Int'>

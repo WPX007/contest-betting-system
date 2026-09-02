@@ -1868,6 +1868,8 @@ export const MatchScalarFieldEnum = {
   proposedAt: 'proposedAt',
   confirmedByUserId: 'confirmedByUserId',
   confirmedAt: 'confirmedAt',
+  pairingConfiguredAt: 'pairingConfiguredAt',
+  pairingConfiguredByUserId: 'pairingConfiguredByUserId',
   status: 'status',
   homeScore: 'homeScore',
   awayScore: 'awayScore',

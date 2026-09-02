@@ -190,6 +190,8 @@ model Match {
   proposedAt           DateTime?
   confirmedByUserId    String?
   confirmedAt          DateTime?
+  pairingConfiguredAt  DateTime?
+  pairingConfiguredByUserId String?
   status               MatchStatus @default(SCHEDULED)
   homeScore   Int?
   awayScore   Int?

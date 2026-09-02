@@ -62,7 +62,7 @@ export async function getParlayOffer(scope: ParlayScope = ParlayScope.DAILY, req
       where: isWeekly
         ? {
             status: { not: MarketStatus.VOIDED },
-            match: { weekNumber: week ?? -1, ...(weeklyTrack ? { track: weeklyTrack } : {}) },
+            match: { weekNumber: week ?? -1, pairingConfiguredAt: { not: null }, ...(weeklyTrack ? { track: weeklyTrack } : {}) },
           }
         : {
             status: MarketStatus.OPEN,
@@ -139,7 +139,7 @@ export async function joinParlay(userId: string, rawInput: unknown) {
           where: isWeekly
             ? {
                 status: { not: MarketStatus.VOIDED },
-                match: { weekNumber: week ?? -1, ...(weeklyTrack ? { track: weeklyTrack } : {}) },
+                match: { weekNumber: week ?? -1, pairingConfiguredAt: { not: null }, ...(weeklyTrack ? { track: weeklyTrack } : {}) },
               }
             : {
                 status: MarketStatus.OPEN,

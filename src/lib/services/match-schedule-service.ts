@@ -42,11 +42,13 @@ function scheduleView(match: Awaited<ReturnType<typeof getScheduleMatch>>, actor
     proposedByTeamId: match.proposedByTeamId,
     proposedByTeamName: match.proposedByTeamId === match.homeTeamId ? match.homeTeam.name : match.proposedByTeamId === match.awayTeamId ? match.awayTeam.name : null,
     confirmedAt: match.confirmedAt?.toISOString() ?? null,
+    pairingConfigured: Boolean(match.pairingConfiguredAt),
     marketId: match.markets[0]?.id ?? null,
     marketStatus: match.markets[0]?.status ?? null,
-    canPropose: !isAdmin && isParticipant && match.scheduleStatus !== MatchScheduleStatus.CONFIRMED,
+    canPropose: !isAdmin && Boolean(match.pairingConfiguredAt) && isParticipant && match.scheduleStatus !== MatchScheduleStatus.CONFIRMED,
     canConfirm: !isAdmin && isParticipant && match.scheduleStatus === MatchScheduleStatus.PROPOSED && !isProposerTeam,
-    canAdminReschedule: isAdmin && match.markets[0]?.status !== MarketStatus.SETTLED && match.markets[0]?.status !== MarketStatus.VOIDED,
+    canConfigurePairing: isAdmin && match.scheduleStatus !== MatchScheduleStatus.CONFIRMED && match.markets[0]?.status !== MarketStatus.SETTLED && match.markets[0]?.status !== MarketStatus.VOIDED,
+    canAdminReschedule: isAdmin && Boolean(match.pairingConfiguredAt) && match.markets[0]?.status !== MarketStatus.SETTLED && match.markets[0]?.status !== MarketStatus.VOIDED,
   };
 }
 
@@ -62,11 +64,85 @@ export async function listMatchSchedules(actor: { id: string; role: UserRole; te
   const records = await prisma.match.findMany({
     where: isAdmin
       ? { weekNumber: { lte: 11 } }
-      : { weekNumber: { lte: 11 }, OR: [{ homeTeamId: actor.teamId ?? "" }, { awayTeamId: actor.teamId ?? "" }] },
+      : { weekNumber: { lte: 11 }, pairingConfiguredAt: { not: null }, OR: [{ homeTeamId: actor.teamId ?? "" }, { awayTeamId: actor.teamId ?? "" }] },
     include: { season: true, homeTeam: true, awayTeam: true, markets: { take: 1 } },
     orderBy: [{ weekNumber: "asc" }, { track: "asc" }, { slotIndex: "asc" }],
   });
   return records.map((match) => scheduleView(match, actor));
+}
+
+export async function adminConfigureMatchPairing(adminId: string, matchId: string, homeTeamId: string, awayTeamId: string) {
+  if (homeTeamId === awayTeamId) throw new Error("对阵双方不能是同一支队伍");
+  return prisma.$transaction(async (tx) => {
+    const match = await tx.match.findUniqueOrThrow({
+      where: { id: matchId },
+      include: {
+        season: true,
+        markets: { include: { _count: { select: { bets: true, parlayLegs: true } } }, take: 1 },
+      },
+    });
+    if (match.weekNumber > 11 || !match.slotIndex) throw new Error("仅前 11 周固定场次可设置对阵");
+    if (match.scheduleStatus === MatchScheduleStatus.CONFIRMED) throw new Error("比赛时间已确认，不能再修改对阵队伍");
+    const [homeTeam, awayTeam] = await Promise.all([
+      tx.team.findUniqueOrThrow({ where: { id: homeTeamId } }),
+      tx.team.findUniqueOrThrow({ where: { id: awayTeamId } }),
+    ]);
+    if (homeTeam.track !== match.track || awayTeam.track !== match.track) throw new Error("所选队伍必须与场次赛道一致");
+    const duplicateTeam = await tx.match.findFirst({
+      where: {
+        id: { not: match.id },
+        seasonId: match.seasonId,
+        weekNumber: match.weekNumber,
+        track: match.track,
+        pairingConfiguredAt: { not: null },
+        OR: [
+          { homeTeamId: { in: [homeTeamId, awayTeamId] } },
+          { awayTeamId: { in: [homeTeamId, awayTeamId] } },
+        ],
+      },
+    });
+    if (duplicateTeam) throw new Error("所选队伍本周已被安排到其他场次");
+    const market = match.markets[0];
+    if (market && (market._count.bets > 0 || market._count.parlayLegs > 0)) throw new Error("该场已有竞猜或过关订单，不能修改对阵");
+    const now = new Date();
+    await tx.match.update({
+      where: { id: match.id },
+      data: {
+        homeTeamId,
+        awayTeamId,
+        pairingConfiguredAt: now,
+        pairingConfiguredByUserId: adminId,
+        scheduledAt: null,
+        scheduleStatus: MatchScheduleStatus.UNSET,
+        proposedScheduledAt: null,
+        proposedByUserId: null,
+        proposedByTeamId: null,
+        proposedAt: null,
+        confirmedByUserId: null,
+        confirmedAt: null,
+        homeScore: null,
+        awayScore: null,
+      },
+    });
+    if (market) {
+      const weekEnd = new Date(match.season.startsAt.getTime() + match.weekNumber * 7 * 86_400_000);
+      await tx.market.update({
+        where: { id: market.id },
+        data: { status: MarketStatus.DRAFT, closesAt: weekEnd, closedAt: null },
+      });
+      await tx.marketOption.deleteMany({ where: { marketId: market.id } });
+      await tx.marketOption.createMany({
+        data: [
+          { marketId: market.id, label: `${homeTeam.name} 胜（2:0）` },
+          { marketId: market.id, label: "平局（1:1）" },
+          { marketId: market.id, label: `${awayTeam.name} 胜（0:2）` },
+        ],
+      });
+    }
+    await tx.auditLog.create({
+      data: { actorId: adminId, action: "MATCH_PAIRING_CONFIGURE", target: match.id, after: JSON.stringify({ homeTeamId, awayTeamId }) },
+    });
+  });
 }
 
 export async function proposeMatchTime(actor: { id: string; role: UserRole; teamId: string | null }, matchId: string, scheduledAt: Date) {
@@ -75,6 +151,7 @@ export async function proposeMatchTime(actor: { id: string; role: UserRole; team
   if (actor.role !== UserRole.CAPTAIN || !actor.teamId || ![match.homeTeamId, match.awayTeamId].includes(actor.teamId)) {
     throw new Error("只有对阵双方队长可以提议比赛时间");
   }
+  if (!match.pairingConfiguredAt) throw new Error("请等待管理员先设置对阵双方");
   if (match.scheduleStatus === MatchScheduleStatus.CONFIRMED) throw new Error("双方已确认时间，后续只能由管理员修改");
   assertFutureWeekTime(match, scheduledAt);
   await prisma.$transaction([
@@ -105,6 +182,7 @@ export async function confirmMatchTime(actor: { id: string; role: UserRole; team
     if (actor.role !== UserRole.CAPTAIN || !actor.teamId || ![match.homeTeamId, match.awayTeamId].includes(actor.teamId)) {
       throw new Error("只有对阵双方队长可以确认比赛时间");
     }
+    if (!match.pairingConfiguredAt) throw new Error("请等待管理员先设置对阵双方");
     if (match.scheduleStatus !== MatchScheduleStatus.PROPOSED || !match.proposedScheduledAt || !match.proposedByTeamId) {
       throw new Error("当前没有待确认的比赛时间");
     }
@@ -156,6 +234,7 @@ export async function adminRescheduleMatch(adminId: string, matchId: string, sch
       include: { season: true, homeTeam: true, awayTeam: true, markets: true },
     });
     if (match.markets[0]?.status === MarketStatus.SETTLED || match.markets[0]?.status === MarketStatus.VOIDED) throw new Error("已结算或已作废比赛不能修改时间");
+    if (match.weekNumber <= 11 && !match.pairingConfiguredAt) throw new Error("请先设置该固定场次的对阵双方");
     assertFutureWeekTime(match, scheduledAt);
     await tx.match.update({
       where: { id: match.id },

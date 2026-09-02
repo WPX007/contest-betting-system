@@ -27,7 +27,8 @@ type MatchSchedule = {
   scheduleStatus: "UNSET" | "PROPOSED" | "CONFIRMED";
   proposedScheduledAt: string | null; scheduledAt: string | null;
   proposedByTeamId: string | null; proposedByTeamName: string | null;
-  canPropose: boolean; canConfirm: boolean; canAdminReschedule: boolean;
+  pairingConfigured: boolean;
+  canPropose: boolean; canConfirm: boolean; canConfigurePairing: boolean; canAdminReschedule: boolean;
 };
 type ManagedUser = { id: string; chineseName: string; englishName: string; team: string; teamId?: string | null; initialCoins: number };
 type AdminTeam = { id: string; name: string; track: "A" | "B" };
@@ -942,6 +943,19 @@ export function Dashboard() {
     }
   }
 
+  async function adminConfigurePairing(matchId: string, homeTeamId: string, awayTeamId: string) {
+    try {
+      await apiRequest("/api/admin/markets", {
+        method: "PATCH",
+        body: JSON.stringify({ action: "PAIRING", matchId, homeTeamId, awayTeamId }),
+      });
+      await Promise.all([refreshData(true), loadMatchSchedules()]);
+      setNotice("对阵双方已保存，双方队长现在可以设置并确认比赛时间。");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "保存固定对阵失败");
+    }
+  }
+
   async function settleAdminMarket(marketId: string, homeScore: number, awayScore: number) {
     try {
       const result = await apiRequest<{ totalPool: number; winnerPool: number; settledBets: number; pointRewardRecipients: number; totalPointRewards: number }>("/api/admin/markets", {
@@ -1452,6 +1466,7 @@ export function Dashboard() {
           onSettle={settleAdminMarket}
           onBatchUpdate={updateMarketBatch}
           onConfigureMatch={configureMatch}
+          onConfigurePairing={adminConfigurePairing}
           onAdminReschedule={adminReschedule}
           onAdjustCoins={adjustCoins}
           onSaveParlay={saveParlaySettings}
@@ -1581,14 +1596,17 @@ function RechargeShop({
   </section>;
 }
 
-function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, onAdminReschedule }: {
+function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, teams = [], onConfigurePairing, onAdminReschedule }: {
   schedules: MatchSchedule[];
   onPropose: (matchId: string, scheduledAt: string) => void;
   onConfirm: (matchId: string) => void;
   admin?: boolean;
+  teams?: AdminTeam[];
+  onConfigurePairing?: (matchId: string, homeTeamId: string, awayTeamId: string) => void;
   onAdminReschedule?: (matchId: string, scheduledAt: string) => void;
 }) {
   const [times, setTimes] = useState<Record<string, string>>({});
+  const [pairings, setPairings] = useState<Record<string, { homeTeamId: string; awayTeamId: string }>>({});
   const availableWeeks = [...new Set(schedules.map((schedule) => schedule.week))].sort((first, second) => first - second);
   const [scheduleWeek, setScheduleWeek] = useState(() => availableWeeks.includes(currentCompetitionWeek()) ? currentCompetitionWeek() : availableWeeks[0] ?? 1);
   const visibleSchedules = admin ? schedules.filter((schedule) => schedule.week === scheduleWeek) : schedules;
@@ -1600,11 +1618,17 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, onAdmin
     return local.toISOString().slice(0, 16);
   })();
   return <section className="panel schedule-panel">
-    <div className="section-heading"><div><p className="eyebrow">{admin ? "管理员设置优先并立即锁定" : "双方队长共同确认"}</p><h2>{admin ? "前 11 周固定对阵" : "我的赛程确认"}</h2></div>{admin ? <div className="schedule-filter"><label>查看周次<select value={scheduleWeek} onChange={(event) => setScheduleWeek(Number(event.target.value))}>{availableWeeks.map((week) => <option value={week} key={week}>第 {week} 周　{weekCompactRange(week)}</option>)}</select></label><span className="pill">{visibleSchedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / {visibleSchedules.length} 已确认</span></div> : <span className="pill">{schedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / {schedules.length} 已确认</span>}</div>
+    <div className="section-heading"><div><p className="eyebrow">{admin ? "管理员先设置对阵，队长再确认时间" : "双方队长共同确认"}</p><h2>{admin ? "前 11 周固定场次" : "我的赛程确认"}</h2></div>{admin ? <div className="schedule-filter"><label>查看周次<select value={scheduleWeek} onChange={(event) => setScheduleWeek(Number(event.target.value))}>{availableWeeks.map((week) => <option value={week} key={week}>第 {week} 周　{weekCompactRange(week)}</option>)}</select></label><span className="pill">{visibleSchedules.filter((item) => item.pairingConfigured).length} / {visibleSchedules.length} 已设置对阵</span></div> : <span className="pill">{schedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / {schedules.length} 已确认时间</span>}</div>
     <div className="schedule-list">
       {visibleSchedules.map((schedule) => <article className={`schedule-row schedule-${schedule.scheduleStatus.toLowerCase()}`} key={schedule.id}>
-        <div className="schedule-match"><span>第 {schedule.week} 周 · {weekCompactRange(schedule.week)} · {schedule.track} 赛道</span><strong>{schedule.home} vs {schedule.away}</strong><small>{schedule.scheduleStatus === "CONFIRMED" ? `已生效：${new Date(schedule.scheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : schedule.scheduleStatus === "PROPOSED" ? `${schedule.proposedByTeamName} 提议：${new Date(schedule.proposedScheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : "双方尚未提议比赛时间"}</small></div>
+        <div className="schedule-match"><span>第 {schedule.week} 周 · {weekCompactRange(schedule.week)} · {schedule.track} 赛道 · 第 {schedule.slotIndex ?? "-"} 场</span><strong>{schedule.pairingConfigured ? `${schedule.home} vs ${schedule.away}` : "等待管理员设置对阵"}</strong><small>{!schedule.pairingConfigured ? "管理员设置双方后，队长方可确认时间" : schedule.scheduleStatus === "CONFIRMED" ? `已生效：${new Date(schedule.scheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : schedule.scheduleStatus === "PROPOSED" ? `${schedule.proposedByTeamName} 提议：${new Date(schedule.proposedScheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : "对阵已设置，等待双方队长确认时间"}</small></div>
         <div className="schedule-actions">
+          {admin && schedule.canConfigurePairing && <div className="schedule-pairing-controls">
+            <select value={pairings[schedule.id]?.homeTeamId ?? schedule.homeTeamId} onChange={(event) => setPairings((current) => ({ ...current, [schedule.id]: { homeTeamId: event.target.value, awayTeamId: current[schedule.id]?.awayTeamId ?? schedule.awayTeamId } }))}>{teams.filter((team) => team.track === schedule.track).map((team) => <option value={team.id} key={team.id}>{team.name}</option>)}</select>
+            <span>vs</span>
+            <select value={pairings[schedule.id]?.awayTeamId ?? schedule.awayTeamId} onChange={(event) => setPairings((current) => ({ ...current, [schedule.id]: { homeTeamId: current[schedule.id]?.homeTeamId ?? schedule.homeTeamId, awayTeamId: event.target.value } }))}>{teams.filter((team) => team.track === schedule.track).map((team) => <option value={team.id} key={team.id}>{team.name}</option>)}</select>
+            <button className="admin-primary" onClick={() => onConfigurePairing?.(schedule.id, pairings[schedule.id]?.homeTeamId ?? schedule.homeTeamId, pairings[schedule.id]?.awayTeamId ?? schedule.awayTeamId)}>{schedule.pairingConfigured ? "修改对阵" : "保存对阵"}</button>
+          </div>}
           {(schedule.canPropose || schedule.canAdminReschedule) && <input type="datetime-local" value={inputValue(schedule)} onChange={(event) => setTimes((current) => ({ ...current, [schedule.id]: event.target.value }))} />}
           {!admin && schedule.canPropose && <button onClick={() => onPropose(schedule.id, inputValue(schedule))}>{schedule.scheduleStatus === "PROPOSED" ? "修改/反提时间" : "提交比赛时间"}</button>}
           {!admin && schedule.canConfirm && <button className="admin-primary" onClick={() => onConfirm(schedule.id)}>确认该时间</button>}
@@ -1676,6 +1700,7 @@ type AdminProps = {
   onSettle: (marketId: string, homeScore: number, awayScore: number) => void;
   onBatchUpdate: (ids: string[], status: string, scope: string) => void;
   onConfigureMatch: (id: string, config: MatchOverride) => void;
+  onConfigurePairing: (matchId: string, homeTeamId: string, awayTeamId: string) => void;
   onAdminReschedule: (matchId: string, scheduledAt: string) => void;
   onAdjustCoins: (targetType: "USER" | "TEAM", target: string, action: "GRANT" | "DEDUCT", amount: number) => void;
   onSaveParlay: (ticket: number, basePools: ParlayBasePools, bonusMultiplier: number) => void;
@@ -1714,6 +1739,7 @@ function Admin({
   onSettle,
   onBatchUpdate,
   onConfigureMatch,
+  onConfigurePairing,
   onAdminReschedule,
   onAdjustCoins,
   onSaveParlay,
@@ -2028,9 +2054,9 @@ function Admin({
     </div>
 
     {adminTab === "MATCH" && <div className="admin-grid">
-      <SchedulePanel schedules={matchSchedules} onPropose={() => undefined} onConfirm={() => undefined} admin onAdminReschedule={onAdminReschedule} />
+      <SchedulePanel schedules={matchSchedules} onPropose={() => undefined} onConfirm={() => undefined} admin teams={teams} onConfigurePairing={onConfigurePairing} onAdminReschedule={onAdminReschedule} />
       <section className="admin-card">
-        <div className="admin-card-head"><div><small>第 12–15 周</small><h3>管理员配置后续对战</h3></div><span>前 11 周固定对阵不可修改</span></div>
+        <div className="admin-card-head"><div><small>第 12–15 周</small><h3>管理员配置后续对战</h3></div><span>前 11 周请在上方逐场设置对阵</span></div>
         <div className="form-grid">
           <label className="wide">选择场次<select value={matchId} onChange={(event) => selectMatch(event.target.value)}><option value="blank">空白场次（新建）</option>{allAdminMarkets.filter((market) => (market.week ?? 4) > 11).map((market) => <option value={market.id} key={market.id}>第 {market.week ?? 4} 周 · {market.home} vs {market.away}</option>)}</select></label>
           <label>比赛周次<select value={matchWeek} onChange={(event) => setMatchWeek(Number(event.target.value))}>{weekOptions.filter((option) => option.week > 11).map((option) => <option value={option.week} key={option.week}>第 {option.week} 周 · {option.range}</option>)}</select></label>
