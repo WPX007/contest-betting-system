@@ -46,7 +46,7 @@ type BetRecord = {
   createdAt: string;
   recordStatus: "ACTIVE" | "REFUNDED";
 };
-type RankingEntry = { id: string; rank: number; name: string; username: string; team: string; value: number; points: number; hits: number; predictions: number; rate: number };
+type RankingEntry = { id: string; rank: number; name: string; username: string; team: string; allianceTeams: string; value: number; points: number; hits: number; predictions: number; rate: number };
 type RechargeRequest = {
   id: string;
   amount: number;
@@ -1647,8 +1647,8 @@ function Ranking({ entries, loading }: { entries: RankingEntry[]; loading: boole
 
   return <section className="panel"><div className="section-heading"><div><p className="eyebrow">赛季榜单</p><h2>竞猜排行榜</h2></div><span className="pill">{sortLabels[sortKey]} · {sortDirection === "desc" ? "由大到小" : "由小到大"}</span></div>
     <div className="data-table ranking-table">
-      <div className="tr th rank-row"><span>排名</span><span>玩家</span><span>所属战队</span><span>{sortButton("value")}</span><span>{sortButton("points")}</span><span>{sortButton("hits")}</span><span>{sortButton("predictions")}</span><span>{sortButton("rate")}</span></div>
-      {sortedRankings.map((item, index) => <div className="tr rank-row" key={item.id}><span className={`rank rank-${index + 1}`}>{index + 1}</span><span><strong>{item.name}</strong><small>{item.username}</small></span><span>{item.team}</span><span><strong>{money.format(item.value)}</strong></span><span>{money.format(item.points)}</span><span>{item.hits}</span><span>{item.predictions}</span><span>{item.rate.toFixed(1)}%</span></div>)}
+      <div className="tr th rank-row"><span>排名</span><span>玩家</span><span>所属战队</span><span>联姻队伍</span><span>{sortButton("value")}</span><span>{sortButton("points")}</span><span>{sortButton("hits")}</span><span>{sortButton("predictions")}</span><span>{sortButton("rate")}</span></div>
+      {sortedRankings.map((item, index) => <div className="tr rank-row" key={item.id}><span className={`rank rank-${index + 1}`}>{index + 1}</span><span><strong>{item.name}</strong><small>{item.username}</small></span><span>{item.team}</span><span>{item.allianceTeams}</span><span><strong>{money.format(item.value)}</strong></span><span>{money.format(item.points)}</span><span>{item.hits}</span><span>{item.predictions}</span><span>{item.rate.toFixed(1)}%</span></div>)}
       {!loading && sortedRankings.length === 0 && <div className="order-empty">暂无排行榜用户</div>}
     </div>
   </section>;

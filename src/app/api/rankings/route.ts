@@ -6,17 +6,20 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     await requireUser();
-    const users = await prisma.user.findMany({
-      where: { role: { in: [UserRole.VIEWER, UserRole.PLAYER, UserRole.CAPTAIN] } },
-      include: {
-        team: true,
-        wallets: true,
-        bets: {
-          where: { status: { in: [BetStatus.ACTIVE, BetStatus.SETTLED] } },
-          include: { option: true },
+    const [users, teams] = await Promise.all([
+      prisma.user.findMany({
+        where: { role: { in: [UserRole.VIEWER, UserRole.PLAYER, UserRole.CAPTAIN] } },
+        include: {
+          team: true,
+          wallets: true,
+          bets: {
+            where: { status: { in: [BetStatus.ACTIVE, BetStatus.SETTLED] } },
+            include: { option: true },
+          },
         },
-      },
-    });
+      }),
+      prisma.team.findMany({ select: { id: true, name: true, allianceKey: true } }),
+    ]);
     const data = users.map((user) => {
       const settled = user.bets.filter((bet) => bet.status === BetStatus.SETTLED);
       const hits = settled.filter((bet) => bet.option.isWinner).length;
@@ -26,6 +29,9 @@ export async function GET() {
         name: user.name,
         username: user.username,
         team: user.team?.name ?? "无",
+        allianceTeams: user.team?.allianceKey
+          ? teams.filter((team) => team.allianceKey === user.team?.allianceKey && team.id !== user.teamId).map((team) => team.name).join("、") || "无"
+          : "无",
         value: user.wallets.find((wallet) => wallet.asset === AssetType.BET_COIN)?.balance ?? 0,
         points: user.wallets.find((wallet) => wallet.asset === AssetType.POINT)?.balance ?? 0,
         hits,
