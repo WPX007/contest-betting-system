@@ -25,6 +25,11 @@ export async function GET() {
           recoveryPercent: (market?.recoveryRatioBps ?? 500) / 100,
           prizePercent: (market?.prizeRatioBps ?? 7000) / 100,
         },
+        pointRewards: {
+          smallGameWinPoints: config.smallGameWinPoints,
+          allianceGameWinPoints: config.allianceGameWinPoints,
+          seriesWinPoints: config.seriesWinPoints,
+        },
       },
     });
   } catch (error) {
@@ -51,12 +56,17 @@ export async function PATCH(request: Request) {
         recoveryPercent: z.number().min(0).max(100),
         prizePercent: z.number().min(0).max(100),
       }).optional(),
+      pointRewards: z.object({
+        smallGameWinPoints: z.number().int().min(0).max(100_000),
+        allianceGameWinPoints: z.number().int().min(0).max(100_000),
+        seriesWinPoints: z.number().int().min(0).max(100_000),
+      }).optional(),
     }).parse(await request.json());
     if (input.ratios && input.ratios.returnPercent + input.ratios.recoveryPercent + input.ratios.prizePercent !== 100) {
       return NextResponse.json({ error: "结算比例合计必须为 100%" }, { status: 400 });
     }
     await prisma.$transaction(async (tx) => {
-      if (input.parlayTicket !== undefined || input.parlayBasePools !== undefined || input.ticketPoolBonusMultiplier !== undefined) {
+      if (input.parlayTicket !== undefined || input.parlayBasePools !== undefined || input.ticketPoolBonusMultiplier !== undefined || input.pointRewards !== undefined) {
         await tx.parlayConfig.update({
           where: { id: "default" },
           data: {
@@ -70,6 +80,7 @@ export async function PATCH(request: Request) {
             ...(input.ticketPoolBonusMultiplier !== undefined ? {
               ticketPoolBonusBps: Math.round(input.ticketPoolBonusMultiplier * 10_000),
             } : {}),
+            ...(input.pointRewards ?? {}),
           },
         });
       }

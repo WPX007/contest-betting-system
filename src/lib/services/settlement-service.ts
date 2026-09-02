@@ -9,7 +9,7 @@ import {
   ParlayRoundStatus,
   SettlementBatchStatus,
 } from "@/generated/prisma/enums";
-import { calculateMatchPointRewards, matchAllianceRewardNote, matchPointRewardNote } from "@/lib/match-point-rewards";
+import { calculateMatchPointRewards, DEFAULT_MATCH_POINT_REWARDS, matchAllianceRewardNote, matchPointRewardNote } from "@/lib/match-point-rewards";
 import { calculateParlayPool, ticketPoolContribution } from "@/lib/parlay-pool";
 import { prisma } from "@/lib/prisma";
 import { creditHouseWallet } from "@/lib/services/house-wallet";
@@ -55,14 +55,24 @@ export async function settleMarket(input: {
   awayScore: number;
 }) {
   return prisma.$transaction(async (tx) => {
-    const market = await tx.market.findUniqueOrThrow({
-      where: { id: input.marketId },
-      include: {
-        match: { include: { homeTeam: true, awayTeam: true } },
-        options: true,
-        bets: { where: { status: BetStatus.ACTIVE } },
-      },
-    });
+    const [market, persistedConfig] = await Promise.all([
+      tx.market.findUniqueOrThrow({
+        where: { id: input.marketId },
+        include: {
+          match: { include: { homeTeam: true, awayTeam: true } },
+          options: true,
+          bets: { where: { status: BetStatus.ACTIVE } },
+        },
+      }),
+      tx.parlayConfig.findUnique({ where: { id: "default" } }),
+    ]);
+    const pointRewardConfig = persistedConfig
+      ? {
+          smallGameWinPoints: persistedConfig.smallGameWinPoints,
+          allianceGameWinPoints: persistedConfig.allianceGameWinPoints,
+          seriesWinPoints: persistedConfig.seriesWinPoints,
+        }
+      : DEFAULT_MATCH_POINT_REWARDS;
     if (market.status !== MarketStatus.CLOSED && market.status !== MarketStatus.PENDING_REVIEW) {
       throw new Error(market.status === MarketStatus.SETTLED ? "该比赛已经结算" : "比赛必须先封盘，才能执行结算");
     }
@@ -149,7 +159,7 @@ export async function settleMarket(input: {
       update: { status: SettlementBatchStatus.COMPLETED, totalPool, winnerPool },
       create: { marketId: market.id, status: SettlementBatchStatus.COMPLETED, totalPool, winnerPool },
     });
-    const pointRewards = calculateMatchPointRewards(input.homeScore, input.awayScore);
+    const pointRewards = calculateMatchPointRewards(input.homeScore, input.awayScore, pointRewardConfig);
     const pointRewardRecipientIds = new Set<string>();
     let totalPointRewards = 0;
     const awardTeamPoints = async (teamId: string, teamName: string, points: number, gameWins: number, seriesWin: boolean) => {
@@ -175,7 +185,7 @@ export async function settleMarket(input: {
             balanceAfter,
             reason: LedgerReason.REWARD,
             reference,
-            note: `${teamName} 比赛点券奖励：${matchPointRewardNote(gameWins, seriesWin)}`,
+            note: `${teamName} 比赛点券奖励：${matchPointRewardNote(gameWins, seriesWin, pointRewardConfig)}`,
           },
         });
         pointRewardRecipientIds.add(member.id);
@@ -205,7 +215,7 @@ export async function settleMarket(input: {
             balanceAfter,
             reason: LedgerReason.REWARD,
             reference,
-            note: matchAllianceRewardNote(sourceTeamName, gameWins),
+            note: matchAllianceRewardNote(sourceTeamName, gameWins, pointRewardConfig.allianceGameWinPoints),
           },
         });
         pointRewardRecipientIds.add(member.id);

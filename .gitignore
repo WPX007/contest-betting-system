@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-test/
 /out/
 
 # production
@@ -34,6 +35,10 @@ yarn-error.log*
 .env*
 /dev.db
 /dev.db-journal
+/local-test.db
+/local-test.db-journal
+/local-test.db-shm
+/local-test.db-wal
 /prisma/*.db
 /prisma/*.db-journal
 

@@ -16,6 +16,7 @@ type MatchScope = "TODAY" | "WEEK";
 type RankingSortKey = "value" | "points" | "hits" | "predictions" | "rate";
 type MatchOverride = { week: number; track: "A" | "B"; home: string; away: string; time: string };
 type RatioConfig = { returnPercent: number; recoveryPercent: number; prizePercent: number };
+type PointRewardConfig = { smallGameWinPoints: number; allianceGameWinPoints: number; seriesWinPoints: number };
 type ManagedUser = { id: string; chineseName: string; englishName: string; team: string; teamId?: string | null; initialCoins: number };
 type AdminTeam = { id: string; name: string; track: "A" | "B" };
 type SessionUser = { id: string; username: string; displayName: string; team: string; teamId?: string; role: string; isAdmin: boolean; points: number };
@@ -219,6 +220,7 @@ export function Dashboard() {
   const [ticketPoolBonusMultiplier, setTicketPoolBonusMultiplier] = useState(0.5);
   const [parlayTicketContribution, setParlayTicketContribution] = useState(150);
   const [ratios, setRatios] = useState<RatioConfig>({ returnPercent: 25, recoveryPercent: 5, prizePercent: 70 });
+  const [pointRewards, setPointRewards] = useState<PointRewardConfig>({ smallGameWinPoints: 10, allianceGameWinPoints: 5, seriesWinPoints: 20 });
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
   const [adminTeams, setAdminTeams] = useState<AdminTeam[]>([]);
   const [betRecords, setBetRecords] = useState<BetRecord[]>([]);
@@ -307,7 +309,8 @@ export function Dashboard() {
     () => [...serverMarkets].sort((first, second) => ((first.week ?? 4) - (second.week ?? 4)) || (first.scheduledAt ?? "").localeCompare(second.scheduledAt ?? "")),
     [serverMarkets],
   );
-  const currentAdminMarkets = allConfiguredMarkets.filter((market) => (market.week ?? 4) === currentCompetitionWeek());
+  const timelineCurrentWeek = currentCompetitionWeek();
+  const currentAdminMarkets = allConfiguredMarkets.filter((market) => (market.week ?? 4) === timelineCurrentWeek);
   const todayDateLabel = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", timeZone: "Asia/Shanghai" }).format(new Date());
 
   const todayMarkets = useMemo(
@@ -472,7 +475,7 @@ export function Dashboard() {
         const [adminUsers, adminBets, settings, parlayRounds, rechargeData, treasuryData] = await Promise.all([
           apiRequest<{ users: Array<{ id: string; name: string; username: string; team: { id: string; name: string } | null; balance: number }>; teams: AdminTeam[] }>("/api/admin/users"),
           apiRequest<BetRecord[]>("/api/admin/bets"),
-          apiRequest<{ parlayTicket: number; parlayBasePools: ParlayBasePools; ticketPoolBonusMultiplier: number; ratios: RatioConfig }>("/api/admin/settings"),
+          apiRequest<{ parlayTicket: number; parlayBasePools: ParlayBasePools; ticketPoolBonusMultiplier: number; ratios: RatioConfig; pointRewards: PointRewardConfig }>("/api/admin/settings"),
           apiRequest<AdminParlayRound[]>("/api/admin/parlays"),
           apiRequest<AdminRechargeData>("/api/admin/recharges"),
           apiRequest<AdminTreasury>("/api/admin/treasury"),
@@ -484,6 +487,7 @@ export function Dashboard() {
         setParlayBasePools(settings.parlayBasePools);
         setTicketPoolBonusMultiplier(settings.ticketPoolBonusMultiplier);
         setRatios(settings.ratios);
+        setPointRewards(settings.pointRewards);
         setAdminParlayRounds(parlayRounds);
         setAdminRecharges(rechargeData);
         setAdminTreasury(treasuryData);
@@ -838,6 +842,16 @@ export function Dashboard() {
     }
   }
 
+  async function savePointRewards(config: PointRewardConfig) {
+    try {
+      await apiRequest("/api/admin/settings", { method: "PATCH", body: JSON.stringify({ pointRewards: config }) });
+      await refreshData(true);
+      setNotice(`点券奖励参数已更新：小局 ${config.smallGameWinPoints}、联姻加成 ${config.allianceGameWinPoints}、BO2/BO3 胜场 ${config.seriesWinPoints}。`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "保存点券奖励参数失败");
+    }
+  }
+
   async function saveClosedOdds(marketId: string, odds: Record<string, number>, reason: string) {
     const market = allConfiguredMarkets.find((item) => item.id === marketId);
     if (!market) return;
@@ -1021,6 +1035,7 @@ export function Dashboard() {
       </aside>
 
       <section className="content">
+        {process.env.NEXT_PUBLIC_APP_ENV === "local-test" && <div className="test-environment-banner">本地自测环境 · 所有操作仅写入独立测试数据库，不影响正式数据</div>}
         <header className="topbar">
           <div>
             <p className="eyebrow">2026–2027 内部策划赛</p>
@@ -1048,13 +1063,14 @@ export function Dashboard() {
               <nav className="round-timeline" aria-label="选择比赛轮次">
                 {weekOptions.map((option) => (
                   <button
-                    className={`${option.week === selectedWeek ? "active" : ""}${option.week < selectedWeek ? " completed" : ""}`}
-                    aria-current={option.week === selectedWeek ? "step" : undefined}
+                    className={`${option.week === selectedWeek ? "active" : ""}${option.week === timelineCurrentWeek ? " current" : ""}${option.week < timelineCurrentWeek ? " completed" : ""}`}
+                    aria-current={option.week === timelineCurrentWeek ? "date" : undefined}
+                    aria-pressed={option.week === selectedWeek}
                     onClick={() => changeWeek(option.week)}
                     key={option.week}
                   >
                     <span className="round-rail"><i /></span>
-                    <strong>第 {option.week} 轮</strong>
+                    <strong>第 {option.week} 轮{option.week === timelineCurrentWeek && <em>本周</em>}</strong>
                     <small>{option.range}</small>
                   </button>
                 ))}
@@ -1165,7 +1181,7 @@ export function Dashboard() {
         {activeTab === "钱包流水" && <WalletPanel balance={balance} points={sessionPoints} entries={walletEntries} loading={loadingData} treasury={houseTreasury} onExchange={sessionUser.isAdmin ? undefined : exchangePoints} />}
         {activeTab === "排行榜" && <Ranking entries={rankingEntries} loading={loadingData} />}
         {sessionUser.isAdmin && activeTab === "后台管理设置" && <Admin
-          key={`${adminTeams.map((team) => team.id).join(",")}:${parlayTicket}:${parlayBasePools.three}:${parlayBasePools.four}:${parlayBasePools.five}:${parlayBasePools.sixPlus}:${ticketPoolBonusMultiplier}:${ratios.returnPercent}:${ratios.recoveryPercent}:${ratios.prizePercent}`}
+          key={`${adminTeams.map((team) => team.id).join(",")}:${parlayTicket}:${parlayBasePools.three}:${parlayBasePools.four}:${parlayBasePools.five}:${parlayBasePools.sixPlus}:${ticketPoolBonusMultiplier}:${ratios.returnPercent}:${ratios.recoveryPercent}:${ratios.prizePercent}:${pointRewards.smallGameWinPoints}:${pointRewards.allianceGameWinPoints}:${pointRewards.seriesWinPoints}`}
           statuses={marketStatus}
           adminMarkets={currentAdminMarkets}
           allAdminMarkets={allConfiguredMarkets}
@@ -1173,6 +1189,7 @@ export function Dashboard() {
           parlayBasePools={parlayBasePools}
           ticketPoolBonusMultiplier={ticketPoolBonusMultiplier}
           ratios={ratios}
+          pointRewards={pointRewards}
           managedUsers={managedUsers}
           teams={adminTeams}
           betRecords={betRecords}
@@ -1186,6 +1203,7 @@ export function Dashboard() {
           onAdjustCoins={adjustCoins}
           onSaveParlay={saveParlaySettings}
           onSaveRatios={saveRatios}
+          onSavePointRewards={savePointRewards}
           onSaveOdds={saveClosedOdds}
           onInjectLiquidity={injectMarketLiquidity}
           onImportTeams={importTeamWorkbook}
@@ -1353,6 +1371,7 @@ type AdminProps = {
   parlayBasePools: ParlayBasePools;
   ticketPoolBonusMultiplier: number;
   ratios: RatioConfig;
+  pointRewards: PointRewardConfig;
   managedUsers: ManagedUser[];
   teams: AdminTeam[];
   betRecords: BetRecord[];
@@ -1366,6 +1385,7 @@ type AdminProps = {
   onAdjustCoins: (targetType: "USER" | "TEAM", target: string, action: "GRANT" | "DEDUCT", amount: number) => void;
   onSaveParlay: (ticket: number, basePools: ParlayBasePools, bonusMultiplier: number) => void;
   onSaveRatios: (config: RatioConfig) => void;
+  onSavePointRewards: (config: PointRewardConfig) => void;
   onSaveOdds: (marketId: string, odds: Record<string, number>, reason: string) => void;
   onInjectLiquidity: (marketId: string, injections: Array<{ optionId: string; amount: number }>) => Promise<boolean>;
   onImportTeams: (file: File, action: "preview" | "apply") => Promise<TeamImportPreview>;
@@ -1384,6 +1404,7 @@ function Admin({
   parlayBasePools,
   ticketPoolBonusMultiplier,
   ratios,
+  pointRewards,
   managedUsers,
   teams,
   betRecords,
@@ -1397,6 +1418,7 @@ function Admin({
   onAdjustCoins,
   onSaveParlay,
   onSaveRatios,
+  onSavePointRewards,
   onSaveOdds,
   onInjectLiquidity,
   onImportTeams,
@@ -1429,6 +1451,7 @@ function Admin({
   const [basePools, setBasePools] = useState(parlayBasePools);
   const [bonusMultiplier, setBonusMultiplier] = useState(ticketPoolBonusMultiplier);
   const [ratioForm, setRatioForm] = useState(ratios);
+  const [pointRewardForm, setPointRewardForm] = useState(pointRewards);
   const openMarkets = allAdminMarkets.filter((market) => (statuses[market.id] ?? market.state) === "OPEN");
   const closedMarkets = allAdminMarkets.filter((market) => (statuses[market.id] ?? market.state) === "CLOSED");
   const settlementMarkets = allAdminMarkets.filter((market) => ["CLOSED", "PENDING_REVIEW"].includes(statuses[market.id] ?? market.state));
@@ -1596,6 +1619,14 @@ function Admin({
     onSaveRatios(ratioForm);
   }
 
+  function submitPointRewards() {
+    if (Object.values(pointRewardForm).some((value) => !Number.isInteger(value) || value < 0)) {
+      onNotify("三个点券奖励参数必须是不小于 0 的整数。");
+      return;
+    }
+    onSavePointRewards(pointRewardForm);
+  }
+
   function submitParlaySettings() {
     if (!Number.isInteger(ticket) || ticket <= 0) {
       onNotify("门票价格必须为大于 0 的整数。");
@@ -1747,6 +1778,7 @@ function Admin({
           <em>{settlementResultLabel}</em>
           <span><b>{settlementAwayScore}</b><strong>{settlementMarket.away}</strong></span>
         </div> : <div className="bet-detail-empty">当前没有可结算比赛，请先将比赛封盘。</div>}
+        <div className="admin-warning">当前点券参数：每赢 1 小局，队员 +{pointRewards.smallGameWinPoints}；联姻大组成员 +{pointRewards.allianceGameWinPoints}；BO2/BO3 获胜队员额外 +{pointRewards.seriesWinPoints}。</div>
         <div className="admin-warning">系统会根据比分自动判定主胜、平局或客胜。确认后将锁定赛果，自动计算中奖订单、返还和奖励，同时更新闯关命中状态并生成钱包流水。</div>
         <button className="admin-primary settlement-submit" disabled={!settlementMarket} onClick={submitSettlement}>确认比分并执行结算</button>
       </section>
@@ -1979,6 +2011,16 @@ function Admin({
         </div>
         <div className="admin-warning">当前奖池 = 对应场次数的基础奖池 + 结转奖池 + 参与门票数 × 每张门票计入奖池金额。例如门票 100、加成 0.5 时，每张门票使奖池增加 150 竞猜币。</div>
         <button className="admin-primary" onClick={submitParlaySettings}>保存全部过关参数</button>
+      </section>
+      <section className="admin-card">
+        <div className="admin-card-head"><div><small>比赛奖励</small><h3>点券奖励参数</h3></div><span>结算时自动发放</span></div>
+        <div className="form-grid ratio-form">
+          <label>小局基础奖<input type="number" min="0" step="1" value={pointRewardForm.smallGameWinPoints} onChange={(event) => setPointRewardForm((current) => ({ ...current, smallGameWinPoints: Number(event.target.value) }))} /><em>点券</em></label>
+          <label>联姻加成奖<input type="number" min="0" step="1" value={pointRewardForm.allianceGameWinPoints} onChange={(event) => setPointRewardForm((current) => ({ ...current, allianceGameWinPoints: Number(event.target.value) }))} /><em>点券</em></label>
+          <label>BO2/BO3 胜场奖<input type="number" min="0" step="1" value={pointRewardForm.seriesWinPoints} onChange={(event) => setPointRewardForm((current) => ({ ...current, seriesWinPoints: Number(event.target.value) }))} /><em>点券</em></label>
+        </div>
+        <div className="admin-warning">小局基础奖发给该局获胜队员；联姻加成奖发给获胜队所在联姻大组成员；BO2/BO3 胜场奖仅在系列赛分出胜负时额外发给胜队队员。</div>
+        <button className="admin-primary" onClick={submitPointRewards}>保存点券奖励参数</button>
       </section>
       <section className="admin-card">
         <div className="admin-card-head"><div><small>动态奖池</small><h3>结算比例</h3></div><span className={ratioForm.returnPercent + ratioForm.recoveryPercent + ratioForm.prizePercent === 100 ? "ratio-ok" : "ratio-error"}>合计 {ratioForm.returnPercent + ratioForm.recoveryPercent + ratioForm.prizePercent}%</span></div>

@@ -15,4 +15,15 @@ describe("match point rewards", () => {
       away: { gameWins: 1, seriesWin: false, points: 10, alliancePoints: 5 },
     });
   });
+
+  it("uses the configured settlement reward parameters", () => {
+    expect(calculateMatchPointRewards(2, 1, {
+      smallGameWinPoints: 12,
+      allianceGameWinPoints: 7,
+      seriesWinPoints: 30,
+    })).toEqual({
+      home: { gameWins: 2, seriesWin: true, points: 54, alliancePoints: 14 },
+      away: { gameWins: 1, seriesWin: false, points: 12, alliancePoints: 7 },
+    });
+  });
 });

@@ -1983,6 +1983,9 @@ export const ParlayConfigScalarFieldEnum = {
   basePool5: 'basePool5',
   basePool6Plus: 'basePool6Plus',
   ticketPoolBonusBps: 'ticketPoolBonusBps',
+  smallGameWinPoints: 'smallGameWinPoints',
+  allianceGameWinPoints: 'allianceGameWinPoints',
+  seriesWinPoints: 'seriesWinPoints',
   updatedAt: 'updatedAt'
 } as const
 

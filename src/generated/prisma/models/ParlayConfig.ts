@@ -33,6 +33,9 @@ export type ParlayConfigAvgAggregateOutputType = {
   basePool5: number | null
   basePool6Plus: number | null
   ticketPoolBonusBps: number | null
+  smallGameWinPoints: number | null
+  allianceGameWinPoints: number | null
+  seriesWinPoints: number | null
 }
 
 export type ParlayConfigSumAggregateOutputType = {
@@ -42,6 +45,9 @@ export type ParlayConfigSumAggregateOutputType = {
   basePool5: number | null
   basePool6Plus: number | null
   ticketPoolBonusBps: number | null
+  smallGameWinPoints: number | null
+  allianceGameWinPoints: number | null
+  seriesWinPoints: number | null
 }
 
 export type ParlayConfigMinAggregateOutputType = {
@@ -52,6 +58,9 @@ export type ParlayConfigMinAggregateOutputType = {
   basePool5: number | null
   basePool6Plus: number | null
   ticketPoolBonusBps: number | null
+  smallGameWinPoints: number | null
+  allianceGameWinPoints: number | null
+  seriesWinPoints: number | null
   updatedAt: Date | null
 }
 
@@ -63,6 +72,9 @@ export type ParlayConfigMaxAggregateOutputType = {
   basePool5: number | null
   basePool6Plus: number | null
   ticketPoolBonusBps: number | null
+  smallGameWinPoints: number | null
+  allianceGameWinPoints: number | null
+  seriesWinPoints: number | null
   updatedAt: Date | null
 }
 
@@ -74,6 +86,9 @@ export type ParlayConfigCountAggregateOutputType = {
   basePool5: number
   basePool6Plus: number
   ticketPoolBonusBps: number
+  smallGameWinPoints: number
+  allianceGameWinPoints: number
+  seriesWinPoints: number
   updatedAt: number
   _all: number
 }
@@ -86,6 +101,9 @@ export type ParlayConfigAvgAggregateInputType = {
   basePool5?: true
   basePool6Plus?: true
   ticketPoolBonusBps?: true
+  smallGameWinPoints?: true
+  allianceGameWinPoints?: true
+  seriesWinPoints?: true
 }
 
 export type ParlayConfigSumAggregateInputType = {
@@ -95,6 +113,9 @@ export type ParlayConfigSumAggregateInputType = {
   basePool5?: true
   basePool6Plus?: true
   ticketPoolBonusBps?: true
+  smallGameWinPoints?: true
+  allianceGameWinPoints?: true
+  seriesWinPoints?: true
 }
 
 export type ParlayConfigMinAggregateInputType = {
@@ -105,6 +126,9 @@ export type ParlayConfigMinAggregateInputType = {
   basePool5?: true
   basePool6Plus?: true
   ticketPoolBonusBps?: true
+  smallGameWinPoints?: true
+  allianceGameWinPoints?: true
+  seriesWinPoints?: true
   updatedAt?: true
 }
 
@@ -116,6 +140,9 @@ export type ParlayConfigMaxAggregateInputType = {
   basePool5?: true
   basePool6Plus?: true
   ticketPoolBonusBps?: true
+  smallGameWinPoints?: true
+  allianceGameWinPoints?: true
+  seriesWinPoints?: true
   updatedAt?: true
 }
 
@@ -127,6 +154,9 @@ export type ParlayConfigCountAggregateInputType = {
   basePool5?: true
   basePool6Plus?: true
   ticketPoolBonusBps?: true
+  smallGameWinPoints?: true
+  allianceGameWinPoints?: true
+  seriesWinPoints?: true
   updatedAt?: true
   _all?: true
 }
@@ -225,6 +255,9 @@ export type ParlayConfigGroupByOutputType = {
   basePool5: number
   basePool6Plus: number
   ticketPoolBonusBps: number
+  smallGameWinPoints: number
+  allianceGameWinPoints: number
+  seriesWinPoints: number
   updatedAt: Date
   _count: ParlayConfigCountAggregateOutputType | null
   _avg: ParlayConfigAvgAggregateOutputType | null
@@ -259,6 +292,9 @@ export type ParlayConfigWhereInput = {
   basePool5?: Prisma.IntFilter<"ParlayConfig"> | number
   basePool6Plus?: Prisma.IntFilter<"ParlayConfig"> | number
   ticketPoolBonusBps?: Prisma.IntFilter<"ParlayConfig"> | number
+  smallGameWinPoints?: Prisma.IntFilter<"ParlayConfig"> | number
+  allianceGameWinPoints?: Prisma.IntFilter<"ParlayConfig"> | number
+  seriesWinPoints?: Prisma.IntFilter<"ParlayConfig"> | number
   updatedAt?: Prisma.DateTimeFilter<"ParlayConfig"> | Date | string
 }
 
@@ -270,6 +306,9 @@ export type ParlayConfigOrderByWithRelationInput = {
   basePool5?: Prisma.SortOrder
   basePool6Plus?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
+  smallGameWinPoints?: Prisma.SortOrder
+  allianceGameWinPoints?: Prisma.SortOrder
+  seriesWinPoints?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -284,6 +323,9 @@ export type ParlayConfigWhereUniqueInput = Prisma.AtLeast<{
   basePool5?: Prisma.IntFilter<"ParlayConfig"> | number
   basePool6Plus?: Prisma.IntFilter<"ParlayConfig"> | number
   ticketPoolBonusBps?: Prisma.IntFilter<"ParlayConfig"> | number
+  smallGameWinPoints?: Prisma.IntFilter<"ParlayConfig"> | number
+  allianceGameWinPoints?: Prisma.IntFilter<"ParlayConfig"> | number
+  seriesWinPoints?: Prisma.IntFilter<"ParlayConfig"> | number
   updatedAt?: Prisma.DateTimeFilter<"ParlayConfig"> | Date | string
 }, "id">
 
@@ -295,6 +337,9 @@ export type ParlayConfigOrderByWithAggregationInput = {
   basePool5?: Prisma.SortOrder
   basePool6Plus?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
+  smallGameWinPoints?: Prisma.SortOrder
+  allianceGameWinPoints?: Prisma.SortOrder
+  seriesWinPoints?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ParlayConfigCountOrderByAggregateInput
   _avg?: Prisma.ParlayConfigAvgOrderByAggregateInput
@@ -314,6 +359,9 @@ export type ParlayConfigScalarWhereWithAggregatesInput = {
   basePool5?: Prisma.IntWithAggregatesFilter<"ParlayConfig"> | number
   basePool6Plus?: Prisma.IntWithAggregatesFilter<"ParlayConfig"> | number
   ticketPoolBonusBps?: Prisma.IntWithAggregatesFilter<"ParlayConfig"> | number
+  smallGameWinPoints?: Prisma.IntWithAggregatesFilter<"ParlayConfig"> | number
+  allianceGameWinPoints?: Prisma.IntWithAggregatesFilter<"ParlayConfig"> | number
+  seriesWinPoints?: Prisma.IntWithAggregatesFilter<"ParlayConfig"> | number
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ParlayConfig"> | Date | string
 }
 
@@ -325,6 +373,9 @@ export type ParlayConfigCreateInput = {
   basePool5?: number
   basePool6Plus?: number
   ticketPoolBonusBps?: number
+  smallGameWinPoints?: number
+  allianceGameWinPoints?: number
+  seriesWinPoints?: number
   updatedAt?: Date | string
 }
 
@@ -336,6 +387,9 @@ export type ParlayConfigUncheckedCreateInput = {
   basePool5?: number
   basePool6Plus?: number
   ticketPoolBonusBps?: number
+  smallGameWinPoints?: number
+  allianceGameWinPoints?: number
+  seriesWinPoints?: number
   updatedAt?: Date | string
 }
 
@@ -347,6 +401,9 @@ export type ParlayConfigUpdateInput = {
   basePool5?: Prisma.IntFieldUpdateOperationsInput | number
   basePool6Plus?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
+  smallGameWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
+  allianceGameWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
+  seriesWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -358,6 +415,9 @@ export type ParlayConfigUncheckedUpdateInput = {
   basePool5?: Prisma.IntFieldUpdateOperationsInput | number
   basePool6Plus?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
+  smallGameWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
+  allianceGameWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
+  seriesWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -369,6 +429,9 @@ export type ParlayConfigCreateManyInput = {
   basePool5?: number
   basePool6Plus?: number
   ticketPoolBonusBps?: number
+  smallGameWinPoints?: number
+  allianceGameWinPoints?: number
+  seriesWinPoints?: number
   updatedAt?: Date | string
 }
 
@@ -380,6 +443,9 @@ export type ParlayConfigUpdateManyMutationInput = {
   basePool5?: Prisma.IntFieldUpdateOperationsInput | number
   basePool6Plus?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
+  smallGameWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
+  allianceGameWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
+  seriesWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -391,6 +457,9 @@ export type ParlayConfigUncheckedUpdateManyInput = {
   basePool5?: Prisma.IntFieldUpdateOperationsInput | number
   basePool6Plus?: Prisma.IntFieldUpdateOperationsInput | number
   ticketPoolBonusBps?: Prisma.IntFieldUpdateOperationsInput | number
+  smallGameWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
+  allianceGameWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
+  seriesWinPoints?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -402,6 +471,9 @@ export type ParlayConfigCountOrderByAggregateInput = {
   basePool5?: Prisma.SortOrder
   basePool6Plus?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
+  smallGameWinPoints?: Prisma.SortOrder
+  allianceGameWinPoints?: Prisma.SortOrder
+  seriesWinPoints?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -412,6 +484,9 @@ export type ParlayConfigAvgOrderByAggregateInput = {
   basePool5?: Prisma.SortOrder
   basePool6Plus?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
+  smallGameWinPoints?: Prisma.SortOrder
+  allianceGameWinPoints?: Prisma.SortOrder
+  seriesWinPoints?: Prisma.SortOrder
 }
 
 export type ParlayConfigMaxOrderByAggregateInput = {
@@ -422,6 +497,9 @@ export type ParlayConfigMaxOrderByAggregateInput = {
   basePool5?: Prisma.SortOrder
   basePool6Plus?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
+  smallGameWinPoints?: Prisma.SortOrder
+  allianceGameWinPoints?: Prisma.SortOrder
+  seriesWinPoints?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -433,6 +511,9 @@ export type ParlayConfigMinOrderByAggregateInput = {
   basePool5?: Prisma.SortOrder
   basePool6Plus?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
+  smallGameWinPoints?: Prisma.SortOrder
+  allianceGameWinPoints?: Prisma.SortOrder
+  seriesWinPoints?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -443,6 +524,9 @@ export type ParlayConfigSumOrderByAggregateInput = {
   basePool5?: Prisma.SortOrder
   basePool6Plus?: Prisma.SortOrder
   ticketPoolBonusBps?: Prisma.SortOrder
+  smallGameWinPoints?: Prisma.SortOrder
+  allianceGameWinPoints?: Prisma.SortOrder
+  seriesWinPoints?: Prisma.SortOrder
 }
 
 
@@ -455,6 +539,9 @@ export type ParlayConfigSelect<ExtArgs extends runtime.Types.Extensions.Internal
   basePool5?: boolean
   basePool6Plus?: boolean
   ticketPoolBonusBps?: boolean
+  smallGameWinPoints?: boolean
+  allianceGameWinPoints?: boolean
+  seriesWinPoints?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["parlayConfig"]>
 
@@ -466,6 +553,9 @@ export type ParlayConfigSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   basePool5?: boolean
   basePool6Plus?: boolean
   ticketPoolBonusBps?: boolean
+  smallGameWinPoints?: boolean
+  allianceGameWinPoints?: boolean
+  seriesWinPoints?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["parlayConfig"]>
 
@@ -477,6 +567,9 @@ export type ParlayConfigSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   basePool5?: boolean
   basePool6Plus?: boolean
   ticketPoolBonusBps?: boolean
+  smallGameWinPoints?: boolean
+  allianceGameWinPoints?: boolean
+  seriesWinPoints?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["parlayConfig"]>
 
@@ -488,10 +581,13 @@ export type ParlayConfigSelectScalar = {
   basePool5?: boolean
   basePool6Plus?: boolean
   ticketPoolBonusBps?: boolean
+  smallGameWinPoints?: boolean
+  allianceGameWinPoints?: boolean
+  seriesWinPoints?: boolean
   updatedAt?: boolean
 }
 
-export type ParlayConfigOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ticketStake" | "basePool" | "basePool4" | "basePool5" | "basePool6Plus" | "ticketPoolBonusBps" | "updatedAt", ExtArgs["result"]["parlayConfig"]>
+export type ParlayConfigOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ticketStake" | "basePool" | "basePool4" | "basePool5" | "basePool6Plus" | "ticketPoolBonusBps" | "smallGameWinPoints" | "allianceGameWinPoints" | "seriesWinPoints" | "updatedAt", ExtArgs["result"]["parlayConfig"]>
 
 export type $ParlayConfigPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ParlayConfig"
@@ -504,6 +600,9 @@ export type $ParlayConfigPayload<ExtArgs extends runtime.Types.Extensions.Intern
     basePool5: number
     basePool6Plus: number
     ticketPoolBonusBps: number
+    smallGameWinPoints: number
+    allianceGameWinPoints: number
+    seriesWinPoints: number
     updatedAt: Date
   }, ExtArgs["result"]["parlayConfig"]>
   composites: {}
@@ -935,6 +1034,9 @@ export interface ParlayConfigFieldRefs {
   readonly basePool5: Prisma.FieldRef<"ParlayConfig", 'Int'>
   readonly basePool6Plus: Prisma.FieldRef<"ParlayConfig", 'Int'>
   readonly ticketPoolBonusBps: Prisma.FieldRef<"ParlayConfig", 'Int'>
+  readonly smallGameWinPoints: Prisma.FieldRef<"ParlayConfig", 'Int'>
+  readonly allianceGameWinPoints: Prisma.FieldRef<"ParlayConfig", 'Int'>
+  readonly seriesWinPoints: Prisma.FieldRef<"ParlayConfig", 'Int'>
   readonly updatedAt: Prisma.FieldRef<"ParlayConfig", 'DateTime'>
 }
     
