@@ -9,7 +9,7 @@ import { calculateSettlement, validateStake } from "@/lib/settlement";
 import { MyBetsPanel, type BetOrder, type ParlayOrder } from "@/components/my-bets-panel";
 import { WalletPanel, type HouseTreasury, type WalletEntry } from "@/components/wallet-panel";
 
-type Tab = "竞猜大厅" | "赛程确认" | "我的竞猜" | "竞猜币充值" | "钱包流水" | "排行榜" | "后台管理设置";
+type Tab = "竞猜大厅" | "赛程确认" | "我的竞猜" | "竞猜币充值" | "钱包流水" | "排行榜" | "成就奖" | "后台管理设置";
 type AdminTab = "MATCH" | "BETS" | "PARLAYS" | "USERS" | "ASSET" | "RECHARGES" | "TREASURY" | "RULES";
 type StatusFilter = "ALL" | "OPEN" | "CLOSED" | "SETTLED";
 type MatchScope = "TODAY" | "WEEK";
@@ -48,6 +48,16 @@ type BetRecord = {
   recordStatus: "ACTIVE" | "REFUNDED";
 };
 type RankingEntry = { id: string; rank: number; name: string; username: string; team: string; allianceTeams: string; value: number; points: number; hits: number; predictions: number; rate: number };
+type AchievementData = {
+  settledMarketCount: number;
+  minimumPredictions: number;
+  achievements: Array<{
+    key: string;
+    title: string;
+    requirement: string;
+    holders: Array<{ id: string; name: string; username: string; team: string; detail: string }>;
+  }>;
+};
 type RechargeRequest = {
   id: string;
   amount: number;
@@ -170,7 +180,7 @@ const emptyMarket: Market = {
   options: [{ id: "", label: "待配置", amount: 0 }],
   state: "CLOSED",
 };
-const tabs: Tab[] = ["竞猜大厅", "赛程确认", "我的竞猜", "竞猜币充值", "钱包流水", "排行榜", "后台管理设置"];
+const tabs: Tab[] = ["竞猜大厅", "赛程确认", "我的竞猜", "竞猜币充值", "钱包流水", "排行榜", "成就奖", "后台管理设置"];
 const adminTabs: AdminTab[] = ["MATCH", "BETS", "PARLAYS", "USERS", "ASSET", "RECHARGES", "TREASURY", "RULES"];
 const stateLabels: Record<string, string> = {
   OPEN: "开盘中",
@@ -282,6 +292,7 @@ export function Dashboard() {
   const [rechargeRequests, setRechargeRequests] = useState<RechargeRequest[]>([]);
   const [parlayOrders, setParlayOrders] = useState<ParlayOrder[]>([]);
   const [rankingEntries, setRankingEntries] = useState<RankingEntry[]>([]);
+  const [achievementData, setAchievementData] = useState<AchievementData | null>(null);
   const [parlayMarketIds, setParlayMarketIds] = useState<string[]>([]);
   const [parlayClosesAt, setParlayClosesAt] = useState<string | null>(null);
   const [parlayJoinedCount, setParlayJoinedCount] = useState(0);
@@ -483,10 +494,11 @@ export function Dashboard() {
   }
 
   async function loadFinancialState(isAdmin: boolean) {
-    const [wallet, entries, rankings, userRecharges, bets] = await Promise.all([
+    const [wallet, entries, rankings, achievements, userRecharges, bets] = await Promise.all([
       apiRequest<{ balance: number; points: number; treasury: HouseTreasury | null }>("/api/wallet"),
       apiRequest<WalletEntry[]>("/api/wallet/ledger?pageSize=50"),
       apiRequest<RankingEntry[]>("/api/rankings"),
+      apiRequest<AchievementData>("/api/achievements"),
       apiRequest<RechargeRequest[]>("/api/recharges"),
       apiRequest<BetOrder[]>("/api/bets/me?pageSize=50"),
     ]);
@@ -495,6 +507,7 @@ export function Dashboard() {
     setSessionUser((current) => current ? { ...current, points: wallet.points } : current);
     setWalletEntries(entries);
     setRankingEntries(rankings);
+    setAchievementData(achievements);
     setRechargeRequests(userRecharges);
     setMyBets(bets);
 
@@ -524,7 +537,7 @@ export function Dashboard() {
   async function refreshData(isAdmin = sessionUser?.isAdmin ?? false) {
     setLoadingData(true);
     try {
-      const [marketData, betData, wallet, entries, parlays, offer, weeklyAOffer, weeklyBOffer, rankingData, userRecharges] = await Promise.all([
+      const [marketData, betData, wallet, entries, parlays, offer, weeklyAOffer, weeklyBOffer, rankingData, achievements, userRecharges] = await Promise.all([
         apiRequest<Market[]>("/api/markets"),
         apiRequest<BetOrder[]>("/api/bets/me?pageSize=50"),
         apiRequest<{ balance: number; points: number; treasury: HouseTreasury | null }>("/api/wallet"),
@@ -534,6 +547,7 @@ export function Dashboard() {
         apiRequest<ParlayOffer>("/api/parlays?scope=weekly_a"),
         apiRequest<ParlayOffer>("/api/parlays?scope=weekly_b"),
         apiRequest<RankingEntry[]>("/api/rankings"),
+        apiRequest<AchievementData>("/api/achievements"),
         apiRequest<RechargeRequest[]>("/api/recharges"),
       ]);
       setServerMarkets(marketData);
@@ -562,6 +576,7 @@ export function Dashboard() {
       setWalletEntries(entries);
       setParlayOrders(parlays);
       setRankingEntries(rankingData);
+      setAchievementData(achievements);
       setRechargeRequests(userRecharges);
       setParlayTicket(offer.ticketStake);
       setParlayPool(offer.pool);
@@ -1242,6 +1257,7 @@ export function Dashboard() {
             "我的竞猜",
             "钱包流水",
             "排行榜",
+            "成就奖",
             ...(sessionUser.isAdmin ? ["后台管理设置" as Tab] : []),
           ] as Tab[]).map((tab) => (
             <button key={tab} className={activeTab === tab ? "nav-item active" : "nav-item"} onClick={() => setActiveTab(tab)}>
@@ -1443,6 +1459,7 @@ export function Dashboard() {
         {!sessionUser.isAdmin && activeTab === "竞猜币充值" && <RechargeShop requests={rechargeRequests} onSubmit={submitRecharge} />}
         {activeTab === "钱包流水" && <WalletPanel balance={balance} points={sessionPoints} entries={walletEntries} loading={loadingData} treasury={houseTreasury} onExchange={sessionUser.isAdmin ? undefined : exchangePoints} />}
         {activeTab === "排行榜" && <Ranking entries={rankingEntries} loading={loadingData} />}
+        {activeTab === "成就奖" && <Achievements data={achievementData} loading={loadingData} />}
         {sessionUser.isAdmin && activeTab === "后台管理设置" && <Admin
           key={`${adminTeams.map((team) => team.id).join(",")}:${parlayTicket}:${parlayBasePools.three}:${parlayBasePools.four}:${parlayBasePools.five}:${parlayBasePools.sixPlus}:${ticketPoolBonusMultiplier}:${weeklyParlayConfig.ticket}:${weeklyParlayConfig.basePool}:${weeklyParlayConfig.bonusMultiplier}:${weeklyBParlayConfig.ticket}:${weeklyBParlayConfig.basePool}:${weeklyBParlayConfig.bonusMultiplier}:${ratios.returnPercent}:${ratios.recoveryPercent}:${ratios.prizePercent}:${pointRewards.smallGameWinPoints}:${pointRewards.allianceGameWinPoints}:${pointRewards.seriesWinPoints}`}
           statuses={marketStatus}
@@ -1490,6 +1507,7 @@ export function Dashboard() {
           "我的竞猜",
           "钱包流水",
           "排行榜",
+          "成就奖",
           ...(sessionUser.isAdmin ? ["后台管理设置" as Tab] : []),
         ] as Tab[]).map((tab) => <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => setActiveTab(tab)}>{tab === "后台管理设置" ? "管理" : tab === "竞猜币充值" ? "充值" : tab.replace("竞猜", "") || "大厅"}{tab === "赛程确认" && pendingScheduleConfirmations > 0 && <i className="nav-alert-dot" title={`${pendingScheduleConfirmations} 场比赛待确认`} />}</button>)}
       </nav>
@@ -1675,6 +1693,31 @@ function Ranking({ entries, loading }: { entries: RankingEntry[]; loading: boole
       <div className="tr th rank-row"><span>排名</span><span>玩家</span><span>所属战队</span><span>联姻队伍</span><span>{sortButton("value")}</span><span>{sortButton("points")}</span><span>{sortButton("hits")}</span><span>{sortButton("predictions")}</span><span>{sortButton("rate")}</span></div>
       {sortedRankings.map((item, index) => <div className="tr rank-row" key={item.id}><span className={`rank rank-${index + 1}`}>{index + 1}</span><span><strong>{item.name}</strong><small>{item.username}</small></span><span>{item.team}</span><span>{item.allianceTeams}</span><span><strong>{money.format(item.value)}</strong></span><span>{money.format(item.points)}</span><span>{item.hits}</span><span>{item.predictions}</span><span>{item.rate.toFixed(1)}%</span></div>)}
       {!loading && sortedRankings.length === 0 && <div className="order-empty">暂无排行榜用户</div>}
+    </div>
+  </section>;
+}
+
+function Achievements({ data, loading }: { data: AchievementData | null; loading: boolean }) {
+  return <section className="panel achievement-panel">
+    <div className="section-heading">
+      <div><p className="eyebrow">赛季荣誉</p><h2>成就奖</h2></div>
+      <span className="pill">随竞猜与结算数据自动更新</span>
+    </div>
+    {data && <div className="achievement-summary">
+      当前已结算 {data.settledMarketCount} 场比赛；命中率称号最低参与门槛为 {data.minimumPredictions} 场。
+    </div>}
+    <div className="achievement-grid">
+      {data?.achievements.map((achievement) => <article className={`achievement-card achievement-${achievement.key.toLowerCase().replaceAll("_", "-")}`} key={achievement.key}>
+        <header><span>{achievement.title.slice(0, 1)}</span><div><h3>{achievement.title}</h3><small>称号奖励</small></div></header>
+        <p><b>获得要求</b>{achievement.requirement}</p>
+        <div className="achievement-holders">
+          <b>当前获得者</b>
+          {achievement.holders.length > 0
+            ? achievement.holders.map((holder) => <div key={holder.id}><span><strong>{holder.name}</strong><small>{holder.team} · {holder.username}</small></span><em>{holder.detail}</em></div>)
+            : <span className="achievement-empty">暂未有人达成</span>}
+        </div>
+      </article>)}
+      {!loading && !data && <div className="order-empty">暂无成就数据</div>}
     </div>
   </section>;
 }
