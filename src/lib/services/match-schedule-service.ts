@@ -27,6 +27,19 @@ function scheduleView(match: Awaited<ReturnType<typeof getScheduleMatch>>, actor
   const isAdmin = actor.role === UserRole.OPS_ADMIN || actor.role === UserRole.SUPER_ADMIN;
   const isParticipant = actor.teamId === match.homeTeamId || actor.teamId === match.awayTeamId;
   const isProposerTeam = actor.teamId === match.proposedByTeamId;
+  const market = match.markets[0];
+  const hasOrders = Boolean(market && (market._count.bets > 0 || market._count.parlayLegs > 0));
+  const pairingLockReason = !isAdmin
+    ? null
+    : !match.slotIndex
+      ? "场次数据待修复"
+      : market?.status === MarketStatus.SETTLED || market?.status === MarketStatus.VOIDED
+        ? "盘口已结算或作废，不能修改对阵"
+        : match.scheduleStatus === MatchScheduleStatus.CONFIRMED
+          ? "比赛时间已确认，不能修改对阵"
+          : hasOrders
+            ? "已有竞猜或过关订单，不能修改对阵"
+            : null;
   return {
     id: match.id,
     week: match.weekNumber,
@@ -43,19 +56,25 @@ function scheduleView(match: Awaited<ReturnType<typeof getScheduleMatch>>, actor
     proposedByTeamName: match.proposedByTeamId === match.homeTeamId ? match.homeTeam.name : match.proposedByTeamId === match.awayTeamId ? match.awayTeam.name : null,
     confirmedAt: match.confirmedAt?.toISOString() ?? null,
     pairingConfigured: Boolean(match.pairingConfiguredAt),
-    marketId: match.markets[0]?.id ?? null,
-    marketStatus: match.markets[0]?.status ?? null,
+    pairingLockReason,
+    marketId: market?.id ?? null,
+    marketStatus: market?.status ?? null,
     canPropose: !isAdmin && Boolean(match.pairingConfiguredAt) && isParticipant && match.scheduleStatus !== MatchScheduleStatus.CONFIRMED,
     canConfirm: !isAdmin && isParticipant && match.scheduleStatus === MatchScheduleStatus.PROPOSED && !isProposerTeam,
-    canConfigurePairing: isAdmin && match.scheduleStatus !== MatchScheduleStatus.CONFIRMED && match.markets[0]?.status !== MarketStatus.SETTLED && match.markets[0]?.status !== MarketStatus.VOIDED,
-    canAdminReschedule: isAdmin && Boolean(match.pairingConfiguredAt) && match.markets[0]?.status !== MarketStatus.SETTLED && match.markets[0]?.status !== MarketStatus.VOIDED,
+    canConfigurePairing: isAdmin && pairingLockReason === null,
+    canAdminReschedule: isAdmin && Boolean(match.pairingConfiguredAt) && market?.status !== MarketStatus.SETTLED && market?.status !== MarketStatus.VOIDED,
   };
 }
 
 function getScheduleMatch(matchId: string) {
   return prisma.match.findUnique({
     where: { id: matchId },
-    include: { season: true, homeTeam: true, awayTeam: true, markets: { take: 1 } },
+    include: {
+      season: true,
+      homeTeam: true,
+      awayTeam: true,
+      markets: { include: { _count: { select: { bets: true, parlayLegs: true } } }, take: 1 },
+    },
   });
 }
 
@@ -65,7 +84,12 @@ export async function listMatchSchedules(actor: { id: string; role: UserRole; te
     where: isAdmin
       ? { weekNumber: { lte: 11 } }
       : { weekNumber: { lte: 11 }, pairingConfiguredAt: { not: null }, OR: [{ homeTeamId: actor.teamId ?? "" }, { awayTeamId: actor.teamId ?? "" }] },
-    include: { season: true, homeTeam: true, awayTeam: true, markets: { take: 1 } },
+    include: {
+      season: true,
+      homeTeam: true,
+      awayTeam: true,
+      markets: { include: { _count: { select: { bets: true, parlayLegs: true } } }, take: 1 },
+    },
     orderBy: [{ weekNumber: "asc" }, { track: "asc" }, { slotIndex: "asc" }],
   });
   return records.map((match) => scheduleView(match, actor));

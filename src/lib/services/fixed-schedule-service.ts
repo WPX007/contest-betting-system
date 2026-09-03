@@ -1,6 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { MatchScheduleStatus, MarketStatus, Track } from "@/generated/prisma/enums";
-import { REGULAR_SEASON_WEEKS, roundRobinPairings, TEAMS_PER_TRACK } from "@/lib/fixed-schedule";
+import { fixedScheduleSlotPlan, REGULAR_SEASON_WEEKS, roundRobinPairings, TEAMS_PER_TRACK } from "@/lib/fixed-schedule";
 import { prisma } from "@/lib/prisma";
 
 type ScheduleDb = Pick<Prisma.TransactionClient, "team" | "season" | "match" | "market">;
@@ -28,23 +28,30 @@ export async function ensureFixedRegularSeasonSchedule(db: ScheduleDb = prisma) 
   }
 
   let created = 0;
+  let repairedSlots = 0;
   const skipped: Array<{ week: number; track: Track; existing: number }> = [];
   for (let week = 1; week <= REGULAR_SEASON_WEEKS; week += 1) {
     for (const track of [Track.A, Track.B]) {
-      const existing = await db.match.count({ where: { seasonId: season.id, weekNumber: week, track } });
-      if (existing > 0) {
-        skipped.push({ week, track, existing });
-        continue;
+      const existing = await db.match.findMany({
+        where: { seasonId: season.id, weekNumber: week, track },
+        select: { id: true, slotIndex: true },
+        orderBy: { createdAt: "asc" },
+      });
+      const plan = fixedScheduleSlotPlan(existing);
+      for (const assignment of plan.assignments) {
+        await db.match.update({ where: { id: assignment.id }, data: { slotIndex: assignment.slotIndex } });
+        repairedSlots += 1;
       }
       const pairings = roundRobinPairings(teamsByTrack[track].map((team) => team.id), week);
-      for (const pairing of pairings) {
+      for (const slotIndex of plan.missingSlots) {
+        const pairing = pairings[slotIndex - 1];
         await db.match.create({
           data: {
             seasonId: season.id,
             weekNumber: week,
             track,
             bestOf: 2,
-            slotIndex: pairing.slotIndex,
+            slotIndex,
             homeTeamId: pairing.homeTeamId,
             awayTeamId: pairing.awayTeamId,
             scheduleStatus: MatchScheduleStatus.UNSET,
@@ -52,6 +59,7 @@ export async function ensureFixedRegularSeasonSchedule(db: ScheduleDb = prisma) 
         });
         created += 1;
       }
+      if (plan.missingSlots.length === 0 && plan.assignments.length === 0) skipped.push({ week, track, existing: existing.length });
     }
   }
   const fixedMatches = await db.match.findMany({
@@ -80,5 +88,5 @@ export async function ensureFixedRegularSeasonSchedule(db: ScheduleDb = prisma) 
     });
     draftMarketsCreated += 1;
   }
-  return { created, draftMarketsCreated, skipped };
+  return { created, repairedSlots, draftMarketsCreated, skipped };
 }

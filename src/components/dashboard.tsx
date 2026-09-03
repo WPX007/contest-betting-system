@@ -27,7 +27,7 @@ type MatchSchedule = {
   scheduleStatus: "UNSET" | "PROPOSED" | "CONFIRMED";
   proposedScheduledAt: string | null; scheduledAt: string | null;
   proposedByTeamId: string | null; proposedByTeamName: string | null;
-  pairingConfigured: boolean;
+  pairingConfigured: boolean; pairingLockReason: string | null;
   canPropose: boolean; canConfirm: boolean; canConfigurePairing: boolean; canAdminReschedule: boolean;
 };
 type ManagedUser = { id: string; chineseName: string; englishName: string; team: string; teamId?: string | null; initialCoins: number };
@@ -1629,6 +1629,7 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, teams =
             <select value={pairings[schedule.id]?.awayTeamId ?? schedule.awayTeamId} onChange={(event) => setPairings((current) => ({ ...current, [schedule.id]: { homeTeamId: current[schedule.id]?.homeTeamId ?? schedule.homeTeamId, awayTeamId: event.target.value } }))}>{teams.filter((team) => team.track === schedule.track).map((team) => <option value={team.id} key={team.id}>{team.name}</option>)}</select>
             <button className="admin-primary" onClick={() => onConfigurePairing?.(schedule.id, pairings[schedule.id]?.homeTeamId ?? schedule.homeTeamId, pairings[schedule.id]?.awayTeamId ?? schedule.awayTeamId)}>{schedule.pairingConfigured ? "修改对阵" : "保存对阵"}</button>
           </div>}
+          {admin && !schedule.canConfigurePairing && schedule.pairingLockReason && <small className="schedule-lock-reason">{schedule.pairingLockReason}</small>}
           {(schedule.canPropose || schedule.canAdminReschedule) && <input type="datetime-local" value={inputValue(schedule)} onChange={(event) => setTimes((current) => ({ ...current, [schedule.id]: event.target.value }))} />}
           {!admin && schedule.canPropose && <button onClick={() => onPropose(schedule.id, inputValue(schedule))}>{schedule.scheduleStatus === "PROPOSED" ? "修改/反提时间" : "提交比赛时间"}</button>}
           {!admin && schedule.canConfirm && <button className="admin-primary" onClick={() => onConfirm(schedule.id)}>确认该时间</button>}
