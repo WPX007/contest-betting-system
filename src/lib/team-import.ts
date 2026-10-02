@@ -40,8 +40,8 @@ const aliases = {
   name: ["中文名", "姓名", "成员姓名", "队员姓名", "name"],
   username: ["英文名", "英文姓名", "账号", "用户名", "username", "englishname"],
   team: ["队伍", "队伍名", "战队", "战队名", "所属队伍", "team", "teamname", "队伍1", "战队1"],
-  partner: ["联姻队伍", "联姻战队", "联姻对象", "伙伴队伍", "partner", "队伍2", "战队2"],
-  alliance: ["联姻组", "联姻编号", "联姻关系", "alliance", "alliancegroup", "alliancekey"],
+  partner: ["同盟队伍", "同盟战队", "同盟对象", "联姻队伍", "联姻战队", "联姻对象", "伙伴队伍", "partner", "队伍2", "战队2"],
+  alliance: ["同盟组", "同盟编号", "同盟关系", "联姻组", "联姻编号", "联姻关系", "alliance", "alliancegroup", "alliancekey"],
 } satisfies Record<string, string[]>;
 
 const pairedAliases = {
@@ -168,7 +168,7 @@ export function parseTeamWorkbook(sheets: WorkbookSheet[]): ParsedTeamWorkbook {
           if (aTeam && bTeam) {
             const pair = pairedColumns.pair >= 0 ? nonEmpty(row[pairedColumns.pair]) : "";
             partnerLinks.push([aTeam, bTeam]);
-            if (!pair) warnings.push(`${sheet.sheet} 第 ${rowIndex + 1} 行：未填写配对编号，已按同行 A/B 队建立联姻关系`);
+            if (!pair) warnings.push(`${sheet.sheet} 第 ${rowIndex + 1} 行：未填写配对编号，已按同行 A/B 队建立同盟关系`);
           }
         }
         break;
@@ -219,11 +219,11 @@ export function parseTeamWorkbook(sheets: WorkbookSheet[]): ParsedTeamWorkbook {
 
   const alliances: ImportedAlliance[] = [
     ...Array.from(groupTeams.entries()).map(([group, teams]) => ({
-      source: `联姻组：${group}`,
+      source: `同盟组：${group}`,
       teamNames: Array.from(teams),
     })),
     ...partnerLinks.map(([first, second]) => ({
-      source: "联姻队伍配对",
+      source: "同盟队伍配对",
       teamNames: [first, second],
     })),
   ];

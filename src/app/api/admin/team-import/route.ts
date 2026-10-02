@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         role: member.role,
       }));
     if (parsed.alliances.length === 0) {
-      warnings.push("未读取到联姻关系；确认导入后将清除现有联姻关系");
+      warnings.push("未读取到同盟关系；确认导入后将清除现有同盟关系");
     }
     warnings.unshift(`确认导入后会清空旧赛程、盘口、竞猜、闯关和旧战队；仅保留管理员及系统设置。`);
     warnings.unshift(`其余 ${removedUsers.length} 名旧用户及其钱包、充值记录会被全部清除。`);

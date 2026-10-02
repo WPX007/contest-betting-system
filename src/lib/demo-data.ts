@@ -46,8 +46,8 @@ export const markets: Market[] = [
     track: "A",
     home: "战队01-A",
     away: "战队06-A",
-    homeAlliance: "联姻组01",
-    awayAlliance: "联姻组06",
+    homeAlliance: "同盟组01",
+    awayAlliance: "同盟组06",
     time: "今天 20:00",
     closesIn: "今天 20:00 自动封盘",
     pool: 8280,
@@ -65,8 +65,8 @@ export const markets: Market[] = [
     track: "A",
     home: "战队02-A",
     away: "战队11-A",
-    homeAlliance: "联姻组02",
-    awayAlliance: "联姻组11",
+    homeAlliance: "同盟组02",
+    awayAlliance: "同盟组11",
     time: "周一 19:00",
     closesIn: "已于周一 18:50 封盘",
     pool: 7360,
@@ -84,8 +84,8 @@ export const markets: Market[] = [
     track: "A",
     home: "战队03-A",
     away: "战队09-A",
-    homeAlliance: "联姻组03",
-    awayAlliance: "联姻组09",
+    homeAlliance: "同盟组03",
+    awayAlliance: "同盟组09",
     time: "周三 20:00",
     closesIn: "周三 20:00 自动封盘",
     pool: 0,
@@ -98,7 +98,7 @@ export const markets: Market[] = [
   },
   {
     id: "market-004", title: "常规赛第 4 轮 · 系列赛结果", bestOf: 2, track: "A",
-    home: "战队04-A", away: "战队12-A", homeAlliance: "联姻组04", awayAlliance: "联姻组12",
+    home: "战队04-A", away: "战队12-A", homeAlliance: "同盟组04", awayAlliance: "同盟组12",
     time: "周四 20:00", closesIn: "周四 20:00 自动封盘", pool: 4280, state: "OPEN",
     options: [
       { id: "home", label: "战队04-A 胜（2:0）", amount: 1380 },
@@ -108,7 +108,7 @@ export const markets: Market[] = [
   },
   {
     id: "market-005", title: "常规赛第 4 轮 · 系列赛结果", bestOf: 2, track: "A",
-    home: "战队05-A", away: "战队08-A", homeAlliance: "联姻组05", awayAlliance: "联姻组08",
+    home: "战队05-A", away: "战队08-A", homeAlliance: "同盟组05", awayAlliance: "同盟组08",
     time: "周五 19:30", closesIn: "周五 19:30 自动封盘", pool: 0, state: "OPEN",
     options: [
       { id: "home", label: "战队05-A 胜（2:0）", amount: 0 },
@@ -118,7 +118,7 @@ export const markets: Market[] = [
   },
   {
     id: "market-006", title: "常规赛第 4 轮 · 系列赛结果", bestOf: 2, track: "A",
-    home: "战队07-A", away: "战队10-A", homeAlliance: "联姻组07", awayAlliance: "联姻组10",
+    home: "战队07-A", away: "战队10-A", homeAlliance: "同盟组07", awayAlliance: "同盟组10",
     time: "周六 20:00", closesIn: "周六 20:00 自动封盘", pool: 5890, state: "OPEN",
     options: [
       { id: "home", label: "战队07-A 胜（2:0）", amount: 1900 },
@@ -128,7 +128,7 @@ export const markets: Market[] = [
   },
   {
     id: "market-007", title: "常规赛第 4 轮 · 系列赛结果", bestOf: 2, track: "B",
-    home: "战队01-B", away: "战队06-B", homeAlliance: "联姻组01", awayAlliance: "联姻组06",
+    home: "战队01-B", away: "战队06-B", homeAlliance: "同盟组01", awayAlliance: "同盟组06",
     time: "周一 20:30", closesIn: "已于周一 20:20 封盘", pool: 6680, state: "SETTLED",
     options: [
       { id: "home", label: "战队01-B 胜（2:0）", amount: 2250 },
@@ -138,7 +138,7 @@ export const markets: Market[] = [
   },
   {
     id: "market-008", title: "常规赛第 4 轮 · 系列赛结果", bestOf: 2, track: "B",
-    home: "战队02-B", away: "战队11-B", homeAlliance: "联姻组02", awayAlliance: "联姻组11",
+    home: "战队02-B", away: "战队11-B", homeAlliance: "同盟组02", awayAlliance: "同盟组11",
     time: "今天 19:30", closesIn: "今天 19:30 自动封盘", pool: 7160, state: "OPEN",
     options: [
       { id: "home", label: "战队02-B 胜（2:0）", amount: 2360 },
@@ -148,7 +148,7 @@ export const markets: Market[] = [
   },
   {
     id: "market-009", title: "常规赛第 4 轮 · 系列赛结果", bestOf: 2, track: "B",
-    home: "战队03-B", away: "战队09-B", homeAlliance: "联姻组03", awayAlliance: "联姻组09",
+    home: "战队03-B", away: "战队09-B", homeAlliance: "同盟组03", awayAlliance: "同盟组09",
     time: "今天 21:30", closesIn: "今天 21:30 自动封盘", pool: 6120, state: "OPEN",
     options: [
       { id: "home", label: "战队03-B 胜（2:0）", amount: 2180 },
@@ -158,7 +158,7 @@ export const markets: Market[] = [
   },
   {
     id: "market-010", title: "常规赛第 4 轮 · 系列赛结果", bestOf: 2, track: "B",
-    home: "战队04-B", away: "战队12-B", homeAlliance: "联姻组04", awayAlliance: "联姻组12",
+    home: "战队04-B", away: "战队12-B", homeAlliance: "同盟组04", awayAlliance: "同盟组12",
     time: "周四 21:00", closesIn: "周四 21:00 自动封盘", pool: 0, state: "OPEN",
     options: [
       { id: "home", label: "战队04-B 胜（2:0）", amount: 0 },
@@ -168,7 +168,7 @@ export const markets: Market[] = [
   },
   {
     id: "market-011", title: "常规赛第 4 轮 · 系列赛结果", bestOf: 2, track: "B",
-    home: "战队05-B", away: "战队08-B", homeAlliance: "联姻组05", awayAlliance: "联姻组08",
+    home: "战队05-B", away: "战队08-B", homeAlliance: "同盟组05", awayAlliance: "同盟组08",
     time: "周五 20:30", closesIn: "周五 20:30 自动封盘", pool: 0, state: "OPEN",
     options: [
       { id: "home", label: "战队05-B 胜（2:0）", amount: 0 },
@@ -178,7 +178,7 @@ export const markets: Market[] = [
   },
   {
     id: "market-012", title: "常规赛第 4 轮 · 系列赛结果", bestOf: 2, track: "B",
-    home: "战队07-B", away: "战队10-B", homeAlliance: "联姻组07", awayAlliance: "联姻组10",
+    home: "战队07-B", away: "战队10-B", homeAlliance: "同盟组07", awayAlliance: "同盟组10",
     time: "周日 20:00", closesIn: "周日 20:00 自动封盘", pool: 0, state: "OPEN",
     options: [
       { id: "home", label: "战队07-B 胜（2:0）", amount: 0 },
@@ -188,23 +188,19 @@ export const markets: Market[] = [
   },
 ];
 
-export const weekOptions = [
-  { week: 1, range: "7月27日—8月2日" },
-  { week: 2, range: "8月3日—8月9日" },
-  { week: 3, range: "8月10日—8月16日" },
-  { week: 4, range: "8月17日—8月23日" },
-  { week: 5, range: "8月24日—8月30日" },
-  { week: 6, range: "8月31日—9月6日" },
-  { week: 7, range: "9月7日—9月13日" },
-  { week: 8, range: "9月14日—9月20日" },
-  { week: 9, range: "9月21日—9月27日" },
-  { week: 10, range: "9月28日—10月4日" },
-  { week: 11, range: "10月5日—10月11日" },
-  { week: 12, range: "10月12日—10月18日" },
-  { week: 13, range: "10月19日—10月25日" },
-  { week: 14, range: "10月26日—11月1日" },
-  { week: 15, range: "11月2日—11月8日" },
-];
+const competitionStartUtc = Date.UTC(2026, 9, 12);
+const compactDate = (timestamp: number) => {
+  const date = new Date(timestamp);
+  return `${date.getUTCMonth() + 1}月${date.getUTCDate()}日`;
+};
+
+export const weekOptions = Array.from({ length: 15 }, (_, index) => {
+  const start = competitionStartUtc + index * 7 * 86_400_000;
+  return {
+    week: index + 1,
+    range: `${compactDate(start)}—${compactDate(start + 6 * 86_400_000)}`,
+  };
+});
 
 function pairingsForWeek(week: number) {
   let teams = Array.from({ length: 12 }, (_, index) => index + 1);
@@ -236,8 +232,8 @@ export function getMarketsForWeek(week: number): Market[] {
         track,
         home: `战队${home}-${track}`,
         away: `战队${away}-${track}`,
-        homeAlliance: `联姻组${home}`,
-        awayAlliance: `联姻组${away}`,
+        homeAlliance: `同盟组${home}`,
+        awayAlliance: `同盟组${away}`,
         time: `周${["一", "二", "三", "四", "五", "六"][index]} ${index % 2 === 0 ? "20:00" : "21:00"}`,
         closesIn: isPast ? "已封盘并完成结算" : "开赛时自动封盘",
         pool,

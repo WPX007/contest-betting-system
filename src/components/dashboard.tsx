@@ -16,7 +16,7 @@ type MatchScope = "TODAY" | "WEEK";
 type ParlayMode = "DAILY" | "WEEKLY_A" | "WEEKLY_B";
 const parlayScopeLabel = (scope: "DAILY" | "WEEKLY" | "WEEKLY_A" | "WEEKLY_B") => scope === "WEEKLY_A" ? "本周 A 组过关" : scope === "WEEKLY_B" ? "本周 B 组过关" : scope === "WEEKLY" ? "本周过关" : "今日过关";
 const parlayPeriodLabel = (scope: "DAILY" | "WEEKLY" | "WEEKLY_A" | "WEEKLY_B", dayKey: string) => scope === "DAILY" ? dayKey : `第 ${dayKey.match(/\d+/)?.[0] ?? ""} 周`;
-type RankingSortKey = "value" | "points" | "hits" | "predictions" | "rate";
+type RankingSortKey = "team" | "allianceTeams" | "value" | "points" | "hits" | "predictions" | "rate";
 type MatchOverride = { week: number; track: "A" | "B"; home: string; away: string; time: string };
 type RatioConfig = { returnPercent: number; recoveryPercent: number; prizePercent: number };
 type PointRewardConfig = { smallGameWinPoints: number; allianceGameWinPoints: number; seriesWinPoints: number };
@@ -220,19 +220,19 @@ function marketDayKey(time: string) {
 }
 
 function weekDateLabel(week: number, dayIndex: number) {
-  const date = new Date(2026, 6, 27 + (week - 1) * 7 + dayIndex);
+  const date = new Date(2026, 9, 12 + (week - 1) * 7 + dayIndex);
   return `${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
 function weekCompactRange(week: number) {
-  const start = new Date(2026, 6, 27 + (week - 1) * 7);
-  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 5);
+  const start = new Date(2026, 9, 12 + (week - 1) * 7);
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
   return `${start.getMonth() + 1}.${start.getDate()}-${end.getMonth() + 1}.${end.getDate()}`;
 }
 
 function currentCompetitionWeek() {
   const [year, month, day] = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" }).split("-").map(Number);
-  const daysSinceSeasonStart = Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(2026, 6, 27)) / 86_400_000);
+  const daysSinceSeasonStart = Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(2026, 9, 12)) / 86_400_000);
   return Math.min(weekOptions.length, Math.max(1, Math.floor(daysSinceSeasonStart / 7) + 1));
 }
 
@@ -1010,7 +1010,7 @@ export function Dashboard() {
     }
     const dayIndex = Math.max(0, weekDays.findIndex((day) => config.time.startsWith(day)));
     const clock = config.time.match(/(\d{1,2}):(\d{2})/);
-    const scheduledAt = new Date(2026, 6, 27 + (config.week - 1) * 7 + dayIndex, Number(clock?.[1] ?? 20), Number(clock?.[2] ?? 0));
+    const scheduledAt = new Date(2026, 9, 12 + (config.week - 1) * 7 + dayIndex, Number(clock?.[1] ?? 20), Number(clock?.[2] ?? 0));
     try {
       await apiRequest("/api/admin/markets", {
         method: id === "blank" ? "POST" : "PATCH",
@@ -1087,7 +1087,7 @@ export function Dashboard() {
     try {
       await apiRequest("/api/admin/settings", { method: "PATCH", body: JSON.stringify({ pointRewards: config }) });
       await refreshData(true);
-      setNotice(`点券奖励参数已更新：小局 ${config.smallGameWinPoints}、联姻加成 ${config.allianceGameWinPoints}、BO2/BO3 胜场 ${config.seriesWinPoints}。`);
+      setNotice(`点券奖励参数已更新：小局 ${config.smallGameWinPoints}、同盟加成 ${config.allianceGameWinPoints}、BO2/BO3 胜场 ${config.seriesWinPoints}。`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "保存点券奖励参数失败");
     }
@@ -1449,7 +1449,7 @@ export function Dashboard() {
               <div className="quick-stakes">{[50, 100, validation.cap].map((value, index) => <button disabled={isAdminSession || selectedState !== "OPEN" || value < 50} key={`${value}-${index}`} onClick={() => setStake(value)}>{index === 2 ? "最大" : value}</button>)}</div>
               <div className="estimate"><span>预估到账</span><strong>{money.format(potential.payout)} <small>竞猜币</small></strong><p>包含本金返还 {potential.returnedStake} + 奖池奖励 {potential.prize}</p></div>
               <button disabled={submittingBet || isAdminSession || selectedState !== "OPEN"} className="primary" onClick={placeBet}>{submittingBet ? "订单提交中…" : isAdminSession ? "管理员账号不可下注" : selectedState === "OPEN" ? `${lockedOptionId ? "确认加注" : "确认下注"} ${stake > 0 ? `${money.format(stake)} 竞猜币` : ""}` : stateLabels[selectedState]}</button>
-              <p className="fine-print">{isAdminSession ? "管理员账号仅用于赛事管理、资产操作和信息核对。" : "首次下注后结果锁定，只能继续加注；封盘后不可撤单。禁止竞猜本人或联姻战队的比赛。"}</p>
+              <p className="fine-print">{isAdminSession ? "管理员账号仅用于赛事管理、资产操作和信息核对。" : "首次下注后结果锁定，只能继续加注；封盘后不可撤单。禁止竞猜本人或同盟战队的比赛。"}</p>
             </aside> : <aside className="bet-panel empty-bet-panel"><span>暂无比赛</span><h2>第 {selectedWeek} 周尚未配置赛程</h2><p>管理员创建并设置本周比赛后，竞猜盘口将在这里展示。</p>{sessionUser.isAdmin && <button onClick={() => setActiveTab("后台管理设置")}>前往后台管理设置</button>}</aside>}
           </div>
         )}
@@ -1663,12 +1663,17 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, teams =
 function Ranking({ entries, loading }: { entries: RankingEntry[]; loading: boolean }) {
   const [sortKey, setSortKey] = useState<RankingSortKey>("value");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-  const sortLabels: Record<RankingSortKey, string> = { value: "竞猜币", points: "点券", hits: "命中数", predictions: "预测数", rate: "命中率" };
+  const sortLabels: Record<RankingSortKey, string> = { team: "所属战队", allianceTeams: "同盟队伍", value: "竞猜币", points: "点券", hits: "命中数", predictions: "预测数", rate: "命中率" };
   const sortedRankings = useMemo(
     () => [...entries].sort((a, b) => {
       const first = a[sortKey];
       const second = b[sortKey];
-      return sortDirection === "desc" ? second - first : first - second;
+      if (typeof first === "string" && typeof second === "string") {
+        const compared = first.localeCompare(second, "zh-CN");
+        return sortDirection === "desc" ? -compared : compared;
+      }
+      const compared = Number(first) - Number(second);
+      return sortDirection === "desc" ? -compared : compared;
     }),
     [entries, sortDirection, sortKey],
   );
@@ -1679,7 +1684,7 @@ function Ranking({ entries, loading }: { entries: RankingEntry[]; loading: boole
       return;
     }
     setSortKey(key);
-    setSortDirection("desc");
+    setSortDirection(key === "team" || key === "allianceTeams" ? "asc" : "desc");
   }
 
   const sortButton = (key: RankingSortKey) => (
@@ -1690,7 +1695,7 @@ function Ranking({ entries, loading }: { entries: RankingEntry[]; loading: boole
 
   return <section className="panel"><div className="section-heading"><div><p className="eyebrow">赛季榜单</p><h2>竞猜排行榜</h2></div><span className="pill">{sortLabels[sortKey]} · {sortDirection === "desc" ? "由大到小" : "由小到大"}</span></div>
     <div className="data-table ranking-table">
-      <div className="tr th rank-row"><span>排名</span><span>玩家</span><span>所属战队</span><span>联姻队伍</span><span>{sortButton("value")}</span><span>{sortButton("points")}</span><span>{sortButton("hits")}</span><span>{sortButton("predictions")}</span><span>{sortButton("rate")}</span></div>
+      <div className="tr th rank-row"><span>排名</span><span>玩家</span><span>{sortButton("team")}</span><span>{sortButton("allianceTeams")}</span><span>{sortButton("value")}</span><span>{sortButton("points")}</span><span>{sortButton("hits")}</span><span>{sortButton("predictions")}</span><span>{sortButton("rate")}</span></div>
       {sortedRankings.map((item, index) => <div className="tr rank-row" key={item.id}><span className={`rank rank-${index + 1}`}>{index + 1}</span><span><strong>{item.name}</strong><small>{item.username}</small></span><span>{item.team}</span><span>{item.allianceTeams}</span><span><strong>{money.format(item.value)}</strong></span><span>{money.format(item.points)}</span><span>{item.hits}</span><span>{item.predictions}</span><span>{item.rate.toFixed(1)}%</span></div>)}
       {!loading && sortedRankings.length === 0 && <div className="order-empty">暂无排行榜用户</div>}
     </div>
@@ -1932,7 +1937,7 @@ function Admin({
       `清空全部旧赛程、盘口、竞猜、闯关和旧战队`,
       `删除现有普通用户 ${removedCount} 人，并清空其钱包和充值记录`,
       `按表格英文名新建账号 ${createdCount} 人，密码 000000，初始竞猜币 ${teamImportPreview.summary.initialCoins ?? 1000}`,
-      `联姻组：${teamImportPreview.summary.allianceGroupCount} 组`,
+      `同盟组：${teamImportPreview.summary.allianceGroupCount} 组`,
     ].join("\n");
     if (!window.confirm(message)) return;
     setTeamImportBusy(true);
@@ -2165,7 +2170,7 @@ function Admin({
           <em>{settlementResultLabel}</em>
           <span><b>{settlementAwayScore}</b><strong>{settlementMarket.away}</strong></span>
         </div> : <div className="bet-detail-empty">当前没有可结算比赛，请先将比赛封盘。</div>}
-        <div className="admin-warning">当前点券参数：每赢 1 小局，队员 +{pointRewards.smallGameWinPoints}；联姻大组成员 +{pointRewards.allianceGameWinPoints}；BO2/BO3 获胜队员额外 +{pointRewards.seriesWinPoints}。</div>
+        <div className="admin-warning">当前点券参数：每赢 1 小局，队员 +{pointRewards.smallGameWinPoints}；同盟大组成员 +{pointRewards.allianceGameWinPoints}；BO2/BO3 获胜队员额外 +{pointRewards.seriesWinPoints}。</div>
         <div className="admin-warning">系统会根据比分自动判定主胜、平局或客胜。确认后将锁定赛果，自动计算中奖订单、返还和奖励，同时更新闯关命中状态并生成钱包流水。</div>
         <button className="admin-primary settlement-submit" disabled={!settlementMarket} onClick={submitSettlement}>确认比分并执行结算</button>
       </section>
@@ -2254,7 +2259,7 @@ function Admin({
 
     {adminTab === "USERS" && <div className="admin-grid">
       <section className="admin-card admin-wide team-import-card">
-        <div className="admin-card-head"><div><small>批量覆盖</small><h3>导入队伍分配与联姻关系</h3></div><span>Excel 预览确认后生效</span></div>
+        <div className="admin-card-head"><div><small>批量覆盖</small><h3>导入队伍分配与同盟关系</h3></div><span>Excel 预览确认后生效</span></div>
         <div className="team-import-controls">
           <label>选择 Excel 文件<input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => { setTeamImportFile(event.target.files?.[0] ?? null); setTeamImportPreview(null); }} /></label>
           <button disabled={!teamImportFile || teamImportBusy} onClick={previewTeamImport}>{teamImportBusy ? "处理中…" : "校验并预览"}</button>
@@ -2263,7 +2268,7 @@ function Admin({
         <div className="team-import-format">
           <strong>支持表头：</strong>
           <span>成员表：中文名 / 英文名 / 队伍名</span>
-          <span>联姻表：队伍名 / 联姻组，或 队伍名 / 联姻队伍</span>
+          <span>同盟表：队伍名 / 同盟组，或 队伍名 / 同盟队伍</span>
           <span>横向配对表：配对 / A队 / A队队长 / A队队员 / B队 / B队队长 / B队队员</span>
         </div>
         {teamImportPreview && <div className="team-import-preview">
@@ -2271,13 +2276,13 @@ function Admin({
             <div><span>新建账号</span><strong>{teamImportPreview.summary.createdUserCount ?? teamImportPreview.summary.assignmentCount}</strong></div>
             <div><span>删除旧用户</span><strong>{teamImportPreview.summary.removedUserCount ?? teamImportPreview.summary.clearedAssignmentCount}</strong></div>
             <div><span>初始竞猜币</span><strong>{teamImportPreview.summary.initialCoins ?? 1000}</strong></div>
-            <div><span>联姻组</span><strong>{teamImportPreview.summary.allianceGroupCount}</strong></div>
+            <div><span>同盟组</span><strong>{teamImportPreview.summary.allianceGroupCount}</strong></div>
           </div>
           {teamImportPreview.errors.length > 0 && <div className="team-import-messages errors"><strong>必须修正以下错误</strong>{teamImportPreview.errors.map((message) => <p key={message}>{message}</p>)}</div>}
           {teamImportPreview.warnings.length > 0 && <div className="team-import-messages warnings"><strong>注意事项</strong>{teamImportPreview.warnings.map((message) => <p key={message}>{message}</p>)}</div>}
           <div className="team-import-columns">
             <section><h4>将开账号</h4><div>{teamImportPreview.assignments.map((item) => <p key={item.userId}><span>{item.name}<small>{item.username}{item.role === "CAPTAIN" ? " · 队长" : ""} · 密码 000000</small></span><b>{item.teamName}</b></p>)}</div></section>
-            <section><h4>联姻关系预览</h4><div>{teamImportPreview.alliances.map((group, index) => <p key={group.map((team) => team.id).join("-")}><span>联姻组 {index + 1}</span><b>{group.map((team) => team.name).join(" ↔ ")}</b></p>)}{teamImportPreview.alliances.length === 0 && <p><span>无联姻关系</span></p>}</div></section>
+            <section><h4>同盟关系预览</h4><div>{teamImportPreview.alliances.map((group, index) => <p key={group.map((team) => team.id).join("-")}><span>同盟组 {index + 1}</span><b>{group.map((team) => team.name).join(" ↔ ")}</b></p>)}{teamImportPreview.alliances.length === 0 && <p><span>无同盟关系</span></p>}</div></section>
           </div>
           {teamImportPreview.unassignedUsers.length > 0 && <details className="team-import-cleared"><summary>将删除的旧用户（{teamImportPreview.unassignedUsers.length} 人）</summary><p>{teamImportPreview.unassignedUsers.map((user) => `${user.name} / ${user.username}（${user.fromTeam}）`).join("、")}</p></details>}
         </div>}
@@ -2423,10 +2428,10 @@ function Admin({
         <div className="admin-card-head"><div><small>比赛奖励</small><h3>点券奖励参数</h3></div><span>结算时自动发放</span></div>
         <div className="form-grid ratio-form">
           <label>小局基础奖<input type="number" min="0" step="1" value={pointRewardForm.smallGameWinPoints} onChange={(event) => setPointRewardForm((current) => ({ ...current, smallGameWinPoints: Number(event.target.value) }))} /><em>点券</em></label>
-          <label>联姻加成奖<input type="number" min="0" step="1" value={pointRewardForm.allianceGameWinPoints} onChange={(event) => setPointRewardForm((current) => ({ ...current, allianceGameWinPoints: Number(event.target.value) }))} /><em>点券</em></label>
+          <label>同盟加成奖<input type="number" min="0" step="1" value={pointRewardForm.allianceGameWinPoints} onChange={(event) => setPointRewardForm((current) => ({ ...current, allianceGameWinPoints: Number(event.target.value) }))} /><em>点券</em></label>
           <label>BO2/BO3 胜场奖<input type="number" min="0" step="1" value={pointRewardForm.seriesWinPoints} onChange={(event) => setPointRewardForm((current) => ({ ...current, seriesWinPoints: Number(event.target.value) }))} /><em>点券</em></label>
         </div>
-        <div className="admin-warning">小局基础奖发给该局获胜队员；联姻加成奖发给获胜队所在联姻大组成员；BO2/BO3 胜场奖仅在系列赛分出胜负时额外发给胜队队员。</div>
+        <div className="admin-warning">小局基础奖发给该局获胜队员；同盟加成奖发给获胜队所在同盟大组成员；BO2/BO3 胜场奖仅在系列赛分出胜负时额外发给胜队队员。</div>
         <button className="admin-primary" onClick={submitPointRewards}>保存点券奖励参数</button>
       </section>
       <section className="admin-card">

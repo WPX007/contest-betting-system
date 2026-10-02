@@ -35,7 +35,7 @@ export function assertBetAllowed(input: unknown, actor: Actor, market: BetMarket
     throw new Error("赛事管理角色不得参与盘口竞猜");
   }
   if (isConflicted(actor.teamId, actor.allianceKey, market.homeTeamId, market.awayTeamId, market.homeAllianceKey, market.awayAllianceKey)) {
-    throw new Error("参赛选手不得竞猜本人或联姻战队的比赛");
+    throw new Error("参赛选手不得竞猜本人或同盟战队的比赛");
   }
   const stakeCheck = validateStake(actor.balance, bet.stake);
   if (!stakeCheck.valid) {

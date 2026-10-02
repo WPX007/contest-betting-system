@@ -31,8 +31,8 @@ async function main() {
 
   const season = await prisma.season.upsert({
     where: { id: "season-2026" },
-    update: { name: "2027年“策划杯”秋季赛", startsAt: new Date("2026-07-27T00:00:00+08:00"), endsAt: new Date("2026-11-08T23:59:59+08:00") },
-    create: { id: "season-2026", name: "2027年“策划杯”秋季赛", startsAt: new Date("2026-07-27T00:00:00+08:00"), endsAt: new Date("2026-11-08T23:59:59+08:00") },
+    update: { name: "2027年“策划杯”秋季赛", startsAt: new Date("2026-10-12T00:00:00+08:00"), endsAt: new Date("2027-01-24T23:59:59+08:00") },
+    create: { id: "season-2026", name: "2027年“策划杯”秋季赛", startsAt: new Date("2026-10-12T00:00:00+08:00"), endsAt: new Date("2027-01-24T23:59:59+08:00") },
   });
 
   for (let index = 1; index <= 12; index += 1) {
@@ -101,7 +101,7 @@ async function main() {
     for (const marketSeed of getMarketsForWeek(week)) {
       const day = Object.keys(dayIndex).find((key) => marketSeed.time.startsWith(key)) ?? "周一";
       const clock = marketSeed.time.match(/(\d{1,2}):(\d{2})/);
-      const scheduledAt = new Date("2026-07-27T00:00:00+08:00");
+      const scheduledAt = new Date("2026-10-12T00:00:00+08:00");
       scheduledAt.setDate(scheduledAt.getDate() + (week - 1) * 7 + dayIndex[day]);
       scheduledAt.setHours(Number(clock?.[1] ?? 20), Number(clock?.[2] ?? 0), 0, 0);
       const matchId = `${marketSeed.id}-match`;

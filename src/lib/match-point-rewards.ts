@@ -34,7 +34,7 @@ export function calculateMatchPointRewards(
 }
 
 export function matchAllianceRewardNote(teamName: string, gameWins: number, pointsPerWin: number) {
-  return `${teamName} 联姻大组奖励：小局胜场 ${gameWins} × ${pointsPerWin}`;
+  return `${teamName} 同盟大组奖励：小局胜场 ${gameWins} × ${pointsPerWin}`;
 }
 
 export function matchPointRewardNote(gameWins: number, seriesWin: boolean, config: MatchPointRewardConfig) {

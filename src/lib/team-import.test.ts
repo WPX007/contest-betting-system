@@ -23,7 +23,7 @@ describe("team workbook import", () => {
     ]);
     expect(parsed.members).toHaveLength(2);
     expect(parsed.members[0]).toMatchObject({ name: "张三", username: "Alex", teamName: "战队01-A" });
-    expect(parsed.alliances).toEqual([{ source: "联姻组：甲", teamNames: ["战队01-A", "战队02-A"] }]);
+    expect(parsed.alliances).toEqual([{ source: "同盟组：甲", teamNames: ["战队01-A", "战队02-A"] }]);
   });
 
   it("supports direct married-team pairs", () => {
@@ -87,7 +87,7 @@ describe("team workbook import", () => {
     expect(roster.members[0]).toMatchObject({ username: "jinzhe", role: "CAPTAIN", teamName: "战队01-A" });
     expect(roster.members[1]).toMatchObject({ username: "dimoomao", role: "PLAYER" });
     expect(parsed.alliances).toEqual([
-      { source: "联姻队伍配对", teamNames: ["战队01-A", "战队01-B"] },
+      { source: "同盟队伍配对", teamNames: ["战队01-A", "战队01-B"] },
     ]);
   });
 

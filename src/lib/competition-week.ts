@@ -1,4 +1,4 @@
-export const COMPETITION_START = new Date("2026-07-27T00:00:00+08:00");
+export const COMPETITION_START = new Date("2026-10-12T00:00:00+08:00");
 export const COMPETITION_WEEK_COUNT = 15;
 
 export function currentCompetitionWeek(now = new Date()) {
