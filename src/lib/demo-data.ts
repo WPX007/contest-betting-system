@@ -21,7 +21,7 @@ export type Market = {
   homeAlliance: string;
   awayAlliance: string;
   time: string;
-  scheduledAt?: string;
+  scheduledAt?: string | null;
   closesAt?: string;
   closesIn: string;
   pool: number;

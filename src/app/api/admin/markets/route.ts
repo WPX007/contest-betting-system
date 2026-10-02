@@ -5,7 +5,7 @@ import { authErrorResponse, requireAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { debitHouseWallet } from "@/lib/services/house-wallet";
 import { listMarkets } from "@/lib/services/market-service";
-import { adminConfigureMatchPairing, adminRescheduleMatch } from "@/lib/services/match-schedule-service";
+import { adminClearMatchTime, adminConfigureMatchPairing, adminRescheduleMatch } from "@/lib/services/match-schedule-service";
 import { refundMarket, settleMarket } from "@/lib/services/settlement-service";
 
 const createSchema = z.object({
@@ -93,6 +93,16 @@ export async function PATCH(request: Request) {
         status: z.enum(["OPEN", "CLOSED", "PENDING_REVIEW", "VOIDED"]),
       }).parse(body);
       const status = input.status as MarketStatus;
+      const unconfirmedCount = await prisma.market.count({
+        where: {
+          id: { in: input.ids },
+          OR: [
+            { status: MarketStatus.DRAFT },
+            { match: { scheduleStatus: { not: MatchScheduleStatus.CONFIRMED } } },
+          ],
+        },
+      });
+      if (unconfirmedCount > 0) throw new Error("比赛时间尚未由双方确认，不能修改盘口状态");
       await prisma.market.updateMany({
         where: { id: { in: input.ids } },
         data: { status, closedAt: status === MarketStatus.OPEN ? null : new Date() },
@@ -189,6 +199,11 @@ export async function PATCH(request: Request) {
       const input = z.object({ matchId: z.string().min(1), scheduledAt: z.string().datetime() }).parse(body);
       await adminRescheduleMatch(admin.id, input.matchId, new Date(input.scheduledAt));
       return NextResponse.json({ data: { rescheduled: true } });
+    }
+    if (action === "CLEAR_SCHEDULE") {
+      const input = z.object({ matchId: z.string().min(1) }).parse(body);
+      await adminClearMatchTime(admin.id, input.matchId);
+      return NextResponse.json({ data: { cleared: true } });
     }
     if (action === "PAIRING") {
       const input = z.object({

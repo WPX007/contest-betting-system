@@ -45,7 +45,7 @@ function formatMarketTime(date: Date) {
 }
 
 export function marketView(market: MarketWithDetails) {
-  const scheduledAt = market.match.scheduledAt ?? market.closesAt;
+  const scheduledAt = market.match.scheduledAt;
   const optionKey = (option: (typeof market.options)[number]) => (
     option.id.endsWith("-home") || option.label.startsWith(market.match.homeTeam.name)
       ? "home"
@@ -72,10 +72,14 @@ export function marketView(market: MarketWithDetails) {
     awayTeamId: market.match.awayTeam.id,
     homeAlliance: market.match.homeTeam.allianceKey,
     awayAlliance: market.match.awayTeam.allianceKey,
-    scheduledAt: scheduledAt.toISOString(),
+    scheduledAt: scheduledAt?.toISOString() ?? null,
     closesAt: market.closesAt.toISOString(),
-    time: formatMarketTime(scheduledAt),
-    closesIn: state === MarketStatus.OPEN ? `${formatMarketTime(market.closesAt)} 自动封盘` : `已于 ${formatMarketTime(market.closesAt)} 封盘`,
+    time: scheduledAt ? formatMarketTime(scheduledAt) : "时间待定",
+    closesIn: state === MarketStatus.DRAFT
+      ? "等待双方队长确认比赛时间"
+      : state === MarketStatus.OPEN
+        ? `${formatMarketTime(market.closesAt)} 自动封盘`
+        : `已于 ${formatMarketTime(market.closesAt)} 封盘`,
     pool,
     state,
     score: market.match.homeScore === null || market.match.awayScore === null ? null : `${market.match.homeScore} : ${market.match.awayScore}`,
@@ -100,7 +104,13 @@ export function marketView(market: MarketWithDetails) {
 export async function listMarkets(week?: number) {
   await closeDueMarkets();
   const records = await prisma.market.findMany({
-    where: { status: { not: MarketStatus.DRAFT }, ...(week ? { match: { weekNumber: week } } : {}) },
+    where: {
+      ...(week ? { match: { weekNumber: week } } : {}),
+      OR: [
+        { status: { not: MarketStatus.DRAFT } },
+        { status: MarketStatus.DRAFT, match: { pairingConfiguredAt: { not: null } } },
+      ],
+    },
     include: marketInclude,
     orderBy: { match: { scheduledAt: "asc" } },
   });

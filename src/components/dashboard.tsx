@@ -11,7 +11,7 @@ import { WalletPanel, type HouseTreasury, type WalletEntry } from "@/components/
 
 type Tab = "竞猜大厅" | "赛程确认" | "我的竞猜" | "竞猜币充值" | "钱包流水" | "排行榜" | "成就奖" | "后台管理设置";
 type AdminTab = "MATCH" | "BETS" | "PARLAYS" | "USERS" | "ASSET" | "RECHARGES" | "TREASURY" | "RULES";
-type StatusFilter = "ALL" | "OPEN" | "CLOSED" | "SETTLED";
+type StatusFilter = "ALL" | "DRAFT" | "OPEN" | "CLOSED" | "SETTLED";
 type MatchScope = "TODAY" | "WEEK";
 type ParlayMode = "DAILY" | "WEEKLY_A" | "WEEKLY_B";
 const parlayScopeLabel = (scope: "DAILY" | "WEEKLY" | "WEEKLY_A" | "WEEKLY_B") => scope === "WEEKLY_A" ? "本周 A 组过关" : scope === "WEEKLY_B" ? "本周 B 组过关" : scope === "WEEKLY" ? "本周过关" : "今日过关";
@@ -28,7 +28,7 @@ type MatchSchedule = {
   proposedScheduledAt: string | null; scheduledAt: string | null;
   proposedByTeamId: string | null; proposedByTeamName: string | null;
   pairingConfigured: boolean; pairingLockReason: string | null;
-  canPropose: boolean; canConfirm: boolean; canConfigurePairing: boolean; canAdminReschedule: boolean;
+  canPropose: boolean; canConfirm: boolean; canConfigurePairing: boolean; canAdminReschedule: boolean; canAdminClearTime: boolean;
 };
 type ManagedUser = { id: string; chineseName: string; englishName: string; team: string; teamId?: string | null; initialCoins: number };
 type AdminTeam = { id: string; name: string; track: "A" | "B" };
@@ -183,6 +183,7 @@ const emptyMarket: Market = {
 const tabs: Tab[] = ["竞猜大厅", "赛程确认", "我的竞猜", "竞猜币充值", "钱包流水", "排行榜", "成就奖", "后台管理设置"];
 const adminTabs: AdminTab[] = ["MATCH", "BETS", "PARLAYS", "USERS", "ASSET", "RECHARGES", "TREASURY", "RULES"];
 const stateLabels: Record<string, string> = {
+  DRAFT: "时间待定",
   OPEN: "开盘中",
   CLOSED: "已封盘",
   SETTLED: "已结算",
@@ -958,6 +959,20 @@ export function Dashboard() {
     }
   }
 
+  async function adminClearSchedule(matchId: string) {
+    if (!window.confirm("确认撤销该场已生效的比赛时间？撤销后将回到双方队长重新提议并确认时间的状态。")) return;
+    try {
+      await apiRequest("/api/admin/markets", {
+        method: "PATCH",
+        body: JSON.stringify({ action: "CLEAR_SCHEDULE", matchId }),
+      });
+      await Promise.all([refreshData(true), loadMatchSchedules()]);
+      setNotice("比赛时间已撤销，盘口已恢复为时间待定，双方队长可重新确认时间。");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "撤销比赛时间失败");
+    }
+  }
+
   async function adminConfigurePairing(matchId: string, homeTeamId: string, awayTeamId: string) {
     try {
       await apiRequest("/api/admin/markets", {
@@ -1320,7 +1335,7 @@ export function Dashboard() {
               </nav>
               <div className="week-overview"><span className="pill">{statusFilter === "ALL" ? `共 ${scopeMarkets.length} 场` : `显示 ${displayedMarkets.length} / ${scopeMarkets.length} 场`}</span><span className="pill">可押全部余额 {money.format(balance)}</span></div>
               <div className="week-legend">
-                {(["OPEN", "CLOSED", "SETTLED"] as StatusFilter[]).map((state) => {
+                {(["DRAFT", "OPEN", "CLOSED", "SETTLED"] as StatusFilter[]).map((state) => {
                   const count = scopeMarkets.filter((market) => (marketStatus[market.id] ?? market.state) === state).length;
                   return (
                     <button disabled={count === 0} className={statusFilter === state ? "active" : ""} onClick={() => changeStatusFilter(state)} key={state}>
@@ -1399,10 +1414,22 @@ export function Dashboard() {
               {matchScope === "WEEK" ? (
                 <div className="week-day-groups">
                   {displayedMarkets.length === 0 && <div className="empty-matches">本周没有“{statusFilter === "ALL" ? "全部" : stateLabels[statusFilter]}”状态的比赛</div>}
-                  {weekDays.map((day, dayIndex) => {
+                  {[...weekDays, "时间待定"].map((day, dayIndex) => {
                     const dayMarkets = displayedMarkets.filter((market) => marketDayKey(market.time) === day);
                     if (dayMarkets.length === 0) return null;
                     const openCount = dayMarkets.filter((market) => (marketStatus[market.id] ?? market.state) === "OPEN").length;
+                    const isPendingTime = day === "时间待定";
+                    if (isPendingTime) {
+                      return (
+                        <details className="week-day-group track-group pending-time-group" open key={day}>
+                          <summary>
+                            <div><strong>{day}</strong><span>等待双方队长确认</span></div>
+                            <div><b>{dayMarkets.length} 场比赛</b><span>确认后自动归入比赛日</span><i>⌄</i></div>
+                          </summary>
+                          <div className="market-list">{dayMarkets.map(renderMarketCard)}</div>
+                        </details>
+                      );
+                    }
                     return (
                       <section className="week-day-group" key={day}>
                         <header>
@@ -1485,6 +1512,7 @@ export function Dashboard() {
           onConfigureMatch={configureMatch}
           onConfigurePairing={adminConfigurePairing}
           onAdminReschedule={adminReschedule}
+          onAdminClearSchedule={adminClearSchedule}
           onAdjustCoins={adjustCoins}
           onSaveParlay={saveParlaySettings}
           onSaveWeeklyParlay={saveWeeklyParlaySettings}
@@ -1614,7 +1642,7 @@ function RechargeShop({
   </section>;
 }
 
-function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, teams = [], onConfigurePairing, onAdminReschedule }: {
+function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, teams = [], onConfigurePairing, onAdminReschedule, onAdminClearSchedule }: {
   schedules: MatchSchedule[];
   onPropose: (matchId: string, scheduledAt: string) => void;
   onConfirm: (matchId: string) => void;
@@ -1622,6 +1650,7 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, teams =
   teams?: AdminTeam[];
   onConfigurePairing?: (matchId: string, homeTeamId: string, awayTeamId: string) => void;
   onAdminReschedule?: (matchId: string, scheduledAt: string) => void;
+  onAdminClearSchedule?: (matchId: string) => void;
 }) {
   const [times, setTimes] = useState<Record<string, string>>({});
   const [pairings, setPairings] = useState<Record<string, { homeTeamId: string; awayTeamId: string }>>({});
@@ -1652,6 +1681,7 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, teams =
           {!admin && schedule.canPropose && <button onClick={() => onPropose(schedule.id, inputValue(schedule))}>{schedule.scheduleStatus === "PROPOSED" ? "修改/反提时间" : "提交比赛时间"}</button>}
           {!admin && schedule.canConfirm && <button className="admin-primary" onClick={() => onConfirm(schedule.id)}>确认该时间</button>}
           {admin && schedule.canAdminReschedule && <button onClick={() => onAdminReschedule?.(schedule.id, inputValue(schedule))}>{schedule.scheduleStatus === "CONFIRMED" ? "管理员修改时间" : "管理员设置时间"}</button>}
+          {admin && schedule.canAdminClearTime && <button className="danger-outline" onClick={() => onAdminClearSchedule?.(schedule.id)}>撤销比赛时间</button>}
           {schedule.scheduleStatus === "CONFIRMED" && !schedule.canAdminReschedule && <b>时间已锁定</b>}
         </div>
       </article>)}
@@ -1751,6 +1781,7 @@ type AdminProps = {
   onConfigureMatch: (id: string, config: MatchOverride) => void;
   onConfigurePairing: (matchId: string, homeTeamId: string, awayTeamId: string) => void;
   onAdminReschedule: (matchId: string, scheduledAt: string) => void;
+  onAdminClearSchedule: (matchId: string) => void;
   onAdjustCoins: (targetType: "USER" | "TEAM", target: string, action: "GRANT" | "DEDUCT", amount: number) => void;
   onSaveParlay: (ticket: number, basePools: ParlayBasePools, bonusMultiplier: number) => void;
   onSaveWeeklyParlay: (track: "A" | "B", config: WeeklyParlayConfig) => void;
@@ -1790,6 +1821,7 @@ function Admin({
   onConfigureMatch,
   onConfigurePairing,
   onAdminReschedule,
+  onAdminClearSchedule,
   onAdjustCoins,
   onSaveParlay,
   onSaveWeeklyParlay,
@@ -1860,7 +1892,8 @@ function Admin({
   const detailMarket = allAdminMarkets.find((market) => market.id === detailMarketId) ?? allAdminMarkets[0];
   const detailBets = betRecords.filter((record) => record.marketId === detailMarket?.id);
   const activeDetailBets = detailBets.filter((record) => record.recordStatus === "ACTIVE");
-  const operationMarkets = allAdminMarkets.filter((market) => (market.week ?? 4) === operationWeek);
+  const operableMarkets = allAdminMarkets.filter((market) => (statuses[market.id] ?? market.state) !== "DRAFT");
+  const operationMarkets = operableMarkets.filter((market) => (market.week ?? 4) === operationWeek);
   const settlementMarket = settlementMarkets.find((market) => market.id === settlementMarketId) ?? settlementMarkets[0];
   const liquidityMarket = openMarkets.find((market) => market.id === liquidityMarketId) ?? openMarkets[0];
   const settlementResultLabel = settlementHomeScore === settlementAwayScore ? "平局" : settlementHomeScore > settlementAwayScore ? "主胜" : "客胜";
@@ -2103,7 +2136,7 @@ function Admin({
     </div>
 
     {adminTab === "MATCH" && <div className="admin-grid">
-      <SchedulePanel schedules={matchSchedules} onPropose={() => undefined} onConfirm={() => undefined} admin teams={teams} onConfigurePairing={onConfigurePairing} onAdminReschedule={onAdminReschedule} />
+      <SchedulePanel schedules={matchSchedules} onPropose={() => undefined} onConfirm={() => undefined} admin teams={teams} onConfigurePairing={onConfigurePairing} onAdminReschedule={onAdminReschedule} onAdminClearSchedule={onAdminClearSchedule} />
       <section className="admin-card">
         <div className="admin-card-head"><div><small>第 12–15 周</small><h3>管理员配置后续对战</h3></div><span>前 11 周请在上方逐场设置对阵</span></div>
         <div className="form-grid">
@@ -2131,7 +2164,7 @@ function Admin({
             <option value="PENDING_REVIEW">待复核</option>
           </select>
           <button disabled={operationMarkets.length === 0} onClick={() => onBatchUpdate(operationMarkets.map((market) => market.id), batchStatus, `第 ${operationWeek} 周`)}>应用到第 {operationWeek} 周</button>
-          <button onClick={() => onBatchUpdate(allAdminMarkets.map((market) => market.id), batchStatus, "全部赛程")}>应用到全部比赛</button>
+          <button disabled={operableMarkets.length === 0} onClick={() => onBatchUpdate(operableMarkets.map((market) => market.id), batchStatus, "全部赛程")}>应用到全部已确认时间的比赛</button>
         </div>
         <div className="admin-market-list">{operationMarkets.map((market, index) => {
           const status = statuses[market.id] ?? market.state;

@@ -63,6 +63,7 @@ function scheduleView(match: Awaited<ReturnType<typeof getScheduleMatch>>, actor
     canConfirm: !isAdmin && isParticipant && match.scheduleStatus === MatchScheduleStatus.PROPOSED && !isProposerTeam,
     canConfigurePairing: isAdmin && pairingLockReason === null,
     canAdminReschedule: isAdmin && Boolean(match.pairingConfiguredAt) && market?.status !== MarketStatus.SETTLED && market?.status !== MarketStatus.VOIDED,
+    canAdminClearTime: isAdmin && match.scheduleStatus === MatchScheduleStatus.CONFIRMED && market?.status !== MarketStatus.SETTLED && market?.status !== MarketStatus.VOIDED,
   };
 }
 
@@ -302,6 +303,60 @@ export async function adminRescheduleMatch(adminId: string, matchId: string, sch
     await syncOpenParlayDeadlines(tx, marketId);
     await tx.auditLog.create({
       data: { actorId: adminId, action: "MATCH_TIME_ADMIN_SET", target: match.id, after: scheduledAt.toISOString() },
+    });
+  });
+}
+
+export async function adminClearMatchTime(adminId: string, matchId: string) {
+  return prisma.$transaction(async (tx) => {
+    const match = await tx.match.findUniqueOrThrow({
+      where: { id: matchId },
+      include: {
+        season: true,
+        markets: { include: { _count: { select: { bets: true, parlayLegs: true } } }, take: 1 },
+      },
+    });
+    if (!match.pairingConfiguredAt) throw new Error("该场对阵尚未设置");
+    if (match.scheduleStatus !== MatchScheduleStatus.CONFIRMED || !match.scheduledAt) {
+      throw new Error("该场比赛没有可撤销的已确认时间");
+    }
+    const market = match.markets[0];
+    if (market?.status === MarketStatus.SETTLED || market?.status === MarketStatus.VOIDED) {
+      throw new Error("已结算或已作废比赛不能撤销时间");
+    }
+    if (market && (market._count.bets > 0 || market._count.parlayLegs > 0)) {
+      throw new Error("该场已有竞猜或过关订单，不能撤销时间");
+    }
+    const previousTime = match.scheduledAt;
+    const weekEnd = new Date(match.season.startsAt.getTime() + match.weekNumber * 7 * 86_400_000);
+    await tx.match.update({
+      where: { id: match.id },
+      data: {
+        scheduledAt: null,
+        scheduleStatus: MatchScheduleStatus.UNSET,
+        proposedScheduledAt: null,
+        proposedByUserId: null,
+        proposedByTeamId: null,
+        proposedAt: null,
+        confirmedByUserId: null,
+        confirmedAt: null,
+      },
+    });
+    if (market) {
+      await tx.market.update({
+        where: { id: market.id },
+        data: { status: MarketStatus.DRAFT, closesAt: weekEnd, closedAt: null },
+      });
+      await syncOpenParlayDeadlines(tx, market.id);
+    }
+    await tx.auditLog.create({
+      data: {
+        actorId: adminId,
+        action: "MATCH_TIME_ADMIN_CLEAR",
+        target: match.id,
+        before: previousTime.toISOString(),
+        after: JSON.stringify({ scheduleStatus: MatchScheduleStatus.UNSET }),
+      },
     });
   });
 }
