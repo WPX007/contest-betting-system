@@ -366,6 +366,21 @@ export function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionUser?.id]);
 
+  useEffect(() => {
+    if (!sessionUser) return;
+    const now = Date.now();
+    const nextCloseAt = serverMarkets
+      .filter((market) => (marketStatus[market.id] ?? market.state) === "OPEN" && market.closesAt)
+      .map((market) => new Date(market.closesAt!).getTime())
+      .filter((closesAt) => Number.isFinite(closesAt) && closesAt > now)
+      .sort((first, second) => first - second)[0];
+    if (!nextCloseAt) return;
+    const timer = window.setTimeout(() => void loadMarkets(), Math.min(nextCloseAt - now + 100, 2_147_000_000));
+    return () => window.clearTimeout(timer);
+    // loadMarkets is stable for the lifetime of the mounted dashboard.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marketStatus, serverMarkets, sessionUser?.id]);
+
   const visibleMarkets = useMemo(() => {
     return serverMarkets
       .filter((market) => (market.week ?? 4) === selectedWeek)
