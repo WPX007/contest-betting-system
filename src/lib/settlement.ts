@@ -47,20 +47,3 @@ export function validateStake(balance: number, stake: number) {
   }
   return { valid: true, cap, message: "" };
 }
-
-export function isConflicted(
-  viewerTeam: string | undefined,
-  viewerAlliance: string | undefined,
-  homeTeam: string,
-  awayTeam: string,
-  homeAlliance: string,
-  awayAlliance: string,
-) {
-  return Boolean(
-    viewerTeam &&
-      (viewerTeam === homeTeam ||
-        viewerTeam === awayTeam ||
-        viewerAlliance === homeAlliance ||
-        viewerAlliance === awayAlliance),
-  );
-}

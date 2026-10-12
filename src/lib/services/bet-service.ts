@@ -20,7 +20,7 @@ export async function placeBet(userId: string, rawInput: unknown) {
   await closeDueMarkets();
   return prisma.$transaction(async (tx) => {
     const [user, market, wallet] = await Promise.all([
-      tx.user.findUniqueOrThrow({ where: { id: userId }, include: { team: true } }),
+      tx.user.findUniqueOrThrow({ where: { id: userId } }),
       tx.market.findUniqueOrThrow({
         where: { id: input.marketId },
         include: {
@@ -47,18 +47,12 @@ export async function placeBet(userId: string, rawInput: unknown) {
       {
         userId: user.id,
         role: user.role,
-        teamId: user.teamId ?? undefined,
-        allianceKey: user.team?.allianceKey,
         balance: wallet.balance,
       },
       {
         id: market.id,
         status: market.status as "OPEN" | "CLOSED" | "SETTLED" | "VOIDED",
         closesAt: market.closesAt,
-        homeTeamId: market.match.homeTeamId,
-        awayTeamId: market.match.awayTeamId,
-        homeAllianceKey: market.match.homeTeam.allianceKey,
-        awayAllianceKey: market.match.awayTeam.allianceKey,
       },
     );
 

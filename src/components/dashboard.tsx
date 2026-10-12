@@ -48,6 +48,10 @@ type BetRecord = {
   recordStatus: "ACTIVE" | "REFUNDED";
 };
 type RankingEntry = { id: string; rank: number; name: string; username: string; team: string; allianceTeams: string; value: number; points: number; hits: number; predictions: number; rate: number };
+type MatchRoster = {
+  home: { id: string; name: string; members: Array<{ id: string; name: string; username: string; role: "CAPTAIN" | "PLAYER" }> };
+  away: { id: string; name: string; members: Array<{ id: string; name: string; username: string; role: "CAPTAIN" | "PLAYER" }> };
+};
 type AchievementData = {
   settledMarketCount: number;
   minimumPredictions: number;
@@ -119,6 +123,7 @@ type TeamImportPreview = {
 };
 type ParlayOffer = {
   scope: "DAILY" | "WEEKLY" | "WEEKLY_A" | "WEEKLY_B";
+  status: string;
   ticketStake: number;
   basePool: number;
   pool: number;
@@ -301,6 +306,10 @@ export function Dashboard() {
   const [adminRecharges, setAdminRecharges] = useState<AdminRechargeData>({ totalCompletedAmount: 0, pendingCount: 0, requests: [] });
   const [adminTreasury, setAdminTreasury] = useState<AdminTreasury | null>(null);
   const [matchSchedules, setMatchSchedules] = useState<MatchSchedule[]>([]);
+  const [rosterMarket, setRosterMarket] = useState<Market | null>(null);
+  const [matchRoster, setMatchRoster] = useState<MatchRoster | null>(null);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [rosterError, setRosterError] = useState("");
   const [submittingBet, setSubmittingBet] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -314,6 +323,15 @@ export function Dashboard() {
       window.removeEventListener("pointerdown", dismiss);
     };
   }, [notice]);
+
+  useEffect(() => {
+    if (!rosterMarket) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setRosterMarket(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [rosterMarket]);
 
   useEffect(() => {
     const tick = () => {
@@ -570,6 +588,9 @@ export function Dashboard() {
       setMarketStatus(Object.fromEntries(marketData.map((market) => [market.id, market.state])));
       if (sessionUser && initialScopeUserId.current !== sessionUser.id) {
         const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" });
+        const dailyParlayAvailable = offer.status === "OPEN"
+          && offer.markets.length >= 3
+          && new Date(offer.closesAt).getTime() > Date.now();
         const initialTodayMarkets = marketData.filter(
           (market) => market.scheduledAt
             && new Date(market.scheduledAt).toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" }) === todayKey,
@@ -580,6 +601,7 @@ export function Dashboard() {
           : marketData.filter((market) => (market.week ?? 4) === initialWeek);
         setSelectedWeek(initialWeek);
         setMatchScope(initialTodayMarkets.length > 0 ? "TODAY" : "WEEK");
+        setParlayMode(dailyParlayAvailable ? "DAILY" : "WEEKLY_A");
         setStatusFilter("ALL");
         setSelectedMarketId(initialMarkets[0]?.id ?? "");
         setOptionId(initialMarkets[0]?.options[0]?.id ?? "");
@@ -774,6 +796,20 @@ export function Dashboard() {
     const existingBet = myBets.find((bet) => bet.marketId === id && bet.status === "ACTIVE");
     setOptionId(existingBet?.optionId ?? market.options[0].id);
     setNotice("");
+  }
+
+  async function openMatchRoster(market: Market) {
+    setRosterMarket(market);
+    setMatchRoster(null);
+    setRosterError("");
+    setRosterLoading(true);
+    try {
+      setMatchRoster(await apiRequest<MatchRoster>(`/api/markets/${market.id}/roster`));
+    } catch (error) {
+      setRosterError(error instanceof Error ? error.message : "读取对战阵容失败");
+    } finally {
+      setRosterLoading(false);
+    }
   }
 
   function changeWeek(week: number) {
@@ -1229,7 +1265,16 @@ export function Dashboard() {
       ? scoreParts[0] === scoreParts[1] ? "draw" : scoreParts[0] > scoreParts[1] ? "home" : "away"
       : null;
     return (
-      <button className={`market-card card-state-${state.toLowerCase().replace("_", "-")}${market.id === selectedMarket.id ? " selected" : ""}`} key={market.id} onClick={() => chooseMarket(market.id)}>
+      <article
+        className={`market-card card-state-${state.toLowerCase().replace("_", "-")}${market.id === selectedMarket.id ? " selected" : ""}`}
+        key={market.id}
+        onClick={() => chooseMarket(market.id)}
+        onKeyDown={(event) => {
+          if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) chooseMarket(market.id);
+        }}
+        role="button"
+        tabIndex={0}
+      >
         <div className="market-meta">
           <span className={`track track-${market.track.toLowerCase()}`}>{market.track} 赛道</span>
           <span>{market.bestOf === 2 ? "BO2" : "BO3"}</span>
@@ -1238,7 +1283,7 @@ export function Dashboard() {
         <div className="market-center-time"><span className="time-icon" aria-hidden="true">⏰</span><strong className={hasExactStartTime ? "" : "warning-value"}>{hasExactStartTime ? market.time : "待定"}</strong></div>
         <div className="compact-teams">
           <strong>{market.home}</strong>
-          <span className={finalScore ? "key-final-score" : ""}>{finalScore ?? "VS"}</span>
+          <button className="matchup-detail-trigger" onClick={(event) => { event.stopPropagation(); void openMatchRoster(market); }}>对战详情</button>
           <strong>{market.away}</strong>
           {settledOutcome && <i className={`settlement-watermark result-${settledOutcome}`} aria-label={settledOutcome === "draw" ? "平局" : settledOutcome === "home" ? "主队胜" : "客队胜"}>{settledOutcome === "draw" ? "平" : "胜"}</i>}
         </div>
@@ -1261,7 +1306,7 @@ export function Dashboard() {
             <small>预测 {ownBetLabels} · 押注 {money.format(ownBetAmount)} · 到账 {money.format(ownPayout)}</small>
           </div>
           : ownBetAmount > 0 && <div className="personal-result"><span className="has-bet">{ownBetLabels}</span></div>}
-      </button>
+      </article>
     );
   }
 
@@ -1322,6 +1367,30 @@ export function Dashboard() {
         </header>
 
         {notice && <div className="notice" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="关闭提示">×</button><small>点击任意位置关闭</small></div>}
+
+        {rosterMarket && <div className="roster-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setRosterMarket(null); }}>
+          <section className="roster-modal" role="dialog" aria-modal="true" aria-labelledby="roster-modal-title">
+            <header>
+              <div><p className="eyebrow">对战详情 · {rosterMarket.track} 赛道</p><h2 id="roster-modal-title">{rosterMarket.home} vs {rosterMarket.away}</h2><small>{rosterMarket.time}</small></div>
+              <button onClick={() => setRosterMarket(null)} aria-label="关闭对战详情">×</button>
+            </header>
+            {rosterLoading && <div className="roster-modal-state">正在读取双方队员…</div>}
+            {!rosterLoading && rosterError && <div className="roster-modal-state roster-modal-error">{rosterError}</div>}
+            {!rosterLoading && matchRoster && <div className="roster-columns">
+              {([matchRoster.home, matchRoster.away] as const).map((team, teamIndex) => <section className="roster-team" key={team.id}>
+                <header><span>{teamIndex === 0 ? "主队" : "客队"}</span><strong>{team.name}</strong><small>{team.members.length} 名队员</small></header>
+                <div>
+                  {team.members.map((member) => <article className={member.role === "CAPTAIN" ? "is-captain" : ""} key={member.id}>
+                    <span>{member.name.slice(0, 1)}</span>
+                    <p><strong>{member.name}</strong><small>{member.username}</small></p>
+                    {member.role === "CAPTAIN" && <b>队长</b>}
+                  </article>)}
+                  {team.members.length === 0 && <p className="roster-empty">暂无队员信息</p>}
+                </div>
+              </section>)}
+            </div>}
+          </section>
+        </div>}
 
         {activeTab === "竞猜大厅" && (
           <div className="grid-layout">
@@ -1491,7 +1560,7 @@ export function Dashboard() {
               <div className="quick-stakes">{[50, 100, validation.cap].map((value, index) => <button disabled={isAdminSession || selectedState !== "OPEN" || value < 50} key={`${value}-${index}`} onClick={() => setStake(value)}>{index === 2 ? "最大" : value}</button>)}</div>
               <div className="estimate"><span>预估到账</span><strong>{money.format(potential.payout)} <small>竞猜币</small></strong><p>包含本金返还 {potential.returnedStake} + 奖池奖励 {potential.prize}</p></div>
               <button disabled={submittingBet || isAdminSession || selectedState !== "OPEN"} className="primary" onClick={placeBet}>{submittingBet ? "订单提交中…" : isAdminSession ? "管理员账号不可下注" : selectedState === "OPEN" ? `${lockedOptionId ? "确认加注" : "确认下注"} ${stake > 0 ? `${money.format(stake)} 竞猜币` : ""}` : stateLabels[selectedState]}</button>
-              <p className="fine-print">{isAdminSession ? "管理员账号仅用于赛事管理、资产操作和信息核对。" : "首次下注后结果锁定，只能继续加注；封盘后不可撤单。禁止竞猜本人或同盟战队的比赛。"}</p>
+              <p className="fine-print">{isAdminSession ? "管理员账号仅用于赛事管理、资产操作和信息核对。" : "所有参赛队员均可竞猜任意队伍；首次下注后结果锁定，只能继续加注，封盘后不可撤单。"}</p>
             </aside> : <aside className="bet-panel empty-bet-panel"><span>暂无比赛</span><h2>第 {selectedWeek} 周尚未配置赛程</h2><p>管理员创建并设置本周比赛后，竞猜盘口将在这里展示。</p>{sessionUser.isAdmin && <button onClick={() => setActiveTab("后台管理设置")}>前往后台管理设置</button>}</aside>}
           </div>
         )}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { assertBetAllowed, assertSameMarketOption, reconciliation } from "./betting-service";
-import { calculateSettlement, isConflicted, validateStake } from "./settlement";
+import { calculateSettlement, validateStake } from "./settlement";
 
 describe("dynamic pool settlement", () => {
   it("uses the approved 25/70/5 distribution", () => {
@@ -23,17 +23,12 @@ describe("dynamic pool settlement", () => {
     expect(validateStake(40, 13).valid).toBe(false);
   });
 
-  it("blocks a player from betting their own alliance", () => {
-    expect(isConflicted("team-01a", "alliance-01", "team-04a", "team-06a", "alliance-04", "alliance-01")).toBe(true);
-    expect(isConflicted("team-01a", "alliance-01", "team-04a", "team-06a", "alliance-04", "alliance-06")).toBe(false);
-  });
-
   it("requires an open market and records no cash exceptions", () => {
     expect(() =>
       assertBetAllowed(
         { marketId: "m1", optionId: "home", stake: 100, idempotencyKey: "7bc1b833-6c7e-47cf-8449-661db52535ce" },
         { userId: "u1", role: "VIEWER", balance: 1000 },
-        { id: "m1", status: "OPEN", closesAt: new Date(Date.now() + 60_000), homeTeamId: "a", awayTeamId: "b", homeAllianceKey: "x", awayAllianceKey: "y" },
+        { id: "m1", status: "OPEN", closesAt: new Date(Date.now() + 60_000) },
       ),
     ).not.toThrow();
     expect(reconciliation(10_000, 2_500, 7_000, 500)).toEqual({ isBalanced: true, delta: 0 });
@@ -41,7 +36,7 @@ describe("dynamic pool settlement", () => {
 
   it("rejects expired markets and administrator bets on the server", () => {
     const input = { marketId: "m1", optionId: "home", stake: 100, idempotencyKey: "7bc1b833-6c7e-47cf-8449-661db52535ce" };
-    const market = { id: "m1", status: "OPEN" as const, closesAt: new Date(Date.now() - 1), homeTeamId: "a", awayTeamId: "b", homeAllianceKey: "x", awayAllianceKey: "y" };
+    const market = { id: "m1", status: "OPEN" as const, closesAt: new Date(Date.now() - 1) };
     expect(() => assertBetAllowed(input, { userId: "u1", role: "VIEWER", balance: 1000 }, market)).toThrow("该盘口当前不可下注");
     expect(() => assertBetAllowed(input, { userId: "admin", role: "SUPER_ADMIN", balance: 1000 }, { ...market, closesAt: new Date(Date.now() + 60_000) })).toThrow("赛事管理角色不得参与盘口竞猜");
   });
