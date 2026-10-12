@@ -34,15 +34,17 @@ export async function GET() {
           team: true,
           wallets: true,
           bets: {
-            where: { status: BetStatus.SETTLED },
+            where: { status: { in: [BetStatus.ACTIVE, BetStatus.SETTLED] } },
             include: { option: true },
           },
           parlayEntries: {
             where: {
-              status: ParlayEntryStatus.WON,
-              round: { scope: { in: [ParlayScope.WEEKLY_A, ParlayScope.WEEKLY_B] } },
+              OR: [
+                { status: ParlayEntryStatus.ACTIVE },
+                { status: ParlayEntryStatus.WON, round: { scope: { in: [ParlayScope.WEEKLY_A, ParlayScope.WEEKLY_B] } } },
+              ],
             },
-            select: { id: true },
+            select: { id: true, stake: true, status: true, round: { select: { scope: true } } },
           },
         },
       }),
@@ -50,10 +52,14 @@ export async function GET() {
     ]);
 
     const candidates: Array<Candidate & { maxWinningStake: number; weeklyTrackWins: number }> = users.map((user) => {
-      const coins = user.wallets.find((wallet) => wallet.asset === AssetType.BET_COIN)?.balance ?? 0;
+      const settledBetRecords = user.bets.filter((bet) => bet.status === BetStatus.SETTLED);
+      const availableCoins = user.wallets.find((wallet) => wallet.asset === AssetType.BET_COIN)?.balance ?? 0;
+      const pendingSingleStake = user.bets.filter((bet) => bet.status === BetStatus.ACTIVE).reduce((total, bet) => total + bet.stake, 0);
+      const pendingParlayStake = user.parlayEntries.filter((entry) => entry.status === ParlayEntryStatus.ACTIVE).reduce((total, entry) => total + entry.stake, 0);
+      const coins = availableCoins + pendingSingleStake + pendingParlayStake;
       const points = user.wallets.find((wallet) => wallet.asset === AssetType.POINT)?.balance ?? 0;
-      const settledMarketIds = new Set(user.bets.map((bet) => bet.marketId));
-      const hitMarketIds = new Set(user.bets.filter((bet) => bet.option.isWinner).map((bet) => bet.marketId));
+      const settledMarketIds = new Set(settledBetRecords.map((bet) => bet.marketId));
+      const hitMarketIds = new Set(settledBetRecords.filter((bet) => bet.option.isWinner).map((bet) => bet.marketId));
       const hits = hitMarketIds.size;
       const settledBets = settledMarketIds.size;
       return {
@@ -67,8 +73,8 @@ export async function GET() {
         settledBets,
         hits,
         hitRate: settledBets > 0 ? hits / settledBets : 0,
-        maxWinningStake: user.bets.reduce((maximum, bet) => bet.option.isWinner ? Math.max(maximum, bet.stake) : maximum, 0),
-        weeklyTrackWins: user.parlayEntries.length,
+        maxWinningStake: settledBetRecords.reduce((maximum, bet) => bet.option.isWinner ? Math.max(maximum, bet.stake) : maximum, 0),
+        weeklyTrackWins: user.parlayEntries.filter((entry) => entry.status === ParlayEntryStatus.WON).length,
       };
     });
     const byCoins = [...candidates].sort((first, second) => second.coins - first.coins || second.points - first.points || first.name.localeCompare(second.name, "zh-CN"));

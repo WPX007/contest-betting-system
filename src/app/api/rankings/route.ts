@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { AssetType, BetStatus, UserRole } from "@/generated/prisma/enums";
+import { AssetType, BetStatus, ParlayEntryStatus, UserRole } from "@/generated/prisma/enums";
 import { authErrorResponse, requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -16,6 +16,10 @@ export async function GET() {
             where: { status: { in: [BetStatus.ACTIVE, BetStatus.SETTLED] } },
             include: { option: true },
           },
+          parlayEntries: {
+            where: { status: ParlayEntryStatus.ACTIVE },
+            select: { stake: true },
+          },
         },
       }),
       prisma.team.findMany({ select: { id: true, name: true, allianceKey: true } }),
@@ -24,6 +28,9 @@ export async function GET() {
       const settled = user.bets.filter((bet) => bet.status === BetStatus.SETTLED);
       const hits = settled.filter((bet) => bet.option.isWinner).length;
       const predictions = user.bets.length;
+      const availableCoins = user.wallets.find((wallet) => wallet.asset === AssetType.BET_COIN)?.balance ?? 0;
+      const pendingSingleStake = user.bets.filter((bet) => bet.status === BetStatus.ACTIVE).reduce((total, bet) => total + bet.stake, 0);
+      const pendingParlayStake = user.parlayEntries.reduce((total, entry) => total + entry.stake, 0);
       return {
         id: user.id,
         name: user.name,
@@ -32,7 +39,7 @@ export async function GET() {
         allianceTeams: user.team?.allianceKey
           ? teams.filter((team) => team.allianceKey === user.team?.allianceKey && team.id !== user.teamId).map((team) => team.name).join("、") || "无"
           : "无",
-        value: user.wallets.find((wallet) => wallet.asset === AssetType.BET_COIN)?.balance ?? 0,
+        value: availableCoins + pendingSingleStake + pendingParlayStake,
         points: user.wallets.find((wallet) => wallet.asset === AssetType.POINT)?.balance ?? 0,
         hits,
         predictions,
