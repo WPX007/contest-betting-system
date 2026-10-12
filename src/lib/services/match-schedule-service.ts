@@ -25,6 +25,7 @@ function assertFutureWeekTime(match: { weekNumber: number; season: { startsAt: D
 function scheduleView(match: Awaited<ReturnType<typeof getScheduleMatch>>, actor: { id: string; role: UserRole; teamId: string | null }) {
   if (!match) return null;
   const isAdmin = actor.role === UserRole.OPS_ADMIN || actor.role === UserRole.SUPER_ADMIN;
+  const isCaptain = actor.role === UserRole.CAPTAIN;
   const isParticipant = actor.teamId === match.homeTeamId || actor.teamId === match.awayTeamId;
   const isProposerTeam = actor.teamId === match.proposedByTeamId;
   const market = match.markets[0];
@@ -59,8 +60,8 @@ function scheduleView(match: Awaited<ReturnType<typeof getScheduleMatch>>, actor
     pairingLockReason,
     marketId: market?.id ?? null,
     marketStatus: market?.status ?? null,
-    canPropose: !isAdmin && Boolean(match.pairingConfiguredAt) && isParticipant && match.scheduleStatus !== MatchScheduleStatus.CONFIRMED,
-    canConfirm: !isAdmin && isParticipant && match.scheduleStatus === MatchScheduleStatus.PROPOSED && !isProposerTeam,
+    canPropose: isCaptain && Boolean(match.pairingConfiguredAt) && isParticipant && match.scheduleStatus !== MatchScheduleStatus.CONFIRMED,
+    canConfirm: isCaptain && isParticipant && match.scheduleStatus === MatchScheduleStatus.PROPOSED && !isProposerTeam,
     canConfigurePairing: isAdmin && pairingLockReason === null,
     canAdminReschedule: isAdmin && Boolean(match.pairingConfiguredAt) && market?.status !== MarketStatus.SETTLED && market?.status !== MarketStatus.VOIDED,
     canAdminClearTime: isAdmin && match.scheduleStatus === MatchScheduleStatus.CONFIRMED && market?.status !== MarketStatus.SETTLED && market?.status !== MarketStatus.VOIDED,

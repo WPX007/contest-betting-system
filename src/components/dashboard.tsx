@@ -335,7 +335,7 @@ export function Dashboard() {
           savedTab
           && tabs.includes(savedTab)
           && (savedTab !== "后台管理设置" || user.isAdmin)
-          && (savedTab !== "赛程确认" || user.role === "CAPTAIN" || user.isAdmin)
+          && (savedTab !== "赛程确认" || user.role === "PLAYER" || user.role === "CAPTAIN" || user.isAdmin)
           && savedTab !== "竞猜币充值"
         ) setActiveTab(savedTab);
       })
@@ -354,7 +354,7 @@ export function Dashboard() {
     const dataTimer = window.setInterval(() => void Promise.all([
       loadMarkets(),
       loadParlayStatus(),
-      ...(sessionUser.role === "CAPTAIN" || sessionUser.isAdmin ? [loadMatchSchedules()] : []),
+      ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.isAdmin ? [loadMatchSchedules()] : []),
       ...(sessionUser.isAdmin ? [loadAdminParlays(), loadAdminRecharges(), loadAdminTreasury()] : []),
     ]), 30_000);
     const walletTimer = window.setInterval(() => void loadFinancialState(sessionUser.isAdmin), 5_000);
@@ -501,7 +501,7 @@ export function Dashboard() {
   }
 
   async function loadMatchSchedules() {
-    if (sessionUser?.role !== "CAPTAIN" && !sessionUser?.isAdmin) return;
+    if (sessionUser?.role !== "PLAYER" && sessionUser?.role !== "CAPTAIN" && !sessionUser?.isAdmin) return;
     setMatchSchedules(await apiRequest<MatchSchedule[]>("/api/match-schedules"));
   }
 
@@ -643,7 +643,7 @@ export function Dashboard() {
         setAdminTreasury(treasuryData);
         setMatchSchedules(await apiRequest<MatchSchedule[]>("/api/match-schedules"));
       } else if (sessionUser) {
-        if (sessionUser.role === "CAPTAIN") setMatchSchedules(await apiRequest<MatchSchedule[]>("/api/match-schedules"));
+        if (sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN") setMatchSchedules(await apiRequest<MatchSchedule[]>("/api/match-schedules"));
         setBetRecords(betData.map((order) => ({
           id: order.id,
           marketId: order.marketId,
@@ -1283,7 +1283,7 @@ export function Dashboard() {
         <nav>
           {([
             "竞猜大厅",
-            ...(sessionUser.role === "CAPTAIN" ? ["赛程确认" as Tab] : []),
+            ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" ? ["赛程确认" as Tab] : []),
             "我的竞猜",
             "钱包流水",
             "排行榜",
@@ -1496,7 +1496,7 @@ export function Dashboard() {
           </div>
         )}
 
-        {activeTab === "赛程确认" && sessionUser.role === "CAPTAIN" && <SchedulePanel schedules={matchSchedules} onPropose={proposeSchedule} onConfirm={confirmSchedule} />}
+        {activeTab === "赛程确认" && (sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN") && <SchedulePanel schedules={matchSchedules} onPropose={proposeSchedule} onConfirm={confirmSchedule} readOnly={sessionUser.role !== "CAPTAIN"} />}
         {activeTab === "我的竞猜" && <MyBetsPanel bets={myBets} parlays={parlayOrders} loading={loadingData} />}
         {!sessionUser.isAdmin && activeTab === "竞猜币充值" && <RechargeShop requests={rechargeRequests} onSubmit={submitRecharge} />}
         {activeTab === "钱包流水" && <WalletPanel balance={balance} points={sessionPoints} entries={walletEntries} loading={loadingData} treasury={houseTreasury} onExchange={sessionUser.isAdmin ? undefined : exchangePoints} />}
@@ -1546,7 +1546,7 @@ export function Dashboard() {
       <nav className="mobile-nav" aria-label="移动端主导航">
         {([
           "竞猜大厅",
-          ...(sessionUser.role === "CAPTAIN" ? ["赛程确认" as Tab] : []),
+          ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" ? ["赛程确认" as Tab] : []),
           "我的竞猜",
           "钱包流水",
           "排行榜",
@@ -1657,11 +1657,12 @@ function RechargeShop({
   </section>;
 }
 
-function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, teams = [], onConfigurePairing, onAdminReschedule, onAdminClearSchedule }: {
+function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, readOnly = false, teams = [], onConfigurePairing, onAdminReschedule, onAdminClearSchedule }: {
   schedules: MatchSchedule[];
   onPropose: (matchId: string, scheduledAt: string) => void;
   onConfirm: (matchId: string) => void;
   admin?: boolean;
+  readOnly?: boolean;
   teams?: AdminTeam[];
   onConfigurePairing?: (matchId: string, homeTeamId: string, awayTeamId: string) => void;
   onAdminReschedule?: (matchId: string, scheduledAt: string) => void;
@@ -1680,7 +1681,7 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, teams =
     return local.toISOString().slice(0, 16);
   })();
   return <section className="panel schedule-panel">
-    <div className="section-heading"><div><p className="eyebrow">{admin ? "管理员先设置对阵，队长再确认时间" : "双方队长共同确认"}</p><h2>{admin ? "前 11 周固定场次" : "我的赛程确认"}</h2></div>{admin ? <div className="schedule-filter"><label>查看周次<select value={scheduleWeek} onChange={(event) => setScheduleWeek(Number(event.target.value))}>{availableWeeks.map((week) => <option value={week} key={week}>第 {week} 周　{weekCompactRange(week)}</option>)}</select></label><span className="pill">{visibleSchedules.filter((item) => item.pairingConfigured).length} / {visibleSchedules.length} 已设置对阵</span></div> : <span className="pill">{schedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / {schedules.length} 已确认时间</span>}</div>
+    <div className="section-heading"><div><p className="eyebrow">{admin ? "管理员先设置对阵，队长再确认时间" : readOnly ? "队员只读查看 · 时间操作由队长完成" : "双方队长共同确认"}</p><h2>{admin ? "前 11 周固定场次" : readOnly ? "我的战队赛程" : "我的赛程确认"}</h2></div>{admin ? <div className="schedule-filter"><label>查看周次<select value={scheduleWeek} onChange={(event) => setScheduleWeek(Number(event.target.value))}>{availableWeeks.map((week) => <option value={week} key={week}>第 {week} 周　{weekCompactRange(week)}</option>)}</select></label><span className="pill">{visibleSchedules.filter((item) => item.pairingConfigured).length} / {visibleSchedules.length} 已设置对阵</span></div> : <span className="pill">{schedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / {schedules.length} 已确认时间</span>}</div>
     <div className="schedule-list">
       {visibleSchedules.map((schedule) => <article className={`schedule-row schedule-${schedule.scheduleStatus.toLowerCase()}`} key={schedule.id}>
         <div className="schedule-match"><span>第 {schedule.week} 周 · {weekCompactRange(schedule.week)} · {schedule.track} 赛道 · 第 {schedule.slotIndex ?? "-"} 场</span><strong>{schedule.pairingConfigured ? `${schedule.home} vs ${schedule.away}` : "等待管理员设置对阵"}</strong><small>{!schedule.pairingConfigured ? "管理员设置双方后，队长方可确认时间" : schedule.scheduleStatus === "CONFIRMED" ? `已生效：${new Date(schedule.scheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : schedule.scheduleStatus === "PROPOSED" ? `${schedule.proposedByTeamName} 提议：${new Date(schedule.proposedScheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : "对阵已设置，等待双方队长确认时间"}</small></div>

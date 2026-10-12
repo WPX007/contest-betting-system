@@ -7,8 +7,8 @@ import { confirmMatchTime, listMatchSchedules, proposeMatchTime } from "@/lib/se
 export async function GET() {
   try {
     const user = await requireUser();
-    if (user.role !== UserRole.CAPTAIN && user.role !== UserRole.OPS_ADMIN && user.role !== UserRole.SUPER_ADMIN) {
-      return NextResponse.json({ error: "当前账号没有赛程确认权限" }, { status: 403 });
+    if (user.role !== UserRole.PLAYER && user.role !== UserRole.CAPTAIN && user.role !== UserRole.OPS_ADMIN && user.role !== UserRole.SUPER_ADMIN) {
+      return NextResponse.json({ error: "当前账号没有查看赛程的权限" }, { status: 403 });
     }
     return NextResponse.json({ data: await listMatchSchedules(user) });
   } catch (error) {
