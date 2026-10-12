@@ -1937,6 +1937,7 @@ function Admin({
   const [away, setAway] = useState(initialTrackTeams[1]?.name ?? "");
   const [targetType, setTargetType] = useState<"USER" | "TEAM">("USER");
   const [target, setTarget] = useState(managedUsers[0]?.id ?? "");
+  const [assetTargetSearch, setAssetTargetSearch] = useState("");
   const [assetAction, setAssetAction] = useState<"GRANT" | "DEDUCT">("GRANT");
   const [assetAmount, setAssetAmount] = useState(100);
   const [assetReason, setAssetReason] = useState("运营调整");
@@ -1974,6 +1975,19 @@ function Admin({
   const [settlementAwayScore, setSettlementAwayScore] = useState(0);
   const availableTeams = [...teams].sort((first, second) => first.track.localeCompare(second.track) || first.name.localeCompare(second.name, "zh-CN"));
   const teamOptions = availableTeams.filter((team) => team.track === track);
+  const normalizedAssetSearch = assetTargetSearch.trim().toLocaleLowerCase("zh-CN").replace(/\s+/g, "");
+  const assetTargetOptions = (targetType === "USER"
+    ? managedUsers.map((user) => ({
+        id: user.id,
+        label: `${user.chineseName} / ${user.englishName}`,
+        searchText: `${user.chineseName}${user.englishName}${user.team}`,
+      }))
+    : availableTeams.map((team) => ({
+        id: team.id,
+        label: `${team.track}组 · ${team.name}`,
+        searchText: `${team.track}组${team.name}`,
+      })))
+    .filter((option) => option.searchText.toLocaleLowerCase("zh-CN").replace(/\s+/g, "").includes(normalizedAssetSearch));
   const detailMarket = allAdminMarkets.find((market) => market.id === detailMarketId) ?? allAdminMarkets[0];
   const detailBets = betRecords.filter((record) => record.marketId === detailMarket?.id);
   const activeDetailBets = detailBets.filter((record) => record.recordStatus === "ACTIVE");
@@ -2023,11 +2037,25 @@ function Admin({
   }
 
   function submitAsset() {
+    if (!target) {
+      onNotify("请先搜索并选择发放或扣除目标。");
+      return;
+    }
     if (!Number.isInteger(assetAmount) || assetAmount <= 0) {
       onNotify("竞猜币调整金额必须为大于 0 的整数。");
       return;
     }
     onAdjustCoins(targetType, target, assetAction, assetAmount);
+  }
+
+  function searchAssetTarget(query: string) {
+    setAssetTargetSearch(query);
+    const normalizedQuery = query.trim().toLocaleLowerCase("zh-CN").replace(/\s+/g, "");
+    const options = (targetType === "USER"
+      ? managedUsers.map((user) => ({ id: user.id, searchText: `${user.chineseName}${user.englishName}${user.team}` }))
+      : availableTeams.map((team) => ({ id: team.id, searchText: `${team.track}组${team.name}` })))
+      .filter((option) => option.searchText.toLocaleLowerCase("zh-CN").replace(/\s+/g, "").includes(normalizedQuery));
+    if (!options.some((option) => option.id === target)) setTarget(options[0]?.id ?? "");
   }
 
   async function previewTeamImport() {
@@ -2433,8 +2461,8 @@ function Admin({
       <section className="admin-card admin-wide">
         <div className="admin-card-head"><div><small>资产中心</small><h3>竞猜币发放与扣除</h3></div><span>禁止直接修改数据库余额</span></div>
         <div className="form-grid asset-form">
-          <label>目标类型<select value={targetType} onChange={(event) => { const type = event.target.value as "USER" | "TEAM"; setTargetType(type); setTarget(type === "USER" ? (managedUsers[0]?.id ?? "") : (availableTeams[0]?.id ?? "")); }}><option value="USER">指定用户</option><option value="TEAM">指定队伍</option></select></label>
-          <label>目标<select value={target} onChange={(event) => setTarget(event.target.value)}>{targetType === "USER" ? managedUsers.map((user) => <option value={user.id} key={user.id}>{user.chineseName} / {user.englishName}</option>) : availableTeams.map((team) => <option value={team.id} key={team.id}>{team.track}组 · {team.name}</option>)}</select></label>
+          <label>目标类型<select value={targetType} onChange={(event) => { const type = event.target.value as "USER" | "TEAM"; setTargetType(type); setAssetTargetSearch(""); setTarget(type === "USER" ? (managedUsers[0]?.id ?? "") : (availableTeams[0]?.id ?? "")); }}><option value="USER">指定用户</option><option value="TEAM">指定队伍</option></select></label>
+          <label>目标<div className="asset-target-picker"><input type="search" value={assetTargetSearch} placeholder={targetType === "USER" ? "搜索姓名/账号/队伍" : "搜索队伍"} onChange={(event) => searchAssetTarget(event.target.value)} /><select value={target} onChange={(event) => setTarget(event.target.value)}>{assetTargetOptions.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}{assetTargetOptions.length === 0 && <option value="">无匹配结果</option>}</select></div></label>
           <label>操作<select value={assetAction} onChange={(event) => setAssetAction(event.target.value as "GRANT" | "DEDUCT")}><option value="GRANT">发放竞猜币</option><option value="DEDUCT">扣除竞猜币</option></select></label>
           <label>金额<input type="number" min="1" step="1" value={assetAmount} onChange={(event) => setAssetAmount(Number(event.target.value))} /></label>
           <label className="wide">操作原因<input value={assetReason} onChange={(event) => setAssetReason(event.target.value)} /></label>
