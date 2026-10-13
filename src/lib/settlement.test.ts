@@ -31,6 +31,13 @@ describe("dynamic pool settlement", () => {
         { id: "m1", status: "OPEN", closesAt: new Date(Date.now() + 60_000) },
       ),
     ).not.toThrow();
+    expect(() =>
+      assertBetAllowed(
+        { marketId: "m1", optionId: "home", stake: 100, idempotencyKey: "8bc1b833-6c7e-47cf-8449-661db52535ce" },
+        { userId: "referee", role: "SCOREKEEPER", balance: 1000 },
+        { id: "m1", status: "OPEN", closesAt: new Date(Date.now() + 60_000) },
+      ),
+    ).not.toThrow();
     expect(reconciliation(10_000, 2_500, 7_000, 500)).toEqual({ isBalanced: true, delta: 0 });
   });
 

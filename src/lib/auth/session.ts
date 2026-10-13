@@ -105,6 +105,7 @@ export function sessionUserView(user: {
   name: string;
   username: string;
   role: UserRole;
+  isReferee: boolean;
   team: { id: string; name: string; allianceKey: string } | null;
   wallets: Array<{ asset: string; balance: number }>;
 }) {
@@ -113,6 +114,7 @@ export function sessionUserView(user: {
     displayName: user.name,
     username: user.username,
     role: user.role,
+    isReferee: user.isReferee,
     isAdmin: user.role === UserRole.OPS_ADMIN || user.role === UserRole.SUPER_ADMIN,
     team: user.team ? { id: user.team.id, name: user.team.name, allianceKey: user.team.allianceKey } : null,
     balance: user.wallets.find((wallet) => wallet.asset === "BET_COIN")?.balance ?? 0,

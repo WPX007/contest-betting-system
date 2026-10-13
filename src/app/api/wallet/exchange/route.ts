@@ -14,7 +14,7 @@ const exchangeSchema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await requireUser();
-    if (user.role === UserRole.OPS_ADMIN || user.role === UserRole.SUPER_ADMIN || user.role === UserRole.SCOREKEEPER) {
+    if (user.role === UserRole.OPS_ADMIN || user.role === UserRole.SUPER_ADMIN) {
       return NextResponse.json({ error: "赛事管理账号不能兑换点券" }, { status: 403 });
     }
     const input = exchangeSchema.parse(await request.json());

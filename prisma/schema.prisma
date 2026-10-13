@@ -120,6 +120,7 @@ model User {
   passwordHash      String
   passwordChangedAt DateTime      @default(now())
   role              UserRole      @default(VIEWER)
+  isReferee         Boolean       @default(false)
   teamId            String?
   team              Team?         @relation(fields: [teamId], references: [id])
   wallets           Wallet[]

@@ -57,7 +57,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireUser();
-    if (user.role === UserRole.OPS_ADMIN || user.role === UserRole.SUPER_ADMIN || user.role === UserRole.SCOREKEEPER) {
+    if (user.role === UserRole.OPS_ADMIN || user.role === UserRole.SUPER_ADMIN) {
       return NextResponse.json({ error: "赛事管理账号不能提交充值申请" }, { status: 403 });
     }
     const input = rechargeSchema.parse(await request.json());

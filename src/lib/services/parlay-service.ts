@@ -120,7 +120,7 @@ export async function joinParlay(userId: string, rawInput: unknown) {
   await closeDueMarkets();
   return prisma.$transaction(async (tx) => {
     const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
-    if (user.role === UserRole.OPS_ADMIN || user.role === UserRole.SUPER_ADMIN || user.role === UserRole.SCOREKEEPER) {
+    if (user.role === UserRole.OPS_ADMIN || user.role === UserRole.SUPER_ADMIN) {
       throw new Error("赛事管理角色不得参与过关竞猜");
     }
     let round = await tx.parlayRound.findUnique({

@@ -30,9 +30,9 @@ type MatchSchedule = {
   pairingConfigured: boolean; pairingLockReason: string | null;
   canPropose: boolean; canConfirm: boolean; canConfigurePairing: boolean; canAdminReschedule: boolean; canAdminClearTime: boolean;
 };
-type ManagedUser = { id: string; chineseName: string; englishName: string; team: string; teamId?: string | null; initialCoins: number };
+type ManagedUser = { id: string; chineseName: string; englishName: string; team: string; teamId?: string | null; initialCoins: number; role: string; isReferee: boolean };
 type AdminTeam = { id: string; name: string; track: "A" | "B" };
-type SessionUser = { id: string; username: string; displayName: string; team: string; teamId?: string; role: string; isAdmin: boolean; points: number };
+type SessionUser = { id: string; username: string; displayName: string; team: string; teamId?: string; role: string; isAdmin: boolean; isReferee: boolean; points: number };
 type BetRecord = {
   id: string;
   marketId: string;
@@ -49,8 +49,8 @@ type BetRecord = {
 };
 type RankingEntry = { id: string; rank: number; name: string; username: string; team: string; allianceTeams: string; value: number; points: number; hits: number; predictions: number; rate: number };
 type MatchRoster = {
-  home: { id: string; name: string; members: Array<{ id: string; name: string; username: string; role: "CAPTAIN" | "PLAYER" }> };
-  away: { id: string; name: string; members: Array<{ id: string; name: string; username: string; role: "CAPTAIN" | "PLAYER" }> };
+  home: { id: string; name: string; members: Array<{ id: string; name: string; username: string; role: "VIEWER" | "CAPTAIN" | "PLAYER" | "SCOREKEEPER"; isReferee: boolean }> };
+  away: { id: string; name: string; members: Array<{ id: string; name: string; username: string; role: "VIEWER" | "CAPTAIN" | "PLAYER" | "SCOREKEEPER"; isReferee: boolean }> };
 };
 type AchievementData = {
   settledMarketCount: number;
@@ -344,16 +344,16 @@ export function Dashboard() {
   }, []);
 
   useEffect(() => {
-    apiRequest<{ id: string; username: string; displayName: string; role: string; isAdmin: boolean; team: { id: string; name: string } | null; balance: number; points: number }>("/api/auth/session")
+    apiRequest<{ id: string; username: string; displayName: string; role: string; isAdmin: boolean; isReferee: boolean; team: { id: string; name: string } | null; balance: number; points: number }>("/api/auth/session")
       .then((user) => {
-        setSessionUser({ id: user.id, username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin, team: user.team?.name ?? "无", teamId: user.team?.id, points: user.points });
+        setSessionUser({ id: user.id, username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin, isReferee: user.isReferee, team: user.team?.name ?? "无", teamId: user.team?.id, points: user.points });
         setBalance(user.balance);
         const savedTab = window.sessionStorage.getItem(`contest-active-tab:${user.id}`) as Tab | null;
         if (
           savedTab
           && tabs.includes(savedTab)
           && (savedTab !== "后台管理设置" || user.isAdmin)
-          && (savedTab !== "赛程确认" || user.role === "PLAYER" || user.role === "CAPTAIN" || user.isAdmin)
+          && (savedTab !== "赛程确认" || user.role === "PLAYER" || user.role === "CAPTAIN" || user.role === "SCOREKEEPER" || user.isReferee || user.isAdmin)
           && savedTab !== "竞猜币充值"
         ) setActiveTab(savedTab);
       })
@@ -372,7 +372,7 @@ export function Dashboard() {
     const dataTimer = window.setInterval(() => void Promise.all([
       loadMarkets(),
       loadParlayStatus(),
-      ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.isAdmin ? [loadMatchSchedules()] : []),
+      ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.role === "SCOREKEEPER" || sessionUser.isReferee || sessionUser.isAdmin ? [loadMatchSchedules()] : []),
       ...(sessionUser.isAdmin ? [loadAdminParlays(), loadAdminRecharges(), loadAdminTreasury()] : []),
     ]), 30_000);
     const walletTimer = window.setInterval(() => void loadFinancialState(sessionUser.isAdmin), 5_000);
@@ -471,6 +471,7 @@ export function Dashboard() {
   const validation = validateStake(balance, stake);
   const sessionPoints = sessionUser?.points ?? 0;
   const isAdminSession = sessionUser?.isAdmin === true;
+  const isBettingRestrictedSession = isAdminSession;
   const pendingScheduleConfirmations = matchSchedules.filter((schedule) => schedule.canConfirm).length;
   async function loadMarkets() {
     try {
@@ -519,7 +520,7 @@ export function Dashboard() {
   }
 
   async function loadMatchSchedules() {
-    if (sessionUser?.role !== "PLAYER" && sessionUser?.role !== "CAPTAIN" && !sessionUser?.isAdmin) return;
+    if (sessionUser?.role !== "PLAYER" && sessionUser?.role !== "CAPTAIN" && sessionUser?.role !== "SCOREKEEPER" && !sessionUser?.isReferee && !sessionUser?.isAdmin) return;
     setMatchSchedules(await apiRequest<MatchSchedule[]>("/api/match-schedules"));
   }
 
@@ -547,10 +548,10 @@ export function Dashboard() {
 
     if (isAdmin) {
       const [adminUsers, treasury] = await Promise.all([
-        apiRequest<{ users: Array<{ id: string; name: string; username: string; team: { id: string; name: string } | null; balance: number }>; teams: AdminTeam[] }>("/api/admin/users"),
+        apiRequest<{ users: Array<{ id: string; name: string; username: string; role: string; isReferee: boolean; team: { id: string; name: string } | null; balance: number }>; teams: AdminTeam[] }>("/api/admin/users"),
         apiRequest<AdminTreasury>("/api/admin/treasury"),
       ]);
-      setManagedUsers(adminUsers.users.map((user) => ({ id: user.id, chineseName: user.name, englishName: user.username, team: user.team?.name ?? "无", teamId: user.team?.id, initialCoins: user.balance })));
+      setManagedUsers(adminUsers.users.map((user) => ({ id: user.id, chineseName: user.name, englishName: user.username, role: user.role, isReferee: user.isReferee, team: user.team?.name ?? "无", teamId: user.team?.id, initialCoins: user.balance })));
       setAdminTeams(adminUsers.teams);
       setAdminTreasury(treasury);
     }
@@ -643,14 +644,14 @@ export function Dashboard() {
       setWeeklyBParlayJoined(parlays.some((order) => order.scope === "WEEKLY_B" && order.dayKey === `week-${currentCompetitionWeek()}-B` && order.status === "ACTIVE"));
       if (isAdmin) {
         const [adminUsers, adminBets, settings, parlayRounds, rechargeData, treasuryData] = await Promise.all([
-          apiRequest<{ users: Array<{ id: string; name: string; username: string; team: { id: string; name: string } | null; balance: number }>; teams: AdminTeam[] }>("/api/admin/users"),
+          apiRequest<{ users: Array<{ id: string; name: string; username: string; role: string; isReferee: boolean; team: { id: string; name: string } | null; balance: number }>; teams: AdminTeam[] }>("/api/admin/users"),
           apiRequest<BetRecord[]>("/api/admin/bets"),
           apiRequest<{ parlayTicket: number; parlayBasePools: ParlayBasePools; ticketPoolBonusMultiplier: number; weeklyParlayA: WeeklyParlayConfig; weeklyParlayB: WeeklyParlayConfig; ratios: RatioConfig; pointRewards: PointRewardConfig }>("/api/admin/settings"),
           apiRequest<AdminParlayRound[]>("/api/admin/parlays"),
           apiRequest<AdminRechargeData>("/api/admin/recharges"),
           apiRequest<AdminTreasury>("/api/admin/treasury"),
         ]);
-        setManagedUsers(adminUsers.users.map((user) => ({ id: user.id, chineseName: user.name, englishName: user.username, team: user.team?.name ?? "无", teamId: user.team?.id, initialCoins: user.balance })));
+        setManagedUsers(adminUsers.users.map((user) => ({ id: user.id, chineseName: user.name, englishName: user.username, role: user.role, isReferee: user.isReferee, team: user.team?.name ?? "无", teamId: user.team?.id, initialCoins: user.balance })));
         setAdminTeams(adminUsers.teams);
         setBetRecords(adminBets);
         setParlayTicket(settings.parlayTicket);
@@ -665,7 +666,7 @@ export function Dashboard() {
         setAdminTreasury(treasuryData);
         setMatchSchedules(await apiRequest<MatchSchedule[]>("/api/match-schedules"));
       } else if (sessionUser) {
-        if (sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN") setMatchSchedules(await apiRequest<MatchSchedule[]>("/api/match-schedules"));
+        if (sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.role === "SCOREKEEPER" || sessionUser.isReferee) setMatchSchedules(await apiRequest<MatchSchedule[]>("/api/match-schedules"));
         setBetRecords(betData.map((order) => ({
           id: order.id,
           marketId: order.marketId,
@@ -691,12 +692,12 @@ export function Dashboard() {
 
   async function login(username: string, password: string) {
     try {
-      const user = await apiRequest<{ id: string; username: string; displayName: string; role: string; isAdmin: boolean; team: { id: string; name: string } | null; balance: number; points: number }>("/api/auth/login", {
+      const user = await apiRequest<{ id: string; username: string; displayName: string; role: string; isAdmin: boolean; isReferee: boolean; team: { id: string; name: string } | null; balance: number; points: number }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ username, password }),
       });
       initialScopeUserId.current = null;
-      setSessionUser({ id: user.id, username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin, team: user.team?.name ?? "无", teamId: user.team?.id, points: user.points });
+      setSessionUser({ id: user.id, username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin, isReferee: user.isReferee, team: user.team?.name ?? "无", teamId: user.team?.id, points: user.points });
       setBalance(user.balance);
       setActiveTab("竞猜大厅");
       return "";
@@ -835,8 +836,8 @@ export function Dashboard() {
   }
 
   async function joinParlay() {
-    if (isAdminSession) {
-      setNotice("管理员账号仅用于管理与核对，不能参与过关竞猜。");
+    if (isBettingRestrictedSession) {
+      setNotice(sessionUser?.role === "SCOREKEEPER" ? "裁判账号不能参与过关竞猜。" : "管理员账号仅用于管理与核对，不能参与过关竞猜。");
       return;
     }
     if (parlayJoined) return;
@@ -871,8 +872,8 @@ export function Dashboard() {
   }
 
   async function joinWeeklyParlay() {
-    if (isAdminSession) {
-      setNotice("管理员账号仅用于管理与核对，不能参与本周串关。");
+    if (isBettingRestrictedSession) {
+      setNotice(sessionUser?.role === "SCOREKEEPER" ? "裁判账号不能参与本周过关。" : "管理员账号仅用于管理与核对，不能参与本周串关。");
       return;
     }
     if (activeWeeklyJoined) return;
@@ -1007,6 +1008,19 @@ export function Dashboard() {
       setNotice("管理员时间已生效并锁定，队长端的待确认时间已失效。");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "管理员修改比赛时间失败");
+    }
+  }
+
+  async function scorekeeperReschedule(matchId: string, scheduledAt: string) {
+    try {
+      await apiRequest("/api/match-schedules", {
+        method: "POST",
+        body: JSON.stringify({ action: "RESCHEDULE", matchId, scheduledAt: new Date(scheduledAt).toISOString() }),
+      });
+      await Promise.all([loadMatchSchedules(), loadMarkets(), loadParlayStatus()]);
+      setNotice("裁判修改的比赛时间已生效，盘口封盘时间已同步更新。");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "裁判修改比赛时间失败");
     }
   }
 
@@ -1208,7 +1222,7 @@ export function Dashboard() {
     return result;
   }
 
-  async function addManagedUser(user: Omit<ManagedUser, "id">) {
+  async function addManagedUser(user: Omit<ManagedUser, "id" | "role" | "isReferee">) {
     if (managedUsers.some((item) => item.chineseName === user.chineseName || item.englishName.toLowerCase() === user.englishName.toLowerCase())) {
       setNotice("中文名或英文名已存在，请检查后重新填写。");
       return;
@@ -1245,6 +1259,19 @@ export function Dashboard() {
       setNotice("密码已重置为 000000，该用户的旧登录会话已全部失效。");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "重置密码失败");
+    }
+  }
+
+  async function updateManagedUserReferee(id: string, enabled: boolean) {
+    try {
+      await apiRequest("/api/admin/users", {
+        method: "PATCH",
+        body: JSON.stringify({ userId: id, action: "SET_REFEREE", enabled }),
+      });
+      await refreshData(true);
+      setNotice(enabled ? "裁判权限已授予，该人员可修改比赛时间。" : "裁判权限已取消。");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "修改用户权限失败");
     }
   }
 
@@ -1328,7 +1355,7 @@ export function Dashboard() {
         <nav>
           {([
             "竞猜大厅",
-            ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" ? ["赛程确认" as Tab] : []),
+            ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.role === "SCOREKEEPER" || sessionUser.isReferee ? ["赛程确认" as Tab] : []),
             "我的竞猜",
             "钱包流水",
             "排行榜",
@@ -1346,7 +1373,7 @@ export function Dashboard() {
         </div>
         <div className="profile">
           <span className="avatar">{sessionUser.displayName.slice(0, 1)}</span>
-          <div><strong>{sessionUser.displayName}</strong><small>{sessionUser.isAdmin ? "管理员账号" : `${sessionUser.team} · ${sessionUser.role === "CAPTAIN" ? "队长" : "普通用户"}`}</small></div>
+          <div><strong>{sessionUser.displayName}</strong><small>{sessionUser.isAdmin ? "管理员账号" : `${sessionUser.team} · ${sessionUser.role === "CAPTAIN" ? "队长" : sessionUser.role === "PLAYER" ? "队员" : "普通用户"}${sessionUser.isReferee || sessionUser.role === "SCOREKEEPER" ? " · 裁判权限" : ""}`}</small></div>
           <button className="logout-button" onClick={changePassword}>改密</button>
           <button className="logout-button" onClick={logout}>退出</button>
         </div>
@@ -1380,10 +1407,11 @@ export function Dashboard() {
               {([matchRoster.home, matchRoster.away] as const).map((team, teamIndex) => <section className="roster-team" key={team.id}>
                 <header><span>{teamIndex === 0 ? "主队" : "客队"}</span><strong>{team.name}</strong><small>{team.members.length} 名队员</small></header>
                 <div>
-                  {team.members.map((member) => <article className={member.role === "CAPTAIN" ? "is-captain" : ""} key={member.id}>
+                  {team.members.map((member) => <article className={member.role === "CAPTAIN" ? "is-captain" : member.isReferee || member.role === "SCOREKEEPER" ? "is-official" : ""} key={member.id}>
                     <span>{member.name.slice(0, 1)}</span>
                     <p><strong>{member.name}</strong><small>{member.username}</small></p>
-                    {member.role === "CAPTAIN" && <b>队长</b>}
+                    {member.role === "CAPTAIN" && <b>{member.isReferee ? "队长·裁判" : "队长"}</b>}
+                    {(member.isReferee || member.role === "SCOREKEEPER") && member.role !== "CAPTAIN" && <b>裁判</b>}
                   </article>)}
                   {team.members.length === 0 && <p className="roster-empty">暂无队员信息</p>}
                 </div>
@@ -1451,7 +1479,7 @@ export function Dashboard() {
                       {activeWeeklyMarkets.map((market, index) => <label className="parlay-match" key={market.id}>
                         <span className="parlay-number">{index + 1}</span>
                         <span className="parlay-versus"><strong>{market.home} vs {market.away}</strong><small>{market.time} · {market.track} 赛道</small></span>
-                        <select disabled={isAdminSession || activeWeeklyJoined || activeWeeklyClosed} value={activeWeeklySelections[market.id] ?? ""} onChange={(event) => parlayMode === "WEEKLY_B" ? setWeeklyBParlaySelections((current) => ({ ...current, [market.id]: event.target.value })) : setWeeklyParlaySelections((current) => ({ ...current, [market.id]: event.target.value }))}>
+                        <select disabled={isBettingRestrictedSession || activeWeeklyJoined || activeWeeklyClosed} value={activeWeeklySelections[market.id] ?? ""} onChange={(event) => parlayMode === "WEEKLY_B" ? setWeeklyBParlaySelections((current) => ({ ...current, [market.id]: event.target.value })) : setWeeklyParlaySelections((current) => ({ ...current, [market.id]: event.target.value }))}>
                           <option value="">选择结果</option>
                           {market.options.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
                         </select>
@@ -1459,7 +1487,7 @@ export function Dashboard() {
                     </div> : <div className="empty-matches">本周 {activeWeeklyTrack} 组 6 场比赛须全部由双方队长确认时间后，才会开放该组过关。</div>}
                     <div className="parlay-submit">
                       <span>已选择 {Object.keys(activeWeeklySelections).filter((id) => activeWeeklyMarkets.some((market) => market.id === id)).length} / 6 场</span>
-                      <button disabled={isAdminSession || activeWeeklyJoined || activeWeeklyClosed || activeWeeklyMarkets.length !== 6} onClick={joinWeeklyParlay}>{isAdminSession ? "管理员不可参与" : activeWeeklyJoined ? `已参与本周 ${activeWeeklyTrack} 组过关` : activeWeeklyClosed ? "已有结束的比赛，无法购票" : activeWeeklyMarkets.length !== 6 ? "等待 6 场固定对阵" : `支付 ${money.format(activeWeeklyTicket)} 竞猜币参与`}</button>
+                      <button disabled={isBettingRestrictedSession || activeWeeklyJoined || activeWeeklyClosed || activeWeeklyMarkets.length !== 6} onClick={joinWeeklyParlay}>{isBettingRestrictedSession ? `${sessionUser.role === "SCOREKEEPER" ? "裁判" : "管理员"}不可参与` : activeWeeklyJoined ? `已参与本周 ${activeWeeklyTrack} 组过关` : activeWeeklyClosed ? "已有结束的比赛，无法购票" : activeWeeklyMarkets.length !== 6 ? "等待 6 场固定对阵" : `支付 ${money.format(activeWeeklyTicket)} 竞猜币参与`}</button>
                     </div>
                   </div>
                 </details>
@@ -1478,7 +1506,7 @@ export function Dashboard() {
                           <span className="parlay-number">{index + 1}</span>
                           <span className="parlay-versus"><strong>{market.home} vs {market.away}</strong><small>{market.time} · {market.track} 赛道</small></span>
                           <select
-                            disabled={isAdminSession || parlayJoined || parlayClosed || (marketStatus[market.id] ?? market.state) !== "OPEN"}
+                            disabled={isBettingRestrictedSession || parlayJoined || parlayClosed || (marketStatus[market.id] ?? market.state) !== "OPEN"}
                             value={parlaySelections[market.id] ?? ""}
                             onChange={(event) => setParlaySelections((current) => ({ ...current, [market.id]: event.target.value }))}
                           >
@@ -1490,7 +1518,7 @@ export function Dashboard() {
                     </div>
                     <div className="parlay-submit">
                       <span>已选择 {Object.keys(parlaySelections).filter((id) => parlayMarkets.some((market) => market.id === id)).length} / {parlayMarkets.length} 场</span>
-                      <button disabled={isAdminSession || parlayJoined || parlayClosed} onClick={joinParlay}>{isAdminSession ? "管理员不可参与竞猜" : parlayJoined ? "已参与今日过关" : parlayClosed ? `已于 ${formatClock(parlayDeadline)} 截止` : `支付 ${money.format(effectiveParlayTicket)} 竞猜币参与`}</button>
+                      <button disabled={isBettingRestrictedSession || parlayJoined || parlayClosed} onClick={joinParlay}>{isBettingRestrictedSession ? `${sessionUser.role === "SCOREKEEPER" ? "裁判" : "管理员"}不可参与竞猜` : parlayJoined ? "已参与今日过关" : parlayClosed ? `已于 ${formatClock(parlayDeadline)} 截止` : `支付 ${money.format(effectiveParlayTicket)} 竞猜币参与`}</button>
                     </div>
                   </div>
                 </details>
@@ -1549,26 +1577,26 @@ export function Dashboard() {
                 {selectedMarket.options.map((option) => {
                   const multiplier = option.oddsBps ? option.oddsBps / 10000 : ratios.returnPercent / 100 + (ratios.prizePercent / 100 * (selectedMarket.pool + stake)) / (option.amount + stake);
                   const lockedOut = Boolean(lockedOptionId && option.id !== lockedOptionId);
-                  return <button disabled={isAdminSession || selectedState !== "OPEN" || lockedOut} key={option.id} className={`${option.id === selectedOption.id ? "option active" : "option"}${lockedOut ? " option-locked" : ""}`} onClick={() => setOptionId(option.id)}>
+                  return <button disabled={isBettingRestrictedSession || selectedState !== "OPEN" || lockedOut} key={option.id} className={`${option.id === selectedOption.id ? "option active" : "option"}${lockedOut ? " option-locked" : ""}`} onClick={() => setOptionId(option.id)}>
                     <span>{option.label}</span><strong>约 {multiplier.toFixed(2)}×</strong><small>当前 {money.format(option.amount)}</small>
                   </button>;
                 })}
               </div>
               {lockedOptionId && <div className="selection-lock">已锁定结果：<strong>{selectedOption.label}</strong><span>本场已下注 {money.format(existingMarketStake)}，只能继续加注该结果</span></div>}
               <label className="stake-label">下注额 <span>可用 {money.format(balance)}</span></label>
-              <div className="stake-input"><input disabled={isAdminSession || selectedState !== "OPEN"} value={stake} type="number" min="50" max={validation.cap} onChange={(event) => setStake(Math.max(0, Number(event.target.value)))} /><span>竞猜币</span></div>
-              <div className="quick-stakes">{[50, 100, validation.cap].map((value, index) => <button disabled={isAdminSession || selectedState !== "OPEN" || value < 50} key={`${value}-${index}`} onClick={() => setStake(value)}>{index === 2 ? "最大" : value}</button>)}</div>
+              <div className="stake-input"><input disabled={isBettingRestrictedSession || selectedState !== "OPEN"} value={stake} type="number" min="50" max={validation.cap} onChange={(event) => setStake(Math.max(0, Number(event.target.value)))} /><span>竞猜币</span></div>
+              <div className="quick-stakes">{[50, 100, validation.cap].map((value, index) => <button disabled={isBettingRestrictedSession || selectedState !== "OPEN" || value < 50} key={`${value}-${index}`} onClick={() => setStake(value)}>{index === 2 ? "最大" : value}</button>)}</div>
               <div className="estimate"><span>预估到账</span><strong>{money.format(potential.payout)} <small>竞猜币</small></strong><p>包含本金返还 {potential.returnedStake} + 奖池奖励 {potential.prize}</p></div>
-              <button disabled={submittingBet || isAdminSession || selectedState !== "OPEN"} className="primary" onClick={placeBet}>{submittingBet ? "订单提交中…" : isAdminSession ? "管理员账号不可下注" : selectedState === "OPEN" ? `${lockedOptionId ? "确认加注" : "确认下注"} ${stake > 0 ? `${money.format(stake)} 竞猜币` : ""}` : stateLabels[selectedState]}</button>
-              <p className="fine-print">{isAdminSession ? "管理员账号仅用于赛事管理、资产操作和信息核对。" : "所有参赛队员均可竞猜任意队伍；首次下注后结果锁定，只能继续加注，封盘后不可撤单。"}</p>
+              <button disabled={submittingBet || isBettingRestrictedSession || selectedState !== "OPEN"} className="primary" onClick={placeBet}>{submittingBet ? "订单提交中…" : isBettingRestrictedSession ? `${sessionUser.role === "SCOREKEEPER" ? "裁判" : "管理员"}账号不可下注` : selectedState === "OPEN" ? `${lockedOptionId ? "确认加注" : "确认下注"} ${stake > 0 ? `${money.format(stake)} 竞猜币` : ""}` : stateLabels[selectedState]}</button>
+              <p className="fine-print">{isBettingRestrictedSession ? `${sessionUser.role === "SCOREKEEPER" ? "裁判" : "管理员"}账号仅用于赛事操作和信息核对。` : "所有参赛队员均可竞猜任意队伍；首次下注后结果锁定，只能继续加注，封盘后不可撤单。"}</p>
             </aside> : <aside className="bet-panel empty-bet-panel"><span>暂无比赛</span><h2>第 {selectedWeek} 周尚未配置赛程</h2><p>管理员创建并设置本周比赛后，竞猜盘口将在这里展示。</p>{sessionUser.isAdmin && <button onClick={() => setActiveTab("后台管理设置")}>前往后台管理设置</button>}</aside>}
           </div>
         )}
 
-        {activeTab === "赛程确认" && (sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN") && <SchedulePanel schedules={matchSchedules} onPropose={proposeSchedule} onConfirm={confirmSchedule} readOnly={sessionUser.role !== "CAPTAIN"} />}
+        {activeTab === "赛程确认" && (sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.role === "SCOREKEEPER" || sessionUser.isReferee) && <SchedulePanel schedules={matchSchedules} onPropose={proposeSchedule} onConfirm={confirmSchedule} onAdminReschedule={scorekeeperReschedule} official={sessionUser.isReferee || sessionUser.role === "SCOREKEEPER"} readOnly={sessionUser.role === "PLAYER" && !sessionUser.isReferee} />}
         {activeTab === "我的竞猜" && <MyBetsPanel bets={myBets} parlays={parlayOrders} loading={loadingData} />}
         {!sessionUser.isAdmin && activeTab === "竞猜币充值" && <RechargeShop requests={rechargeRequests} onSubmit={submitRecharge} />}
-        {activeTab === "钱包流水" && <WalletPanel balance={balance} points={sessionPoints} entries={walletEntries} loading={loadingData} treasury={houseTreasury} onExchange={sessionUser.isAdmin ? undefined : exchangePoints} />}
+        {activeTab === "钱包流水" && <WalletPanel balance={balance} points={sessionPoints} entries={walletEntries} loading={loadingData} treasury={houseTreasury} onExchange={isBettingRestrictedSession ? undefined : exchangePoints} />}
         {activeTab === "排行榜" && <Ranking entries={rankingEntries} loading={loadingData} />}
         {activeTab === "成就奖" && <Achievements data={achievementData} loading={loadingData} />}
         {sessionUser.isAdmin && activeTab === "后台管理设置" && <Admin
@@ -1608,6 +1636,7 @@ export function Dashboard() {
           onAddUser={addManagedUser}
           onDeleteUser={deleteManagedUser}
           onResetPassword={resetManagedUserPassword}
+          onUpdateUserReferee={updateManagedUserReferee}
           onReviewRecharge={reviewRecharge}
           onNotify={setNotice}
         />}
@@ -1615,7 +1644,7 @@ export function Dashboard() {
       <nav className="mobile-nav" aria-label="移动端主导航">
         {([
           "竞猜大厅",
-          ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" ? ["赛程确认" as Tab] : []),
+          ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.role === "SCOREKEEPER" || sessionUser.isReferee ? ["赛程确认" as Tab] : []),
           "我的竞猜",
           "钱包流水",
           "排行榜",
@@ -1726,11 +1755,12 @@ function RechargeShop({
   </section>;
 }
 
-function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, readOnly = false, teams = [], onConfigurePairing, onAdminReschedule, onAdminClearSchedule }: {
+function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, official = false, readOnly = false, teams = [], onConfigurePairing, onAdminReschedule, onAdminClearSchedule }: {
   schedules: MatchSchedule[];
   onPropose: (matchId: string, scheduledAt: string) => void;
   onConfirm: (matchId: string) => void;
   admin?: boolean;
+  official?: boolean;
   readOnly?: boolean;
   teams?: AdminTeam[];
   onConfigurePairing?: (matchId: string, homeTeamId: string, awayTeamId: string) => void;
@@ -1741,7 +1771,7 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, readOnl
   const [pairings, setPairings] = useState<Record<string, { homeTeamId: string; awayTeamId: string }>>({});
   const availableWeeks = [...new Set(schedules.map((schedule) => schedule.week))].sort((first, second) => first - second);
   const [scheduleWeek, setScheduleWeek] = useState(() => availableWeeks.includes(currentCompetitionWeek()) ? currentCompetitionWeek() : availableWeeks[0] ?? 1);
-  const visibleSchedules = admin ? schedules.filter((schedule) => schedule.week === scheduleWeek) : schedules;
+  const visibleSchedules = admin || official ? schedules.filter((schedule) => schedule.week === scheduleWeek) : schedules;
   const inputValue = (schedule: MatchSchedule) => times[schedule.id] ?? (() => {
     const source = schedule.proposedScheduledAt ?? schedule.scheduledAt;
     if (!source) return "";
@@ -1750,7 +1780,7 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, readOnl
     return local.toISOString().slice(0, 16);
   })();
   return <section className="panel schedule-panel">
-    <div className="section-heading"><div><p className="eyebrow">{admin ? "管理员先设置对阵，队长再确认时间" : readOnly ? "队员只读查看 · 时间操作由队长完成" : "双方队长共同确认"}</p><h2>{admin ? "前 11 周固定场次" : readOnly ? "我的战队赛程" : "我的赛程确认"}</h2></div>{admin ? <div className="schedule-filter"><label>查看周次<select value={scheduleWeek} onChange={(event) => setScheduleWeek(Number(event.target.value))}>{availableWeeks.map((week) => <option value={week} key={week}>第 {week} 周　{weekCompactRange(week)}</option>)}</select></label><span className="pill">{visibleSchedules.filter((item) => item.pairingConfigured).length} / {visibleSchedules.length} 已设置对阵</span></div> : <span className="pill">{schedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / {schedules.length} 已确认时间</span>}</div>
+    <div className="section-heading"><div><p className="eyebrow">{admin ? "管理员先设置对阵，队长再确认时间" : official ? "裁判权限 · 可直接设置或修改比赛时间" : readOnly ? "队员只读查看 · 时间操作由队长完成" : "双方队长共同确认"}</p><h2>{admin ? "前 11 周固定场次" : official ? "裁判赛程管理" : readOnly ? "我的战队赛程" : "我的赛程确认"}</h2></div>{admin || official ? <div className="schedule-filter"><label>查看周次<select value={scheduleWeek} onChange={(event) => setScheduleWeek(Number(event.target.value))}>{availableWeeks.map((week) => <option value={week} key={week}>第 {week} 周　{weekCompactRange(week)}</option>)}</select></label><span className="pill">{official ? `${visibleSchedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / ${visibleSchedules.length} 已确认时间` : `${visibleSchedules.filter((item) => item.pairingConfigured).length} / ${visibleSchedules.length} 已设置对阵`}</span></div> : <span className="pill">{schedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / {schedules.length} 已确认时间</span>}</div>
     <div className="schedule-list">
       {visibleSchedules.map((schedule) => <article className={`schedule-row schedule-${schedule.scheduleStatus.toLowerCase()}`} key={schedule.id}>
         <div className="schedule-match"><span>第 {schedule.week} 周 · {weekCompactRange(schedule.week)} · {schedule.track} 赛道 · 第 {schedule.slotIndex ?? "-"} 场</span><strong>{schedule.pairingConfigured ? `${schedule.home} vs ${schedule.away}` : "等待管理员设置对阵"}</strong><small>{!schedule.pairingConfigured ? "管理员设置双方后，队长方可确认时间" : schedule.scheduleStatus === "CONFIRMED" ? `已生效：${new Date(schedule.scheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : schedule.scheduleStatus === "PROPOSED" ? `${schedule.proposedByTeamName} 提议：${new Date(schedule.proposedScheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : "对阵已设置，等待双方队长确认时间"}</small></div>
@@ -1762,10 +1792,11 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, readOnl
             <button className="admin-primary" onClick={() => onConfigurePairing?.(schedule.id, pairings[schedule.id]?.homeTeamId ?? schedule.homeTeamId, pairings[schedule.id]?.awayTeamId ?? schedule.awayTeamId)}>{schedule.pairingConfigured ? "修改对阵" : "保存对阵"}</button>
           </div>}
           {admin && !schedule.canConfigurePairing && schedule.pairingLockReason && <small className="schedule-lock-reason">{schedule.pairingLockReason}</small>}
-          {(schedule.canPropose || schedule.canAdminReschedule) && <input type="datetime-local" value={inputValue(schedule)} onChange={(event) => setTimes((current) => ({ ...current, [schedule.id]: event.target.value }))} />}
+          {(schedule.canPropose || ((admin || official) && schedule.canAdminReschedule)) && <input type="datetime-local" value={inputValue(schedule)} onChange={(event) => setTimes((current) => ({ ...current, [schedule.id]: event.target.value }))} />}
           {!admin && schedule.canPropose && <button onClick={() => onPropose(schedule.id, inputValue(schedule))}>{schedule.scheduleStatus === "PROPOSED" ? "修改/反提时间" : "提交比赛时间"}</button>}
           {!admin && schedule.canConfirm && <button className="admin-primary" onClick={() => onConfirm(schedule.id)}>确认该时间</button>}
           {admin && schedule.canAdminReschedule && <button onClick={() => onAdminReschedule?.(schedule.id, inputValue(schedule))}>{schedule.scheduleStatus === "CONFIRMED" ? "管理员修改时间" : "管理员设置时间"}</button>}
+          {official && schedule.canAdminReschedule && <button className="admin-primary" onClick={() => onAdminReschedule?.(schedule.id, inputValue(schedule))}>{schedule.scheduleStatus === "CONFIRMED" ? "裁判修改时间" : "裁判设置时间"}</button>}
           {admin && schedule.canAdminClearTime && <button className="danger-outline" onClick={() => onAdminClearSchedule?.(schedule.id)}>撤销比赛时间</button>}
           {schedule.scheduleStatus === "CONFIRMED" && !schedule.canAdminReschedule && <b>时间已锁定</b>}
         </div>
@@ -1875,9 +1906,10 @@ type AdminProps = {
   onSaveOdds: (marketId: string, odds: Record<string, number>, reason: string) => void;
   onInjectLiquidity: (marketId: string, injections: Array<{ optionId: string; amount: number }>) => Promise<boolean>;
   onImportTeams: (file: File, action: "preview" | "apply") => Promise<TeamImportPreview>;
-  onAddUser: (user: Omit<ManagedUser, "id">) => void;
+  onAddUser: (user: Omit<ManagedUser, "id" | "role" | "isReferee">) => void;
   onDeleteUser: (id: string) => void;
   onResetPassword: (id: string) => void;
+  onUpdateUserReferee: (id: string, enabled: boolean) => void;
   onReviewRecharge: (rechargeId: string, action: "FIRST_CONFIRM" | "FINAL_CONFIRM" | "ONE_CLICK_CONFIRM" | "REJECT") => void;
   onNotify: (message: string) => void;
 };
@@ -1918,6 +1950,7 @@ function Admin({
   onAddUser,
   onDeleteUser,
   onResetPassword,
+  onUpdateUserReferee,
   onReviewRecharge,
   onNotify,
 }: AdminProps) {
@@ -2099,7 +2132,7 @@ function Admin({
 
   function submitUser() {
     if (!userChineseName.trim() || !userEnglishName.trim() || !userTeam.trim()) {
-      onNotify("请完整填写中文名、英文名和队伍名。");
+      onNotify("请完整填写中文名、英文名和账号信息。");
       return;
     }
     if (!Number.isInteger(userInitialCoins) || userInitialCoins < 0) {
@@ -2451,8 +2484,8 @@ function Admin({
           <button disabled={!deleteUserId} onClick={submitDeleteUser}>删除所选用户</button>
         </div>
         <div className="managed-user-table">
-          <div className="managed-user-row header"><span>中文名</span><span>英文名</span><span>队伍名</span><span>竞猜币</span><span>账号操作</span></div>
-          {managedUsers.map((user) => <div className="managed-user-row" key={user.id}><span><strong>{user.chineseName}</strong></span><span>{user.englishName}</span><span>{user.team}</span><span>{money.format(user.initialCoins)}</span><span><button className="user-reset-button" onClick={() => onResetPassword(user.id)}>重置密码</button></span></div>)}
+          <div className="managed-user-row header"><span>中文名</span><span>英文名</span><span>队伍名</span><span>原身份</span><span>裁判权限</span><span>竞猜币</span><span>账号操作</span></div>
+          {managedUsers.map((user) => <div className="managed-user-row" key={user.id}><span><strong>{user.chineseName}</strong></span><span>{user.englishName}</span><span>{user.team}</span><span>{user.role === "CAPTAIN" ? "队长" : user.role === "PLAYER" ? "队员" : user.role === "OPS_ADMIN" || user.role === "SUPER_ADMIN" ? "管理员" : "普通用户"}</span><span>{user.role === "OPS_ADMIN" || user.role === "SUPER_ADMIN" ? "—" : <button className={user.isReferee ? "referee-toggle active" : "referee-toggle"} onClick={() => onUpdateUserReferee(user.id, !user.isReferee)}>{user.isReferee ? "取消裁判" : "设为裁判"}</button>}</span><span>{money.format(user.initialCoins)}</span><span><button className="user-reset-button" onClick={() => onResetPassword(user.id)}>重置密码</button></span></div>)}
         </div>
       </section>
     </div>}

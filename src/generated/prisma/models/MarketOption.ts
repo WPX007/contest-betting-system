@@ -478,10 +478,6 @@ export type MarketOptionUncheckedUpdateManyWithoutMarketNestedInput = {
   deleteMany?: Prisma.MarketOptionScalarWhereInput | Prisma.MarketOptionScalarWhereInput[]
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type MarketOptionCreateNestedOneWithoutBetsInput = {
   create?: Prisma.XOR<Prisma.MarketOptionCreateWithoutBetsInput, Prisma.MarketOptionUncheckedCreateWithoutBetsInput>
   connectOrCreate?: Prisma.MarketOptionCreateOrConnectWithoutBetsInput

@@ -17,8 +17,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
                 id: true,
                 name: true,
                 members: {
-                  where: { role: { in: [UserRole.CAPTAIN, UserRole.PLAYER] } },
-                  select: { id: true, name: true, username: true, role: true },
+                  where: { role: { in: [UserRole.VIEWER, UserRole.CAPTAIN, UserRole.PLAYER, UserRole.SCOREKEEPER] } },
+                  select: { id: true, name: true, username: true, role: true, isReferee: true },
                 },
               },
             },
@@ -27,8 +27,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
                 id: true,
                 name: true,
                 members: {
-                  where: { role: { in: [UserRole.CAPTAIN, UserRole.PLAYER] } },
-                  select: { id: true, name: true, username: true, role: true },
+                  where: { role: { in: [UserRole.VIEWER, UserRole.CAPTAIN, UserRole.PLAYER, UserRole.SCOREKEEPER] } },
+                  select: { id: true, name: true, username: true, role: true, isReferee: true },
                 },
               },
             },

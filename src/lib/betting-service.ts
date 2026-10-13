@@ -25,7 +25,7 @@ export function assertBetAllowed(input: unknown, actor: Actor, market: BetMarket
   if (market.status !== "OPEN" || market.closesAt <= now) {
     throw new Error("该盘口当前不可下注");
   }
-  if (actor.role === "SCOREKEEPER" || actor.role === "OPS_ADMIN" || actor.role === "SUPER_ADMIN") {
+  if (actor.role === "OPS_ADMIN" || actor.role === "SUPER_ADMIN") {
     throw new Error("赛事管理角色不得参与盘口竞猜");
   }
   const stakeCheck = validateStake(actor.balance, bet.stake);

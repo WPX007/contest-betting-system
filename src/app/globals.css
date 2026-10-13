@@ -95,3 +95,5 @@ nav { display:grid; gap:5px; }.nav-item { position:relative; border:0; border-ra
 @media (max-width:600px) { .roster-modal { padding:16px; }.roster-columns { grid-template-columns:1fr; }.roster-modal > header h2 { font-size:18px; } }
 .asset-target-picker { display:grid; grid-template-columns:minmax(120px,.85fr) minmax(150px,1.15fr); gap:6px; }.asset-target-picker input,.asset-target-picker select { min-width:0; width:100%; }.asset-target-picker input[type="search"] { padding-right:8px; }
 @media (max-width:760px) { .asset-target-picker { grid-template-columns:1fr; } }
+.user-form { grid-template-columns:repeat(4,minmax(0,1fr)); }.managed-user-row { min-width:980px; grid-template-columns:1.05fr 1.05fr 1.1fr .75fr .8fr .7fr .8fr; }.referee-toggle { padding:5px 8px; border:1px solid #b9cbea; border-radius:6px; background:#f4f7fc; color:#315d9e; font-size:9px; font-weight:700; }.referee-toggle.active { border-color:#e1b466; background:#fff5dd; color:#93610a; }
+@media (max-width:900px) { .user-form { grid-template-columns:repeat(2,minmax(0,1fr)); } }

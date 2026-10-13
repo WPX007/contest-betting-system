@@ -29,6 +29,7 @@ export async function GET() {
           name: user.name,
           username: user.username,
           role: user.role,
+          isReferee: user.isReferee,
           team: user.team,
           balance: user.wallets.find((wallet) => wallet.asset === AssetType.BET_COIN)?.balance ?? 0,
           points: user.wallets.find((wallet) => wallet.asset === AssetType.POINT)?.balance ?? 0,
@@ -99,20 +100,38 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const admin = await requireAdmin();
-    const input = z.object({ userId: z.string().min(1), action: z.literal("RESET_PASSWORD") }).parse(await request.json());
+    const input = z.discriminatedUnion("action", [
+      z.object({ userId: z.string().min(1), action: z.literal("RESET_PASSWORD") }),
+      z.object({ userId: z.string().min(1), action: z.literal("SET_REFEREE"), enabled: z.boolean() }),
+    ]).parse(await request.json());
+    if (input.action === "RESET_PASSWORD") {
+      await prisma.user.update({
+        where: { id: input.userId },
+        data: { passwordHash: await hashPassword("000000"), passwordChangedAt: new Date() },
+      });
+      await revokeUserSessions(input.userId);
+      await prisma.auditLog.create({
+        data: { actorId: admin.id, action: "PASSWORD_RESET", target: input.userId, after: JSON.stringify({ resetToInitialPassword: true }) },
+      });
+      return NextResponse.json({ data: { reset: true, initialPassword: "000000" } });
+    }
+    const target = await prisma.user.findUniqueOrThrow({ where: { id: input.userId } });
+    if (target.role === UserRole.OPS_ADMIN || target.role === UserRole.SUPER_ADMIN) {
+      return NextResponse.json({ error: "管理员账号不能设置为裁判" }, { status: 409 });
+    }
     await prisma.user.update({
       where: { id: input.userId },
-      data: { passwordHash: await hashPassword("000000"), passwordChangedAt: new Date() },
+      data: { isReferee: input.enabled },
     });
     await revokeUserSessions(input.userId);
     await prisma.auditLog.create({
-      data: { actorId: admin.id, action: "PASSWORD_RESET", target: input.userId, after: JSON.stringify({ resetToInitialPassword: true }) },
+      data: { actorId: admin.id, action: "USER_REFEREE_UPDATE", target: input.userId, before: String(target.isReferee), after: String(input.enabled) },
     });
-    return NextResponse.json({ data: { reset: true, initialPassword: "000000" } });
+    return NextResponse.json({ data: { updated: true, isReferee: input.enabled } });
   } catch (error) {
     const authError = authErrorResponse(error);
     if (authError) return NextResponse.json({ error: authError.message }, { status: authError.status });
-    return NextResponse.json({ error: "重置密码失败" }, { status: 400 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "用户权限操作失败" }, { status: 400 });
   }
 }
 

@@ -22,10 +22,13 @@ function assertFutureWeekTime(match: { weekNumber: number; season: { startsAt: D
   if (scheduledAt < weekStart || scheduledAt >= weekEnd) throw new Error(`比赛时间必须在第 ${match.weekNumber} 周范围内`);
 }
 
-function scheduleView(match: Awaited<ReturnType<typeof getScheduleMatch>>, actor: { id: string; role: UserRole; teamId: string | null }) {
+type ScheduleActor = { id: string; role: UserRole; teamId: string | null; isReferee: boolean };
+
+function scheduleView(match: Awaited<ReturnType<typeof getScheduleMatch>>, actor: ScheduleActor) {
   if (!match) return null;
   const isAdmin = actor.role === UserRole.OPS_ADMIN || actor.role === UserRole.SUPER_ADMIN;
   const isCaptain = actor.role === UserRole.CAPTAIN;
+  const canEditAnyTime = isAdmin || actor.isReferee || actor.role === UserRole.SCOREKEEPER;
   const isParticipant = actor.teamId === match.homeTeamId || actor.teamId === match.awayTeamId;
   const isProposerTeam = actor.teamId === match.proposedByTeamId;
   const market = match.markets[0];
@@ -63,7 +66,7 @@ function scheduleView(match: Awaited<ReturnType<typeof getScheduleMatch>>, actor
     canPropose: isCaptain && Boolean(match.pairingConfiguredAt) && isParticipant && match.scheduleStatus !== MatchScheduleStatus.CONFIRMED,
     canConfirm: isCaptain && isParticipant && match.scheduleStatus === MatchScheduleStatus.PROPOSED && !isProposerTeam,
     canConfigurePairing: isAdmin && pairingLockReason === null,
-    canAdminReschedule: isAdmin && Boolean(match.pairingConfiguredAt) && market?.status !== MarketStatus.SETTLED && market?.status !== MarketStatus.VOIDED,
+    canAdminReschedule: canEditAnyTime && Boolean(match.pairingConfiguredAt) && market?.status !== MarketStatus.SETTLED && market?.status !== MarketStatus.VOIDED,
     canAdminClearTime: isAdmin && match.scheduleStatus === MatchScheduleStatus.CONFIRMED && market?.status !== MarketStatus.SETTLED && market?.status !== MarketStatus.VOIDED,
   };
 }
@@ -80,10 +83,11 @@ function getScheduleMatch(matchId: string) {
   });
 }
 
-export async function listMatchSchedules(actor: { id: string; role: UserRole; teamId: string | null }) {
+export async function listMatchSchedules(actor: ScheduleActor) {
   const isAdmin = actor.role === UserRole.OPS_ADMIN || actor.role === UserRole.SUPER_ADMIN;
+  const canViewAllSchedules = isAdmin || actor.isReferee || actor.role === UserRole.SCOREKEEPER;
   const records = await prisma.match.findMany({
-    where: isAdmin
+    where: canViewAllSchedules
       ? { weekNumber: { lte: 11 } }
       : { weekNumber: { lte: 11 }, pairingConfiguredAt: { not: null }, OR: [{ homeTeamId: actor.teamId ?? "" }, { awayTeamId: actor.teamId ?? "" }] },
     include: {
@@ -171,7 +175,7 @@ export async function adminConfigureMatchPairing(adminId: string, matchId: strin
   });
 }
 
-export async function proposeMatchTime(actor: { id: string; role: UserRole; teamId: string | null }, matchId: string, scheduledAt: Date) {
+export async function proposeMatchTime(actor: ScheduleActor, matchId: string, scheduledAt: Date) {
   const match = await getScheduleMatch(matchId);
   if (!match) throw new Error("比赛不存在");
   if (actor.role !== UserRole.CAPTAIN || !actor.teamId || ![match.homeTeamId, match.awayTeamId].includes(actor.teamId)) {
@@ -199,7 +203,7 @@ export async function proposeMatchTime(actor: { id: string; role: UserRole; team
   ]);
 }
 
-export async function confirmMatchTime(actor: { id: string; role: UserRole; teamId: string | null }, matchId: string) {
+export async function confirmMatchTime(actor: ScheduleActor, matchId: string) {
   return prisma.$transaction(async (tx) => {
     const match = await tx.match.findUniqueOrThrow({
       where: { id: matchId },
@@ -253,7 +257,7 @@ export async function confirmMatchTime(actor: { id: string; role: UserRole; team
   });
 }
 
-export async function adminRescheduleMatch(adminId: string, matchId: string, scheduledAt: Date) {
+async function rescheduleMatch(actorId: string, matchId: string, scheduledAt: Date, auditAction: string) {
   return prisma.$transaction(async (tx) => {
     const match = await tx.match.findUniqueOrThrow({
       where: { id: matchId },
@@ -271,7 +275,7 @@ export async function adminRescheduleMatch(adminId: string, matchId: string, sch
         proposedByUserId: null,
         proposedByTeamId: null,
         proposedAt: null,
-        confirmedByUserId: adminId,
+        confirmedByUserId: actorId,
         confirmedAt: new Date(),
       },
     });
@@ -303,9 +307,17 @@ export async function adminRescheduleMatch(adminId: string, matchId: string, sch
     }
     await syncOpenParlayDeadlines(tx, marketId);
     await tx.auditLog.create({
-      data: { actorId: adminId, action: "MATCH_TIME_ADMIN_SET", target: match.id, after: scheduledAt.toISOString() },
+      data: { actorId, action: auditAction, target: match.id, after: scheduledAt.toISOString() },
     });
   });
+}
+
+export async function adminRescheduleMatch(adminId: string, matchId: string, scheduledAt: Date) {
+  return rescheduleMatch(adminId, matchId, scheduledAt, "MATCH_TIME_ADMIN_SET");
+}
+
+export async function scorekeeperRescheduleMatch(scorekeeperId: string, matchId: string, scheduledAt: Date) {
+  return rescheduleMatch(scorekeeperId, matchId, scheduledAt, "MATCH_TIME_SCOREKEEPER_SET");
 }
 
 export async function adminClearMatchTime(adminId: string, matchId: string) {

@@ -29,7 +29,7 @@ export async function GET() {
     await requireUser();
     const [users, settledMarketCount] = await Promise.all([
       prisma.user.findMany({
-        where: { role: { in: [UserRole.VIEWER, UserRole.PLAYER, UserRole.CAPTAIN] } },
+        where: { role: { in: [UserRole.VIEWER, UserRole.PLAYER, UserRole.CAPTAIN, UserRole.SCOREKEEPER] } },
         include: {
           team: true,
           wallets: true,
