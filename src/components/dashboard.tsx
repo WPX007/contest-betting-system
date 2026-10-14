@@ -9,7 +9,7 @@ import { calculateSettlement, validateStake } from "@/lib/settlement";
 import { MyBetsPanel, type BetOrder, type ParlayOrder } from "@/components/my-bets-panel";
 import { WalletPanel, type HouseTreasury, type WalletEntry } from "@/components/wallet-panel";
 
-type Tab = "竞猜大厅" | "赛程确认" | "我的竞猜" | "竞猜币充值" | "钱包流水" | "排行榜" | "成就奖" | "后台管理设置";
+type Tab = "竞猜大厅" | "赛程确认" | "比赛结算" | "我的竞猜" | "竞猜币充值" | "钱包流水" | "排行榜" | "成就奖" | "后台管理设置";
 type AdminTab = "MATCH" | "BETS" | "PARLAYS" | "USERS" | "ASSET" | "RECHARGES" | "TREASURY" | "RULES";
 type StatusFilter = "ALL" | "DRAFT" | "OPEN" | "CLOSED" | "SETTLED";
 type MatchScope = "TODAY" | "WEEK";
@@ -185,7 +185,7 @@ const emptyMarket: Market = {
   options: [{ id: "", label: "待配置", amount: 0 }],
   state: "CLOSED",
 };
-const tabs: Tab[] = ["竞猜大厅", "赛程确认", "我的竞猜", "竞猜币充值", "钱包流水", "排行榜", "成就奖", "后台管理设置"];
+const tabs: Tab[] = ["竞猜大厅", "赛程确认", "比赛结算", "我的竞猜", "竞猜币充值", "钱包流水", "排行榜", "成就奖", "后台管理设置"];
 const adminTabs: AdminTab[] = ["MATCH", "BETS", "PARLAYS", "USERS", "ASSET", "RECHARGES", "TREASURY", "RULES"];
 const stateLabels: Record<string, string> = {
   DRAFT: "时间待定",
@@ -354,6 +354,7 @@ export function Dashboard() {
           && tabs.includes(savedTab)
           && (savedTab !== "后台管理设置" || user.isAdmin)
           && (savedTab !== "赛程确认" || user.role === "PLAYER" || user.role === "CAPTAIN" || user.role === "SCOREKEEPER" || user.isReferee || user.isAdmin)
+          && (savedTab !== "比赛结算" || user.isReferee || user.role === "SCOREKEEPER")
           && savedTab !== "竞猜币充值"
         ) setActiveTab(savedTab);
       })
@@ -1064,6 +1065,19 @@ export function Dashboard() {
     }
   }
 
+  async function settleRefereeMarket(marketId: string, homeScore: number, awayScore: number) {
+    try {
+      const result = await apiRequest<{ settledBets: number; pointRewardRecipients: number; totalPointRewards: number }>("/api/referee/settlement", {
+        method: "POST",
+        body: JSON.stringify({ marketId, homeScore, awayScore }),
+      });
+      await Promise.all([refreshData(false), loadParlayStatus()]);
+      setNotice(`比赛已完成结算：比分 ${homeScore}:${awayScore}，处理 ${result.settledBets} 笔竞猜币订单；向 ${result.pointRewardRecipients} 人累计发放 ${money.format(result.totalPointRewards)} 点券。`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "比赛结算失败");
+    }
+  }
+
   async function updateMarketBatch(ids: string[], status: string, scope: string) {
     if (status === "SETTLED") {
       setNotice("批量结算需要每场分别选择获胜选项和填写比分，请逐场结算。");
@@ -1356,6 +1370,7 @@ export function Dashboard() {
           {([
             "竞猜大厅",
             ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.role === "SCOREKEEPER" || sessionUser.isReferee ? ["赛程确认" as Tab] : []),
+            ...(sessionUser.isReferee || sessionUser.role === "SCOREKEEPER" ? ["比赛结算" as Tab] : []),
             "我的竞猜",
             "钱包流水",
             "排行榜",
@@ -1594,6 +1609,7 @@ export function Dashboard() {
         )}
 
         {activeTab === "赛程确认" && (sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.role === "SCOREKEEPER" || sessionUser.isReferee) && <SchedulePanel schedules={matchSchedules} onPropose={proposeSchedule} onConfirm={confirmSchedule} onAdminReschedule={scorekeeperReschedule} official={sessionUser.isReferee || sessionUser.role === "SCOREKEEPER"} readOnly={sessionUser.role === "PLAYER" && !sessionUser.isReferee} />}
+        {activeTab === "比赛结算" && (sessionUser.isReferee || sessionUser.role === "SCOREKEEPER") && <RefereeSettlementPanel markets={allConfiguredMarkets} statuses={marketStatus} onSettle={settleRefereeMarket} />}
         {activeTab === "我的竞猜" && <MyBetsPanel bets={myBets} parlays={parlayOrders} loading={loadingData} />}
         {!sessionUser.isAdmin && activeTab === "竞猜币充值" && <RechargeShop requests={rechargeRequests} onSubmit={submitRecharge} />}
         {activeTab === "钱包流水" && <WalletPanel balance={balance} points={sessionPoints} entries={walletEntries} loading={loadingData} treasury={houseTreasury} onExchange={isBettingRestrictedSession ? undefined : exchangePoints} />}
@@ -1645,6 +1661,7 @@ export function Dashboard() {
         {([
           "竞猜大厅",
           ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.role === "SCOREKEEPER" || sessionUser.isReferee ? ["赛程确认" as Tab] : []),
+          ...(sessionUser.isReferee || sessionUser.role === "SCOREKEEPER" ? ["比赛结算" as Tab] : []),
           "我的竞猜",
           "钱包流水",
           "排行榜",
@@ -1803,6 +1820,43 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, officia
       </article>)}
       {visibleSchedules.length === 0 && <div className="order-empty">第 {scheduleWeek} 周没有固定对阵</div>}
     </div>
+  </section>;
+}
+
+function RefereeSettlementPanel({ markets, statuses, onSettle }: {
+  markets: Market[];
+  statuses: Record<string, string>;
+  onSettle: (marketId: string, homeScore: number, awayScore: number) => void;
+}) {
+  const settlementMarkets = markets.filter((market) => ["CLOSED", "PENDING_REVIEW"].includes(statuses[market.id] ?? market.state));
+  const [marketId, setMarketId] = useState(settlementMarkets[0]?.id ?? "");
+  const [homeScore, setHomeScore] = useState(2);
+  const [awayScore, setAwayScore] = useState(0);
+  const market = settlementMarkets.find((item) => item.id === marketId) ?? settlementMarkets[0];
+  const resultLabel = homeScore === awayScore ? "平局" : homeScore > awayScore ? "主胜" : "客胜";
+
+  function submit() {
+    if (!market) return;
+    if (![homeScore, awayScore].every((score) => Number.isInteger(score) && score >= 0)) return;
+    if (!window.confirm(`确认结算 ${market.home} vs ${market.away}？\n最终比分：${homeScore}:${awayScore}\n系统将立即派奖并锁定赛果。`)) return;
+    onSettle(market.id, homeScore, awayScore);
+  }
+
+  return <section className="panel referee-settlement-panel">
+    <div className="section-heading"><div><p className="eyebrow">裁判权限</p><h2>比赛结果结算</h2></div><span className="pill">仅显示已封盘比赛</span></div>
+    <div className="settlement-form">
+      <label className="settlement-match">选择比赛<select value={market?.id ?? ""} onChange={(event) => setMarketId(event.target.value)}>{settlementMarkets.map((item) => <option value={item.id} key={item.id}>第 {item.week ?? 4} 周 · {item.time} · {item.home} vs {item.away}</option>)}</select></label>
+      <label>主队比分<input type="number" min="0" step="1" value={homeScore} onChange={(event) => setHomeScore(Number(event.target.value))} /></label>
+      <label>客队比分<input type="number" min="0" step="1" value={awayScore} onChange={(event) => setAwayScore(Number(event.target.value))} /></label>
+      <div className="settlement-auto-result"><span>系统自动判定</span><strong>{resultLabel}</strong></div>
+    </div>
+    {market ? <div className="settlement-preview">
+      <span><strong>{market.home}</strong><b>{homeScore}</b></span>
+      <em>{resultLabel}</em>
+      <span><b>{awayScore}</b><strong>{market.away}</strong></span>
+    </div> : <div className="bet-detail-empty">当前没有可结算比赛；比赛会在约定时间自动封盘。</div>}
+    <div className="admin-warning">确认后系统会锁定赛果、自动结算竞猜和过关订单，并发放比赛点券奖励。该操作不可撤销。</div>
+    <button className="admin-primary settlement-submit" disabled={!market} onClick={submit}>确认比分并执行结算</button>
   </section>;
 }
 
