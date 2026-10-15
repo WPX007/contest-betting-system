@@ -245,6 +245,9 @@ function currentCompetitionWeek() {
 
 export function Dashboard() {
   const initialScopeUserId = useRef<string | null>(null);
+  const selectedWeekRef = useRef(currentCompetitionWeek());
+  const selectedMarketIdRef = useRef("");
+  const optionIdRef = useRef("");
   const [activeTab, setActiveTab] = useState<Tab>("竞猜大厅");
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -313,6 +316,12 @@ export function Dashboard() {
   const [rosterError, setRosterError] = useState("");
   const [submittingBet, setSubmittingBet] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+
+  useEffect(() => {
+    selectedWeekRef.current = selectedWeek;
+    selectedMarketIdRef.current = selectedMarketId;
+    optionIdRef.current = optionId;
+  }, [optionId, selectedMarketId, selectedWeek]);
 
   useEffect(() => {
     if (!notice) return;
@@ -480,10 +489,12 @@ export function Dashboard() {
       const data = await apiRequest<Market[]>("/api/markets");
       setServerMarkets(data);
       setMarketStatus(Object.fromEntries(data.map((market) => [market.id, market.state])));
-      const current = data.find((market) => market.id === selectedMarketId) ?? data.find((market) => (market.week ?? 4) === selectedWeek) ?? data[0];
+      const current = data.find((market) => market.id === selectedMarketIdRef.current)
+        ?? data.find((market) => (market.week ?? 4) === selectedWeekRef.current)
+        ?? data[0];
       if (current) {
-        setSelectedMarketId(current.id);
-        setOptionId((value) => current.options.some((option) => option.id === value) ? value : current.options[0]?.id ?? "");
+        if (current.id !== selectedMarketIdRef.current) setSelectedMarketId(current.id);
+        if (!current.options.some((option) => option.id === optionIdRef.current)) setOptionId(current.options[0]?.id ?? "");
       }
       return data;
     } catch (error) {
