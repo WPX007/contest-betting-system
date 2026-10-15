@@ -1,6 +1,7 @@
 import { BetStatus, MarketStatus, ParlayRoundStatus } from "@/generated/prisma/enums";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { calculatePoolOddsBps } from "@/lib/settlement";
 
 export async function closeDueMarkets(now = new Date()) {
   const due = await prisma.market.findMany({
@@ -85,16 +86,16 @@ export function marketView(market: MarketWithDetails) {
     score: market.match.homeScore === null || market.match.awayScore === null ? null : `${market.match.homeScore} : ${market.match.awayScore}`,
     options: options.map((option, index) => {
       const amount = optionTotals[index];
-      const calculatedOddsBps = amount > 0
-        ? market.returnRatioBps + Math.floor(market.prizeRatioBps * pool / amount)
-        : 0;
+      const calculatedOddsBps = calculatePoolOddsBps(pool, amount, market.returnRatioBps, market.prizeRatioBps);
       return {
         id: option.id,
         key: optionKey(option),
         label: option.label,
         amount,
         injectedAmount: option.injectedAmount,
-        oddsBps: option.manualOddsBps ?? calculatedOddsBps,
+        oddsBps: market.status === MarketStatus.SETTLED
+          ? calculatedOddsBps
+          : option.manualOddsBps ?? calculatedOddsBps,
         isWinner: option.isWinner,
       };
     }),

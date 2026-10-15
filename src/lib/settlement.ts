@@ -37,6 +37,12 @@ export function calculateSettlement({
   };
 }
 
+export function calculatePoolOddsBps(totalPool: number, optionPool: number, returnRatioBps: number, prizeRatioBps: number) {
+  return optionPool > 0
+    ? returnRatioBps + Math.floor(prizeRatioBps * totalPool / optionPool)
+    : 0;
+}
+
 export function validateStake(balance: number, stake: number) {
   const cap = balance;
   if (!Number.isInteger(stake) || stake < 50) {

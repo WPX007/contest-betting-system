@@ -5,20 +5,26 @@ import { authErrorResponse, requireAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 const adjustmentSchema = z.object({
-  targetType: z.enum(["USER", "TEAM"]),
+  targetType: z.enum(["USER", "TEAM", "ALL"]),
   target: z.string().min(1),
   action: z.enum(["GRANT", "DEDUCT"]),
   amount: z.number().int().positive(),
   reason: z.string().trim().min(1),
+}).superRefine((input, context) => {
+  if (input.targetType === "ALL" && input.action !== "GRANT") {
+    context.addIssue({ code: "custom", path: ["action"], message: "所有用户仅支持发放竞猜币" });
+  }
 });
 
 export async function POST(request: Request) {
   try {
     const admin = await requireAdmin();
     const input = adjustmentSchema.parse(await request.json());
-    const users = input.targetType === "USER"
-      ? await prisma.user.findMany({ where: { id: input.target } })
-      : await prisma.user.findMany({ where: { teamId: input.target } });
+    const users = input.targetType === "ALL"
+      ? await prisma.user.findMany()
+      : input.targetType === "USER"
+        ? await prisma.user.findMany({ where: { id: input.target } })
+        : await prisma.user.findMany({ where: { teamId: input.target } });
     if (users.length === 0) return NextResponse.json({ error: "未找到调整目标" }, { status: 404 });
     const delta = input.action === "GRANT" ? input.amount : -input.amount;
     await prisma.$transaction(async (tx) => {

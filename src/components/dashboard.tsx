@@ -11,6 +11,7 @@ import { WalletPanel, type HouseTreasury, type WalletEntry } from "@/components/
 
 type Tab = "竞猜大厅" | "赛程确认" | "比赛结算" | "我的竞猜" | "竞猜币充值" | "钱包流水" | "排行榜" | "成就奖" | "后台管理设置";
 type AdminTab = "MATCH" | "BETS" | "PARLAYS" | "USERS" | "ASSET" | "RECHARGES" | "TREASURY" | "RULES";
+type AssetTargetType = "USER" | "TEAM" | "ALL";
 type StatusFilter = "ALL" | "DRAFT" | "OPEN" | "CLOSED" | "SETTLED";
 type MatchScope = "TODAY" | "WEEK";
 type ParlayMode = "DAILY" | "WEEKLY_A" | "WEEKLY_B";
@@ -1124,14 +1125,14 @@ export function Dashboard() {
     }
   }
 
-  async function adjustCoins(targetType: "USER" | "TEAM", target: string, action: "GRANT" | "DEDUCT", amount: number) {
+  async function adjustCoins(targetType: AssetTargetType, target: string, action: "GRANT" | "DEDUCT", amount: number, reason: string) {
     try {
-      await apiRequest("/api/admin/wallet", {
+      const result = await apiRequest<{ adjustedUsers: number; amountEach: number }>("/api/admin/wallet", {
         method: "POST",
-        body: JSON.stringify({ targetType, target, action, amount, reason: "运营调整" }),
+        body: JSON.stringify({ targetType, target, action, amount, reason }),
       });
       await refreshData(true);
-      setNotice(`已${action === "GRANT" ? "发放" : "扣除"} ${money.format(amount)} 竞猜币。`);
+      setNotice(`已为 ${result.adjustedUsers} 人${action === "GRANT" ? "发放" : "扣除"}每人 ${money.format(amount)} 竞猜币。`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "竞猜币调整失败");
     }
@@ -1952,7 +1953,7 @@ type AdminProps = {
   onConfigurePairing: (matchId: string, homeTeamId: string, awayTeamId: string) => void;
   onAdminReschedule: (matchId: string, scheduledAt: string) => void;
   onAdminClearSchedule: (matchId: string) => void;
-  onAdjustCoins: (targetType: "USER" | "TEAM", target: string, action: "GRANT" | "DEDUCT", amount: number) => void;
+  onAdjustCoins: (targetType: AssetTargetType, target: string, action: "GRANT" | "DEDUCT", amount: number, reason: string) => void;
   onSaveParlay: (ticket: number, basePools: ParlayBasePools, bonusMultiplier: number) => void;
   onSaveWeeklyParlay: (track: "A" | "B", config: WeeklyParlayConfig) => void;
   onSaveRatios: (config: RatioConfig) => void;
@@ -2022,7 +2023,7 @@ function Admin({
   const [track, setTrack] = useState<"A" | "B">(initialTrack);
   const [home, setHome] = useState(initialTrackTeams[0]?.name ?? "");
   const [away, setAway] = useState(initialTrackTeams[1]?.name ?? "");
-  const [targetType, setTargetType] = useState<"USER" | "TEAM">("USER");
+  const [targetType, setTargetType] = useState<AssetTargetType>("USER");
   const [target, setTarget] = useState(managedUsers[0]?.id ?? "");
   const [assetTargetSearch, setAssetTargetSearch] = useState("");
   const [assetAction, setAssetAction] = useState<"GRANT" | "DEDUCT">("GRANT");
@@ -2063,7 +2064,9 @@ function Admin({
   const availableTeams = [...teams].sort((first, second) => first.track.localeCompare(second.track) || first.name.localeCompare(second.name, "zh-CN"));
   const teamOptions = availableTeams.filter((team) => team.track === track);
   const normalizedAssetSearch = assetTargetSearch.trim().toLocaleLowerCase("zh-CN").replace(/\s+/g, "");
-  const assetTargetOptions = (targetType === "USER"
+  const assetTargetOptions = (targetType === "ALL"
+    ? []
+    : targetType === "USER"
     ? managedUsers.map((user) => ({
         id: user.id,
         label: `${user.chineseName} / ${user.englishName}`,
@@ -2124,7 +2127,7 @@ function Admin({
   }
 
   function submitAsset() {
-    if (!target) {
+    if (targetType !== "ALL" && !target) {
       onNotify("请先搜索并选择发放或扣除目标。");
       return;
     }
@@ -2132,10 +2135,22 @@ function Admin({
       onNotify("竞猜币调整金额必须为大于 0 的整数。");
       return;
     }
-    onAdjustCoins(targetType, target, assetAction, assetAmount);
+    if (!assetReason.trim()) {
+      onNotify("请填写操作原因。");
+      return;
+    }
+    if (targetType === "ALL") {
+      if (assetAction !== "GRANT") {
+        onNotify("所有用户仅支持发放竞猜币。");
+        return;
+      }
+      if (!window.confirm(`确认向全部 ${managedUsers.length} 名用户每人发放 ${money.format(assetAmount)} 竞猜币？合计发放 ${money.format(managedUsers.length * assetAmount)} 竞猜币。`)) return;
+    }
+    onAdjustCoins(targetType, targetType === "ALL" ? "ALL" : target, assetAction, assetAmount, assetReason.trim());
   }
 
   function searchAssetTarget(query: string) {
+    if (targetType === "ALL") return;
     setAssetTargetSearch(query);
     const normalizedQuery = query.trim().toLocaleLowerCase("zh-CN").replace(/\s+/g, "");
     const options = (targetType === "USER"
@@ -2548,14 +2563,14 @@ function Admin({
       <section className="admin-card admin-wide">
         <div className="admin-card-head"><div><small>资产中心</small><h3>竞猜币发放与扣除</h3></div><span>禁止直接修改数据库余额</span></div>
         <div className="form-grid asset-form">
-          <label>目标类型<select value={targetType} onChange={(event) => { const type = event.target.value as "USER" | "TEAM"; setTargetType(type); setAssetTargetSearch(""); setTarget(type === "USER" ? (managedUsers[0]?.id ?? "") : (availableTeams[0]?.id ?? "")); }}><option value="USER">指定用户</option><option value="TEAM">指定队伍</option></select></label>
-          <label>目标<div className="asset-target-picker"><input type="search" value={assetTargetSearch} placeholder={targetType === "USER" ? "搜索姓名/账号/队伍" : "搜索队伍"} onChange={(event) => searchAssetTarget(event.target.value)} /><select value={target} onChange={(event) => setTarget(event.target.value)}>{assetTargetOptions.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}{assetTargetOptions.length === 0 && <option value="">无匹配结果</option>}</select></div></label>
-          <label>操作<select value={assetAction} onChange={(event) => setAssetAction(event.target.value as "GRANT" | "DEDUCT")}><option value="GRANT">发放竞猜币</option><option value="DEDUCT">扣除竞猜币</option></select></label>
+          <label>目标类型<select value={targetType} onChange={(event) => { const type = event.target.value as AssetTargetType; setTargetType(type); setAssetTargetSearch(""); setAssetAction(type === "ALL" ? "GRANT" : assetAction); setTarget(type === "ALL" ? "ALL" : type === "USER" ? (managedUsers[0]?.id ?? "") : (availableTeams[0]?.id ?? "")); }}><option value="USER">指定用户</option><option value="TEAM">指定队伍</option><option value="ALL">所有用户</option></select></label>
+          <label>目标{targetType === "ALL" ? <input value={`全部 ${managedUsers.length} 名用户（每人发放）`} disabled /> : <div className="asset-target-picker"><input type="search" value={assetTargetSearch} placeholder={targetType === "USER" ? "搜索姓名/账号/队伍" : "搜索队伍"} onChange={(event) => searchAssetTarget(event.target.value)} /><select value={target} onChange={(event) => setTarget(event.target.value)}>{assetTargetOptions.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}{assetTargetOptions.length === 0 && <option value="">无匹配结果</option>}</select></div>}</label>
+          <label>操作<select value={assetAction} onChange={(event) => { const action = event.target.value as "GRANT" | "DEDUCT"; setAssetAction(action); if (action === "DEDUCT" && targetType === "ALL") { setTargetType("USER"); setTarget(managedUsers[0]?.id ?? ""); } }}><option value="GRANT">发放竞猜币</option><option value="DEDUCT">扣除竞猜币</option></select></label>
           <label>金额<input type="number" min="1" step="1" value={assetAmount} onChange={(event) => setAssetAmount(Number(event.target.value))} /></label>
           <label className="wide">操作原因<input value={assetReason} onChange={(event) => setAssetReason(event.target.value)} /></label>
         </div>
         <div className="admin-warning">发放或扣除均生成独立账本流水，保留操作人、目标、原因及调整前后余额。</div>
-        <button className="admin-primary" onClick={submitAsset}>确认{assetAction === "GRANT" ? "发放" : "扣除"}</button>
+        <button className="admin-primary" onClick={submitAsset}>确认{targetType === "ALL" ? "向所有用户发放" : assetAction === "GRANT" ? "发放" : "扣除"}</button>
       </section>
     </div>}
 

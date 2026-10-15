@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { assertBetAllowed, assertSameMarketOption, reconciliation } from "./betting-service";
-import { calculateSettlement, validateStake } from "./settlement";
+import { calculatePoolOddsBps, calculateSettlement, validateStake } from "./settlement";
 
 describe("dynamic pool settlement", () => {
   it("uses the approved 25/70/5 distribution", () => {
@@ -12,6 +12,11 @@ describe("dynamic pool settlement", () => {
       payout: 258,
       recovery: 500,
     });
+  });
+
+  it("uses the final option pool to calculate a shared settlement odds", () => {
+    expect(calculatePoolOddsBps(10_000, 2_500, 2_500, 7_000)).toBe(30_500);
+    expect(calculatePoolOddsBps(10_000, 0, 2_500, 7_000)).toBe(0);
   });
 
   it("blocks stakes outside the balance cap", () => {
