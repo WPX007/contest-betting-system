@@ -803,12 +803,13 @@ export function Dashboard() {
     }
   }
 
-  function chooseMarket(id: string) {
+  function chooseMarket(id: string, preferredOptionId?: string) {
     const market = visibleMarkets.find((item) => item.id === id);
     if (!market) return;
     setSelectedMarketId(id);
     const existingBet = myBets.find((bet) => bet.marketId === id && bet.status === "ACTIVE");
-    setOptionId(existingBet?.optionId ?? market.options[0].id);
+    const preferredOption = market.options.find((option) => option.id === preferredOptionId);
+    setOptionId(existingBet?.optionId ?? preferredOption?.id ?? market.options[0].id);
     setNotice("");
   }
 
@@ -1346,7 +1347,22 @@ export function Dashboard() {
         </div>
         <div className="odds-row">
           {market.options.map((option) => (
-            <span key={option.id}>
+            <span
+              aria-label={`选择${option.label}`}
+              key={option.id}
+              onClick={(event) => {
+                event.stopPropagation();
+                chooseMarket(market.id, option.id);
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                event.stopPropagation();
+                chooseMarket(market.id, option.id);
+              }}
+              role="button"
+              tabIndex={0}
+            >
               <small>{option.key === "home" || option.id === "home" ? "主胜" : option.key === "draw" || option.id === "draw" ? "平局" : "客胜"}</small>
               <b>{option.oddsBps ? (option.oddsBps / 10000).toFixed(2) : option.amount > 0 ? (ratios.returnPercent / 100 + ratios.prizePercent / 100 * market.pool / option.amount).toFixed(2) : "—"}</b>
             </span>
