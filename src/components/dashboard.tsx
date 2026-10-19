@@ -46,6 +46,8 @@ type BetRecord = {
   amount: number;
   createdAt: string;
   recordStatus: "ACTIVE" | "REFUNDED";
+  status: "ACTIVE" | "SETTLED" | "REFUNDED" | "VOIDED";
+  payout: number | null;
 };
 type RankingEntry = { id: string; rank: number; name: string; username: string; team: string; allianceTeams: string; value: number; points: number; hits: number; predictions: number; rate: number };
 type MatchRoster = {
@@ -690,6 +692,8 @@ export function Dashboard() {
           amount: order.stake,
           createdAt: order.createdAt,
           recordStatus: order.status === "REFUNDED" ? "REFUNDED" : "ACTIVE",
+          status: order.status as BetRecord["status"],
+          payout: order.payout,
         })));
       }
     } catch (error) {
@@ -2065,6 +2069,7 @@ function Admin({
   const [teamImportBusy, setTeamImportBusy] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState(managedUsers[0]?.id ?? "");
   const [detailMarketId, setDetailMarketId] = useState(allAdminMarkets[0]?.id ?? "");
+  const [detailUserId, setDetailUserId] = useState(managedUsers[0]?.id ?? "");
   const [settlementMarketId, setSettlementMarketId] = useState(settlementMarkets[0]?.id ?? "");
   const [settlementHomeScore, setSettlementHomeScore] = useState(2);
   const [settlementAwayScore, setSettlementAwayScore] = useState(0);
@@ -2091,6 +2096,8 @@ function Admin({
   const detailMarket = allAdminMarkets.find((market) => market.id === detailMarketId) ?? allAdminMarkets[0];
   const detailBets = betRecords.filter((record) => record.marketId === detailMarket?.id);
   const activeDetailBets = detailBets.filter((record) => record.recordStatus === "ACTIVE");
+  const detailUser = managedUsers.find((user) => user.id === detailUserId) ?? managedUsers[0];
+  const detailUserBets = betRecords.filter((record) => record.userId === detailUser?.id);
   const operableMarkets = allAdminMarkets.filter((market) => (statuses[market.id] ?? market.state) !== "DRAFT");
   const operationMarkets = operableMarkets.filter((market) => (market.week ?? 4) === operationWeek);
   const settlementMarket = settlementMarkets.find((market) => market.id === settlementMarketId) ?? settlementMarkets[0];
@@ -2443,6 +2450,39 @@ function Admin({
     </div>}
 
     {adminTab === "BETS" && <div className="admin-grid">
+      <section className="admin-card admin-wide">
+        <div className="admin-card-head"><div><small>用户核对</small><h3>按用户查看下注流水</h3></div><span>{detailUser ? `${detailUser.chineseName} · ${detailUserBets.length} 笔` : "暂无用户"}</span></div>
+        <div className="bet-detail-filter user-bet-filter">
+          <label>选择用户
+            <select value={detailUser?.id ?? ""} onChange={(event) => setDetailUserId(event.target.value)}>
+              {managedUsers.map((user) => <option value={user.id} key={user.id}>{user.chineseName} / {user.englishName} · {user.team}</option>)}
+            </select>
+          </label>
+          {detailUser && <div className="bet-detail-market-state"><span>当前竞猜币</span><b>{money.format(detailUser.initialCoins)}</b></div>}
+        </div>
+        {detailUser ? <>
+          <div className="bet-detail-summary">
+            <div><span>下注笔数</span><strong>{detailUserBets.length}</strong></div>
+            <div><span>累计下注</span><strong>{money.format(detailUserBets.reduce((total, record) => total + record.amount, 0))}</strong></div>
+            <div><span>进行中</span><strong>{detailUserBets.filter((record) => record.status === "ACTIVE").length}</strong></div>
+            <div><span>累计到账</span><strong>{money.format(detailUserBets.reduce((total, record) => total + (record.payout ?? 0), 0))}</strong></div>
+          </div>
+          <div className="user-bet-ledger">
+            <div className="user-bet-ledger-row header"><span>比赛 / 下单时间</span><span>预测选项</span><span>下注金额</span><span>状态 / 到账</span></div>
+            {detailUserBets.map((record) => {
+              const market = allAdminMarkets.find((item) => item.id === record.marketId);
+              const statusLabel = record.status === "ACTIVE" ? "进行中" : record.status === "SETTLED" ? "已结算" : record.status === "REFUNDED" ? "已退款" : "已作废";
+              return <div className="user-bet-ledger-row" key={record.id}>
+                <span><strong>{market ? `${market.home} vs ${market.away}` : `第 ${record.week} 周比赛`}</strong><small>{new Date(record.createdAt).toLocaleString("zh-CN", { hour12: false })}</small></span>
+                <span><strong>{record.optionLabel}</strong><small>第 {record.week} 周</small></span>
+                <span><strong>{money.format(record.amount)}</strong><small>竞猜币</small></span>
+                <span><b className={`user-bet-status status-${record.status.toLowerCase()}`}>{statusLabel}</b><small>{record.payout === null ? "尚未到账" : `到账 ${money.format(record.payout)}`}</small></span>
+              </div>;
+            })}
+            {detailUserBets.length === 0 && <div className="bet-detail-empty">该用户暂无单场下注记录</div>}
+          </div>
+        </> : <div className="bet-detail-empty">暂无可查看用户</div>}
+      </section>
       <section className="admin-card admin-wide">
         <div className="admin-card-head"><div><small>订单核对</small><h3>每场比赛下注明细</h3></div><span>共 {betRecords.length} 笔下注记录</span></div>
         <div className="bet-detail-filter">
