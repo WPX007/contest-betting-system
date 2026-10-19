@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { AssetType, LedgerReason } from "@/generated/prisma/enums";
+import { AssetType, LedgerReason, UserRole } from "@/generated/prisma/enums";
 import { authErrorResponse, requireAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 const adjustmentSchema = z.object({
-  targetType: z.enum(["USER", "TEAM", "ALL"]),
+  targetType: z.enum(["USER", "TEAM", "REFEREE", "ALL"]),
   target: z.string().min(1),
   action: z.enum(["GRANT", "DEDUCT"]),
   amount: z.number().int().positive(),
   reason: z.string().trim().min(1),
 }).superRefine((input, context) => {
-  if (input.targetType === "ALL" && input.action !== "GRANT") {
-    context.addIssue({ code: "custom", path: ["action"], message: "所有用户仅支持发放竞猜币" });
+  if ((input.targetType === "ALL" || input.targetType === "REFEREE") && input.action !== "GRANT") {
+    context.addIssue({ code: "custom", path: ["action"], message: "批量目标仅支持发放竞猜币" });
   }
 });
 
@@ -22,6 +22,10 @@ export async function POST(request: Request) {
     const input = adjustmentSchema.parse(await request.json());
     const users = input.targetType === "ALL"
       ? await prisma.user.findMany()
+      : input.targetType === "REFEREE"
+        ? await prisma.user.findMany({
+            where: { OR: [{ isReferee: true }, { role: UserRole.SCOREKEEPER }] },
+          })
       : input.targetType === "USER"
         ? await prisma.user.findMany({ where: { id: input.target } })
         : await prisma.user.findMany({ where: { teamId: input.target } });

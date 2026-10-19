@@ -10,7 +10,6 @@ import {
   ParlayRoundStatus,
   SettlementBatchStatus,
 } from "@/generated/prisma/enums";
-import { calculateMatchPointRewards, DEFAULT_MATCH_POINT_REWARDS, matchAllianceRewardNote, matchPointRewardNote } from "@/lib/match-point-rewards";
 import { calculateParlayPool, ticketPoolContribution } from "@/lib/parlay-pool";
 import { prisma } from "@/lib/prisma";
 import { creditHouseWallet } from "@/lib/services/house-wallet";
@@ -56,24 +55,14 @@ export async function settleMarket(input: {
   awayScore: number;
 }) {
   return prisma.$transaction(async (tx) => {
-    const [market, persistedConfig] = await Promise.all([
-      tx.market.findUniqueOrThrow({
-        where: { id: input.marketId },
-        include: {
-          match: { include: { homeTeam: true, awayTeam: true } },
-          options: true,
-          bets: { where: { status: BetStatus.ACTIVE } },
-        },
-      }),
-      tx.parlayConfig.findUnique({ where: { id: "default" } }),
-    ]);
-    const pointRewardConfig = persistedConfig
-      ? {
-          smallGameWinPoints: persistedConfig.smallGameWinPoints,
-          allianceGameWinPoints: persistedConfig.allianceGameWinPoints,
-          seriesWinPoints: persistedConfig.seriesWinPoints,
-        }
-      : DEFAULT_MATCH_POINT_REWARDS;
+    const market = await tx.market.findUniqueOrThrow({
+      where: { id: input.marketId },
+      include: {
+        match: { include: { homeTeam: true, awayTeam: true } },
+        options: true,
+        bets: { where: { status: BetStatus.ACTIVE } },
+      },
+    });
     if (market.status !== MarketStatus.CLOSED && market.status !== MarketStatus.PENDING_REVIEW) {
       throw new Error(market.status === MarketStatus.SETTLED ? "该比赛已经结算" : "比赛必须先封盘，才能执行结算");
     }
@@ -160,97 +149,6 @@ export async function settleMarket(input: {
       update: { status: SettlementBatchStatus.COMPLETED, totalPool, winnerPool },
       create: { marketId: market.id, status: SettlementBatchStatus.COMPLETED, totalPool, winnerPool },
     });
-    const pointRewards = calculateMatchPointRewards(input.homeScore, input.awayScore, pointRewardConfig);
-    const pointRewardRecipientIds = new Set<string>();
-    let totalPointRewards = 0;
-    const awardTeamPoints = async (teamId: string, teamName: string, points: number, gameWins: number, seriesWin: boolean) => {
-      if (points <= 0) return;
-      const members = await tx.user.findMany({
-        where: { teamId },
-        include: { wallets: true },
-      });
-      for (const member of members) {
-        const wallet = member.wallets.find((item) => item.asset === AssetType.POINT);
-        if (!wallet) continue;
-        const reference = `match-points:${market.matchId}:${member.id}`;
-        if (await tx.ledgerEntry.findFirst({ where: { reference } })) continue;
-        const balanceAfter = wallet.balance + points;
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: balanceAfter, version: { increment: 1 } },
-        });
-        await tx.ledgerEntry.create({
-          data: {
-            walletId: wallet.id,
-            amount: points,
-            balanceAfter,
-            reason: LedgerReason.REWARD,
-            reference,
-            note: `${teamName} 比赛点券奖励：${matchPointRewardNote(gameWins, seriesWin, pointRewardConfig)}`,
-          },
-        });
-        pointRewardRecipientIds.add(member.id);
-        totalPointRewards += points;
-      }
-    };
-    const awardAlliancePoints = async (allianceKey: string, sourceTeamId: string, sourceTeamName: string, points: number, gameWins: number) => {
-      if (points <= 0) return;
-      const members = await tx.user.findMany({
-        where: { team: { allianceKey } },
-        include: { wallets: true },
-      });
-      for (const member of members) {
-        const wallet = member.wallets.find((item) => item.asset === AssetType.POINT);
-        if (!wallet) continue;
-        const reference = `match-alliance-points:${market.matchId}:${sourceTeamId}:${member.id}`;
-        if (await tx.ledgerEntry.findFirst({ where: { reference } })) continue;
-        const balanceAfter = wallet.balance + points;
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: balanceAfter, version: { increment: 1 } },
-        });
-        await tx.ledgerEntry.create({
-          data: {
-            walletId: wallet.id,
-            amount: points,
-            balanceAfter,
-            reason: LedgerReason.REWARD,
-            reference,
-            note: matchAllianceRewardNote(sourceTeamName, gameWins, pointRewardConfig.allianceGameWinPoints),
-          },
-        });
-        pointRewardRecipientIds.add(member.id);
-        totalPointRewards += points;
-      }
-    };
-    await awardTeamPoints(
-      market.match.homeTeam.id,
-      market.match.homeTeam.name,
-      pointRewards.home.points,
-      pointRewards.home.gameWins,
-      pointRewards.home.seriesWin,
-    );
-    await awardTeamPoints(
-      market.match.awayTeam.id,
-      market.match.awayTeam.name,
-      pointRewards.away.points,
-      pointRewards.away.gameWins,
-      pointRewards.away.seriesWin,
-    );
-    await awardAlliancePoints(
-      market.match.homeTeam.allianceKey,
-      market.match.homeTeam.id,
-      market.match.homeTeam.name,
-      pointRewards.home.alliancePoints,
-      pointRewards.home.gameWins,
-    );
-    await awardAlliancePoints(
-      market.match.awayTeam.allianceKey,
-      market.match.awayTeam.id,
-      market.match.awayTeam.name,
-      pointRewards.away.alliancePoints,
-      pointRewards.away.gameWins,
-    );
     const rake = Math.floor(userPool * market.recoveryRatioBps / 10_000);
     await creditHouseWallet(tx, rake, LedgerReason.SYSTEM_RECOVERY, `house-rake:${market.id}`, "单场竞猜后台抽水");
 
@@ -338,8 +236,6 @@ export async function settleMarket(input: {
       totalPool,
       winnerPool,
       settledBets: market.bets.length,
-      pointRewardRecipients: pointRewardRecipientIds.size,
-      totalPointRewards,
     };
   });
 }

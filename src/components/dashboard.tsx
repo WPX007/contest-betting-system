@@ -11,7 +11,7 @@ import { WalletPanel, type HouseTreasury, type WalletEntry } from "@/components/
 
 type Tab = "竞猜大厅" | "赛程确认" | "比赛结算" | "我的竞猜" | "竞猜币充值" | "钱包流水" | "排行榜" | "成就奖" | "后台管理设置";
 type AdminTab = "MATCH" | "BETS" | "PARLAYS" | "USERS" | "ASSET" | "RECHARGES" | "TREASURY" | "RULES";
-type AssetTargetType = "USER" | "TEAM" | "ALL";
+type AssetTargetType = "USER" | "TEAM" | "REFEREE" | "ALL";
 type StatusFilter = "ALL" | "DRAFT" | "OPEN" | "CLOSED" | "SETTLED";
 type MatchScope = "TODAY" | "WEEK";
 type ParlayMode = "DAILY" | "WEEKLY_A" | "WEEKLY_B";
@@ -20,7 +20,6 @@ const parlayPeriodLabel = (scope: "DAILY" | "WEEKLY" | "WEEKLY_A" | "WEEKLY_B", 
 type RankingSortKey = "team" | "allianceTeams" | "value" | "points" | "hits" | "predictions" | "rate";
 type MatchOverride = { week: number; track: "A" | "B"; home: string; away: string; time: string };
 type RatioConfig = { returnPercent: number; recoveryPercent: number; prizePercent: number };
-type PointRewardConfig = { smallGameWinPoints: number; allianceGameWinPoints: number; seriesWinPoints: number };
 type WeeklyParlayConfig = { ticket: number; basePool: number; bonusMultiplier: number };
 type MatchSchedule = {
   id: string; week: number; track: "A" | "B"; slotIndex: number | null;
@@ -291,7 +290,6 @@ export function Dashboard() {
   const [weeklyBParlayJoined, setWeeklyBParlayJoined] = useState(false);
   const [weeklyBParlaySelections, setWeeklyBParlaySelections] = useState<Record<string, string>>({});
   const [ratios, setRatios] = useState<RatioConfig>({ returnPercent: 25, recoveryPercent: 5, prizePercent: 70 });
-  const [pointRewards, setPointRewards] = useState<PointRewardConfig>({ smallGameWinPoints: 10, allianceGameWinPoints: 5, seriesWinPoints: 20 });
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
   const [adminTeams, setAdminTeams] = useState<AdminTeam[]>([]);
   const [betRecords, setBetRecords] = useState<BetRecord[]>([]);
@@ -659,7 +657,7 @@ export function Dashboard() {
         const [adminUsers, adminBets, settings, parlayRounds, rechargeData, treasuryData] = await Promise.all([
           apiRequest<{ users: Array<{ id: string; name: string; username: string; role: string; isReferee: boolean; team: { id: string; name: string } | null; balance: number }>; teams: AdminTeam[] }>("/api/admin/users"),
           apiRequest<BetRecord[]>("/api/admin/bets"),
-          apiRequest<{ parlayTicket: number; parlayBasePools: ParlayBasePools; ticketPoolBonusMultiplier: number; weeklyParlayA: WeeklyParlayConfig; weeklyParlayB: WeeklyParlayConfig; ratios: RatioConfig; pointRewards: PointRewardConfig }>("/api/admin/settings"),
+          apiRequest<{ parlayTicket: number; parlayBasePools: ParlayBasePools; ticketPoolBonusMultiplier: number; weeklyParlayA: WeeklyParlayConfig; weeklyParlayB: WeeklyParlayConfig; ratios: RatioConfig }>("/api/admin/settings"),
           apiRequest<AdminParlayRound[]>("/api/admin/parlays"),
           apiRequest<AdminRechargeData>("/api/admin/recharges"),
           apiRequest<AdminTreasury>("/api/admin/treasury"),
@@ -673,7 +671,6 @@ export function Dashboard() {
         setWeeklyParlayConfig(settings.weeklyParlayA);
         setWeeklyBParlayConfig(settings.weeklyParlayB);
         setRatios(settings.ratios);
-        setPointRewards(settings.pointRewards);
         setAdminParlayRounds(parlayRounds);
         setAdminRecharges(rechargeData);
         setAdminTreasury(treasuryData);
@@ -1067,12 +1064,12 @@ export function Dashboard() {
 
   async function settleAdminMarket(marketId: string, homeScore: number, awayScore: number) {
     try {
-      const result = await apiRequest<{ totalPool: number; winnerPool: number; settledBets: number; pointRewardRecipients: number; totalPointRewards: number }>("/api/admin/markets", {
+      const result = await apiRequest<{ totalPool: number; winnerPool: number; settledBets: number }>("/api/admin/markets", {
         method: "PATCH",
         body: JSON.stringify({ action: "SETTLE", marketId, homeScore, awayScore }),
       });
       await refreshData(true);
-      setNotice(`比赛已完成结算：比分 ${homeScore}:${awayScore}，处理 ${result.settledBets} 笔竞猜币订单；向 ${result.pointRewardRecipients} 人累计发放 ${money.format(result.totalPointRewards)} 点券。`);
+      setNotice(`比赛已完成结算：比分 ${homeScore}:${awayScore}，处理 ${result.settledBets} 笔竞猜币订单。`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "比赛结算失败");
     }
@@ -1080,12 +1077,12 @@ export function Dashboard() {
 
   async function settleRefereeMarket(marketId: string, homeScore: number, awayScore: number) {
     try {
-      const result = await apiRequest<{ settledBets: number; pointRewardRecipients: number; totalPointRewards: number }>("/api/referee/settlement", {
+      const result = await apiRequest<{ settledBets: number }>("/api/referee/settlement", {
         method: "POST",
         body: JSON.stringify({ marketId, homeScore, awayScore }),
       });
       await Promise.all([refreshData(false), loadParlayStatus()]);
-      setNotice(`比赛已完成结算：比分 ${homeScore}:${awayScore}，处理 ${result.settledBets} 笔竞猜币订单；向 ${result.pointRewardRecipients} 人累计发放 ${money.format(result.totalPointRewards)} 点券。`);
+      setNotice(`比赛已完成结算：比分 ${homeScore}:${awayScore}，处理 ${result.settledBets} 笔竞猜币订单。`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "比赛结算失败");
     }
@@ -1187,16 +1184,6 @@ export function Dashboard() {
       setNotice(`结算比例已更新：返还 ${config.returnPercent}%、后台抽水 ${config.recoveryPercent}%、用户奖励 ${config.prizePercent}%。`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "保存结算比例失败");
-    }
-  }
-
-  async function savePointRewards(config: PointRewardConfig) {
-    try {
-      await apiRequest("/api/admin/settings", { method: "PATCH", body: JSON.stringify({ pointRewards: config }) });
-      await refreshData(true);
-      setNotice(`点券奖励参数已更新：小局 ${config.smallGameWinPoints}、同盟加成 ${config.allianceGameWinPoints}、BO2/BO3 胜场 ${config.seriesWinPoints}。`);
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "保存点券奖励参数失败");
     }
   }
 
@@ -1644,7 +1631,7 @@ export function Dashboard() {
         {activeTab === "排行榜" && <Ranking entries={rankingEntries} loading={loadingData} />}
         {activeTab === "成就奖" && <Achievements data={achievementData} loading={loadingData} />}
         {sessionUser.isAdmin && activeTab === "后台管理设置" && <Admin
-          key={`${adminTeams.map((team) => team.id).join(",")}:${parlayTicket}:${parlayBasePools.three}:${parlayBasePools.four}:${parlayBasePools.five}:${parlayBasePools.sixPlus}:${ticketPoolBonusMultiplier}:${weeklyParlayConfig.ticket}:${weeklyParlayConfig.basePool}:${weeklyParlayConfig.bonusMultiplier}:${weeklyBParlayConfig.ticket}:${weeklyBParlayConfig.basePool}:${weeklyBParlayConfig.bonusMultiplier}:${ratios.returnPercent}:${ratios.recoveryPercent}:${ratios.prizePercent}:${pointRewards.smallGameWinPoints}:${pointRewards.allianceGameWinPoints}:${pointRewards.seriesWinPoints}`}
+          key={`${adminTeams.map((team) => team.id).join(",")}:${parlayTicket}:${parlayBasePools.three}:${parlayBasePools.four}:${parlayBasePools.five}:${parlayBasePools.sixPlus}:${ticketPoolBonusMultiplier}:${weeklyParlayConfig.ticket}:${weeklyParlayConfig.basePool}:${weeklyParlayConfig.bonusMultiplier}:${weeklyBParlayConfig.ticket}:${weeklyBParlayConfig.basePool}:${weeklyBParlayConfig.bonusMultiplier}:${ratios.returnPercent}:${ratios.recoveryPercent}:${ratios.prizePercent}`}
           statuses={marketStatus}
           adminMarkets={currentAdminMarkets}
           allAdminMarkets={allConfiguredMarkets}
@@ -1654,7 +1641,6 @@ export function Dashboard() {
           weeklyParlayConfig={weeklyParlayConfig}
           weeklyBParlayConfig={weeklyBParlayConfig}
           ratios={ratios}
-          pointRewards={pointRewards}
           managedUsers={managedUsers}
           teams={adminTeams}
           matchSchedules={matchSchedules}
@@ -1673,7 +1659,6 @@ export function Dashboard() {
           onSaveParlay={saveParlaySettings}
           onSaveWeeklyParlay={saveWeeklyParlaySettings}
           onSaveRatios={saveRatios}
-          onSavePointRewards={savePointRewards}
           onSaveOdds={saveClosedOdds}
           onInjectLiquidity={injectMarketLiquidity}
           onImportTeams={importTeamWorkbook}
@@ -1883,7 +1868,7 @@ function RefereeSettlementPanel({ markets, statuses, onSettle }: {
       <em>{resultLabel}</em>
       <span><b>{awayScore}</b><strong>{market.away}</strong></span>
     </div> : <div className="bet-detail-empty">当前没有可结算比赛；比赛会在约定时间自动封盘。</div>}
-    <div className="admin-warning">确认后系统会锁定赛果、自动结算竞猜和过关订单，并发放比赛点券奖励。该操作不可撤销。</div>
+    <div className="admin-warning">确认后系统会锁定赛果，并自动结算竞猜和过关订单。比赛胜负不会发放点券。该操作不可撤销。</div>
     <button className="admin-primary settlement-submit" disabled={!market} onClick={submit}>确认比分并执行结算</button>
   </section>;
 }
@@ -1965,7 +1950,6 @@ type AdminProps = {
   weeklyParlayConfig: WeeklyParlayConfig;
   weeklyBParlayConfig: WeeklyParlayConfig;
   ratios: RatioConfig;
-  pointRewards: PointRewardConfig;
   managedUsers: ManagedUser[];
   teams: AdminTeam[];
   matchSchedules: MatchSchedule[];
@@ -1984,7 +1968,6 @@ type AdminProps = {
   onSaveParlay: (ticket: number, basePools: ParlayBasePools, bonusMultiplier: number) => void;
   onSaveWeeklyParlay: (track: "A" | "B", config: WeeklyParlayConfig) => void;
   onSaveRatios: (config: RatioConfig) => void;
-  onSavePointRewards: (config: PointRewardConfig) => void;
   onSaveOdds: (marketId: string, odds: Record<string, number>, reason: string) => void;
   onInjectLiquidity: (marketId: string, injections: Array<{ optionId: string; amount: number }>) => Promise<boolean>;
   onImportTeams: (file: File, action: "preview" | "apply") => Promise<TeamImportPreview>;
@@ -2006,7 +1989,6 @@ function Admin({
   weeklyParlayConfig,
   weeklyBParlayConfig,
   ratios,
-  pointRewards,
   managedUsers,
   teams,
   matchSchedules,
@@ -2025,7 +2007,6 @@ function Admin({
   onSaveParlay,
   onSaveWeeklyParlay,
   onSaveRatios,
-  onSavePointRewards,
   onSaveOdds,
   onInjectLiquidity,
   onImportTeams,
@@ -2062,7 +2043,6 @@ function Admin({
   const [weeklyParlayForm, setWeeklyParlayForm] = useState(weeklyParlayConfig);
   const [weeklyBParlayForm, setWeeklyBParlayForm] = useState(weeklyBParlayConfig);
   const [ratioForm, setRatioForm] = useState(ratios);
-  const [pointRewardForm, setPointRewardForm] = useState(pointRewards);
   const openMarkets = allAdminMarkets.filter((market) => (statuses[market.id] ?? market.state) === "OPEN");
   const closedMarkets = allAdminMarkets.filter((market) => (statuses[market.id] ?? market.state) === "CLOSED");
   const settlementMarkets = allAdminMarkets.filter((market) => ["CLOSED", "PENDING_REVIEW"].includes(statuses[market.id] ?? market.state));
@@ -2090,8 +2070,11 @@ function Admin({
   const [settlementAwayScore, setSettlementAwayScore] = useState(0);
   const availableTeams = [...teams].sort((first, second) => first.track.localeCompare(second.track) || first.name.localeCompare(second.name, "zh-CN"));
   const teamOptions = availableTeams.filter((team) => team.track === track);
+  const refereeUsers = managedUsers.filter((user) => user.isReferee || user.role === "SCOREKEEPER");
+  const isBulkAssetTarget = targetType === "ALL" || targetType === "REFEREE";
+  const bulkAssetTargetUsers = targetType === "REFEREE" ? refereeUsers : targetType === "ALL" ? managedUsers : [];
   const normalizedAssetSearch = assetTargetSearch.trim().toLocaleLowerCase("zh-CN").replace(/\s+/g, "");
-  const assetTargetOptions = (targetType === "ALL"
+  const assetTargetOptions = (isBulkAssetTarget
     ? []
     : targetType === "USER"
     ? managedUsers.map((user) => ({
@@ -2154,7 +2137,7 @@ function Admin({
   }
 
   function submitAsset() {
-    if (targetType !== "ALL" && !target) {
+    if (!isBulkAssetTarget && !target) {
       onNotify("请先搜索并选择发放或扣除目标。");
       return;
     }
@@ -2166,18 +2149,23 @@ function Admin({
       onNotify("请填写操作原因。");
       return;
     }
-    if (targetType === "ALL") {
+    if (isBulkAssetTarget) {
       if (assetAction !== "GRANT") {
-        onNotify("所有用户仅支持发放竞猜币。");
+        onNotify("所有用户和裁判仅支持批量发放竞猜币。");
         return;
       }
-      if (!window.confirm(`确认向全部 ${managedUsers.length} 名用户每人发放 ${money.format(assetAmount)} 竞猜币？合计发放 ${money.format(managedUsers.length * assetAmount)} 竞猜币。`)) return;
+      if (bulkAssetTargetUsers.length === 0) {
+        onNotify(targetType === "REFEREE" ? "当前没有已设置的裁判。" : "当前没有用户。");
+        return;
+      }
+      const targetLabel = targetType === "REFEREE" ? "全部裁判" : "全部用户";
+      if (!window.confirm(`确认向${targetLabel}共 ${bulkAssetTargetUsers.length} 人每人发放 ${money.format(assetAmount)} 竞猜币？合计发放 ${money.format(bulkAssetTargetUsers.length * assetAmount)} 竞猜币。`)) return;
     }
-    onAdjustCoins(targetType, targetType === "ALL" ? "ALL" : target, assetAction, assetAmount, assetReason.trim());
+    onAdjustCoins(targetType, isBulkAssetTarget ? targetType : target, assetAction, assetAmount, assetReason.trim());
   }
 
   function searchAssetTarget(query: string) {
-    if (targetType === "ALL") return;
+    if (isBulkAssetTarget) return;
     setAssetTargetSearch(query);
     const normalizedQuery = query.trim().toLocaleLowerCase("zh-CN").replace(/\s+/g, "");
     const options = (targetType === "USER"
@@ -2270,14 +2258,6 @@ function Admin({
       return;
     }
     onSaveRatios(ratioForm);
-  }
-
-  function submitPointRewards() {
-    if (Object.values(pointRewardForm).some((value) => !Number.isInteger(value) || value < 0)) {
-      onNotify("三个点券奖励参数必须是不小于 0 的整数。");
-      return;
-    }
-    onSavePointRewards(pointRewardForm);
   }
 
   function submitParlaySettings() {
@@ -2445,8 +2425,7 @@ function Admin({
           <em>{settlementResultLabel}</em>
           <span><b>{settlementAwayScore}</b><strong>{settlementMarket.away}</strong></span>
         </div> : <div className="bet-detail-empty">当前没有可结算比赛，请先将比赛封盘。</div>}
-        <div className="admin-warning">当前点券参数：每赢 1 小局，队员 +{pointRewards.smallGameWinPoints}；同盟大组成员 +{pointRewards.allianceGameWinPoints}；BO2/BO3 获胜队员额外 +{pointRewards.seriesWinPoints}。</div>
-        <div className="admin-warning">系统会根据比分自动判定主胜、平局或客胜。确认后将锁定赛果，自动计算中奖订单、返还和奖励，同时更新闯关命中状态并生成钱包流水。</div>
+        <div className="admin-warning">系统会根据比分自动判定主胜、平局或客胜。确认后将锁定赛果，自动计算中奖订单、返还和奖励，同时更新闯关命中状态并生成钱包流水；比赛胜负不会发放点券。</div>
         <button className="admin-primary settlement-submit" disabled={!settlementMarket} onClick={submitSettlement}>确认比分并执行结算</button>
       </section>
 
@@ -2590,14 +2569,14 @@ function Admin({
       <section className="admin-card admin-wide">
         <div className="admin-card-head"><div><small>资产中心</small><h3>竞猜币发放与扣除</h3></div><span>禁止直接修改数据库余额</span></div>
         <div className="form-grid asset-form">
-          <label>目标类型<select value={targetType} onChange={(event) => { const type = event.target.value as AssetTargetType; setTargetType(type); setAssetTargetSearch(""); setAssetAction(type === "ALL" ? "GRANT" : assetAction); setTarget(type === "ALL" ? "ALL" : type === "USER" ? (managedUsers[0]?.id ?? "") : (availableTeams[0]?.id ?? "")); }}><option value="USER">指定用户</option><option value="TEAM">指定队伍</option><option value="ALL">所有用户</option></select></label>
-          <label>目标{targetType === "ALL" ? <input value={`全部 ${managedUsers.length} 名用户（每人发放）`} disabled /> : <div className="asset-target-picker"><input type="search" value={assetTargetSearch} placeholder={targetType === "USER" ? "搜索姓名/账号/队伍" : "搜索队伍"} onChange={(event) => searchAssetTarget(event.target.value)} /><select value={target} onChange={(event) => setTarget(event.target.value)}>{assetTargetOptions.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}{assetTargetOptions.length === 0 && <option value="">无匹配结果</option>}</select></div>}</label>
-          <label>操作<select value={assetAction} onChange={(event) => { const action = event.target.value as "GRANT" | "DEDUCT"; setAssetAction(action); if (action === "DEDUCT" && targetType === "ALL") { setTargetType("USER"); setTarget(managedUsers[0]?.id ?? ""); } }}><option value="GRANT">发放竞猜币</option><option value="DEDUCT">扣除竞猜币</option></select></label>
+          <label>目标类型<select value={targetType} onChange={(event) => { const type = event.target.value as AssetTargetType; const bulk = type === "ALL" || type === "REFEREE"; setTargetType(type); setAssetTargetSearch(""); setAssetAction(bulk ? "GRANT" : assetAction); setTarget(bulk ? type : type === "USER" ? (managedUsers[0]?.id ?? "") : (availableTeams[0]?.id ?? "")); }}><option value="USER">指定用户</option><option value="TEAM">指定队伍</option><option value="REFEREE">所有裁判</option><option value="ALL">所有用户</option></select></label>
+          <label>目标{isBulkAssetTarget ? <input value={`${targetType === "REFEREE" ? "全部裁判" : "全部用户"} ${bulkAssetTargetUsers.length} 人（每人发放）`} disabled /> : <div className="asset-target-picker"><input type="search" value={assetTargetSearch} placeholder={targetType === "USER" ? "搜索姓名/账号/队伍" : "搜索队伍"} onChange={(event) => searchAssetTarget(event.target.value)} /><select value={target} onChange={(event) => setTarget(event.target.value)}>{assetTargetOptions.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}{assetTargetOptions.length === 0 && <option value="">无匹配结果</option>}</select></div>}</label>
+          <label>操作<select value={assetAction} onChange={(event) => { const action = event.target.value as "GRANT" | "DEDUCT"; setAssetAction(action); if (action === "DEDUCT" && isBulkAssetTarget) { setTargetType("USER"); setTarget(managedUsers[0]?.id ?? ""); } }}><option value="GRANT">发放竞猜币</option><option value="DEDUCT">扣除竞猜币</option></select></label>
           <label>金额<input type="number" min="1" step="1" value={assetAmount} onChange={(event) => setAssetAmount(Number(event.target.value))} /></label>
           <label className="wide">操作原因<input value={assetReason} onChange={(event) => setAssetReason(event.target.value)} /></label>
         </div>
         <div className="admin-warning">发放或扣除均生成独立账本流水，保留操作人、目标、原因及调整前后余额。</div>
-        <button className="admin-primary" onClick={submitAsset}>确认{targetType === "ALL" ? "向所有用户发放" : assetAction === "GRANT" ? "发放" : "扣除"}</button>
+        <button className="admin-primary" onClick={submitAsset}>确认{targetType === "ALL" ? "向所有用户发放" : targetType === "REFEREE" ? "向所有裁判发放" : assetAction === "GRANT" ? "发放" : "扣除"}</button>
       </section>
     </div>}
 
@@ -2698,16 +2677,6 @@ function Admin({
           <div className="parlay-ticket-preview"><span>每张门票计入 B 组奖池</span><strong>{money.format(ticketPoolContribution(weeklyBParlayForm.ticket, Math.round(weeklyBParlayForm.bonusMultiplier * 10_000)))} 竞猜币</strong><small>与其他过关独立计算</small></div>
         </div>
         <button className="admin-primary" onClick={() => submitWeeklyParlaySettings("B")}>保存本周 B 组参数</button>
-      </section>
-      <section className="admin-card">
-        <div className="admin-card-head"><div><small>比赛奖励</small><h3>点券奖励参数</h3></div><span>结算时自动发放</span></div>
-        <div className="form-grid ratio-form">
-          <label>小局基础奖<input type="number" min="0" step="1" value={pointRewardForm.smallGameWinPoints} onChange={(event) => setPointRewardForm((current) => ({ ...current, smallGameWinPoints: Number(event.target.value) }))} /><em>点券</em></label>
-          <label>同盟加成奖<input type="number" min="0" step="1" value={pointRewardForm.allianceGameWinPoints} onChange={(event) => setPointRewardForm((current) => ({ ...current, allianceGameWinPoints: Number(event.target.value) }))} /><em>点券</em></label>
-          <label>BO2/BO3 胜场奖<input type="number" min="0" step="1" value={pointRewardForm.seriesWinPoints} onChange={(event) => setPointRewardForm((current) => ({ ...current, seriesWinPoints: Number(event.target.value) }))} /><em>点券</em></label>
-        </div>
-        <div className="admin-warning">小局基础奖发给该局获胜队员；同盟加成奖发给获胜队所在同盟大组成员；BO2/BO3 胜场奖仅在系列赛分出胜负时额外发给胜队队员。</div>
-        <button className="admin-primary" onClick={submitPointRewards}>保存点券奖励参数</button>
       </section>
       <section className="admin-card">
         <div className="admin-card-head"><div><small>动态奖池</small><h3>结算比例</h3></div><span className={ratioForm.returnPercent + ratioForm.recoveryPercent + ratioForm.prizePercent === 100 ? "ratio-ok" : "ratio-error"}>合计 {ratioForm.returnPercent + ratioForm.recoveryPercent + ratioForm.prizePercent}%</span></div>
