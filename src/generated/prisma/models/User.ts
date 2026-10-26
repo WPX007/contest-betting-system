@@ -228,6 +228,7 @@ export type UserWhereInput = {
   sessions?: Prisma.SessionListRelationFilter
   parlayEntries?: Prisma.ParlayEntryListRelationFilter
   rechargeRequests?: Prisma.RechargeRequestListRelationFilter
+  dailyCheckins?: Prisma.DailyCheckinListRelationFilter
   rechargeFirstConfirmed?: Prisma.RechargeRequestListRelationFilter
   rechargeCompleted?: Prisma.RechargeRequestListRelationFilter
   audits?: Prisma.AuditLogListRelationFilter
@@ -250,6 +251,7 @@ export type UserOrderByWithRelationInput = {
   sessions?: Prisma.SessionOrderByRelationAggregateInput
   parlayEntries?: Prisma.ParlayEntryOrderByRelationAggregateInput
   rechargeRequests?: Prisma.RechargeRequestOrderByRelationAggregateInput
+  dailyCheckins?: Prisma.DailyCheckinOrderByRelationAggregateInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestOrderByRelationAggregateInput
   rechargeCompleted?: Prisma.RechargeRequestOrderByRelationAggregateInput
   audits?: Prisma.AuditLogOrderByRelationAggregateInput
@@ -275,6 +277,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   sessions?: Prisma.SessionListRelationFilter
   parlayEntries?: Prisma.ParlayEntryListRelationFilter
   rechargeRequests?: Prisma.RechargeRequestListRelationFilter
+  dailyCheckins?: Prisma.DailyCheckinListRelationFilter
   rechargeFirstConfirmed?: Prisma.RechargeRequestListRelationFilter
   rechargeCompleted?: Prisma.RechargeRequestListRelationFilter
   audits?: Prisma.AuditLogListRelationFilter
@@ -328,6 +331,7 @@ export type UserCreateInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogCreateNestedManyWithoutActorInput
@@ -349,6 +353,7 @@ export type UserUncheckedCreateInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryUncheckedCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
@@ -370,6 +375,7 @@ export type UserUpdateInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
@@ -391,6 +397,7 @@ export type UserUncheckedUpdateInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUncheckedUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
@@ -643,6 +650,20 @@ export type UserUpdateOneWithoutRechargeCompletedNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRechargeCompletedInput, Prisma.UserUpdateWithoutRechargeCompletedInput>, Prisma.UserUncheckedUpdateWithoutRechargeCompletedInput>
 }
 
+export type UserCreateNestedOneWithoutDailyCheckinsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDailyCheckinsInput, Prisma.UserUncheckedCreateWithoutDailyCheckinsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDailyCheckinsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutDailyCheckinsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDailyCheckinsInput, Prisma.UserUncheckedCreateWithoutDailyCheckinsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDailyCheckinsInput
+  upsert?: Prisma.UserUpsertWithoutDailyCheckinsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDailyCheckinsInput, Prisma.UserUpdateWithoutDailyCheckinsInput>, Prisma.UserUncheckedUpdateWithoutDailyCheckinsInput>
+}
+
 export type UserCreateNestedOneWithoutParlayEntriesInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutParlayEntriesInput, Prisma.UserUncheckedCreateWithoutParlayEntriesInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutParlayEntriesInput
@@ -686,6 +707,7 @@ export type UserCreateWithoutSessionsInput = {
   bets?: Prisma.BetCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogCreateNestedManyWithoutActorInput
@@ -706,6 +728,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   bets?: Prisma.BetUncheckedCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryUncheckedCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
@@ -742,6 +765,7 @@ export type UserUpdateWithoutSessionsInput = {
   bets?: Prisma.BetUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
@@ -762,6 +786,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   bets?: Prisma.BetUncheckedUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUncheckedUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
@@ -782,6 +807,7 @@ export type UserCreateWithoutTeamInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogCreateNestedManyWithoutActorInput
@@ -802,6 +828,7 @@ export type UserUncheckedCreateWithoutTeamInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryUncheckedCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
@@ -863,6 +890,7 @@ export type UserCreateWithoutBetsInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogCreateNestedManyWithoutActorInput
@@ -883,6 +911,7 @@ export type UserUncheckedCreateWithoutBetsInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryUncheckedCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
@@ -919,6 +948,7 @@ export type UserUpdateWithoutBetsInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
@@ -939,6 +969,7 @@ export type UserUncheckedUpdateWithoutBetsInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUncheckedUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
@@ -959,6 +990,7 @@ export type UserCreateWithoutWalletsInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogCreateNestedManyWithoutActorInput
@@ -979,6 +1011,7 @@ export type UserUncheckedCreateWithoutWalletsInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryUncheckedCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
@@ -1015,6 +1048,7 @@ export type UserUpdateWithoutWalletsInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
@@ -1035,6 +1069,7 @@ export type UserUncheckedUpdateWithoutWalletsInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUncheckedUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
@@ -1055,6 +1090,7 @@ export type UserCreateWithoutRechargeRequestsInput = {
   bets?: Prisma.BetCreateNestedManyWithoutUserInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogCreateNestedManyWithoutActorInput
@@ -1075,6 +1111,7 @@ export type UserUncheckedCreateWithoutRechargeRequestsInput = {
   bets?: Prisma.BetUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryUncheckedCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
@@ -1101,6 +1138,7 @@ export type UserCreateWithoutRechargeFirstConfirmedInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinCreateNestedManyWithoutUserInput
   rechargeCompleted?: Prisma.RechargeRequestCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogCreateNestedManyWithoutActorInput
 }
@@ -1121,6 +1159,7 @@ export type UserUncheckedCreateWithoutRechargeFirstConfirmedInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryUncheckedCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedCreateNestedManyWithoutUserInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
 }
@@ -1146,6 +1185,7 @@ export type UserCreateWithoutRechargeCompletedInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestCreateNestedManyWithoutFirstConfirmedByInput
   audits?: Prisma.AuditLogCreateNestedManyWithoutActorInput
 }
@@ -1166,6 +1206,7 @@ export type UserUncheckedCreateWithoutRechargeCompletedInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryUncheckedCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutFirstConfirmedByInput
   audits?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
 }
@@ -1201,6 +1242,7 @@ export type UserUpdateWithoutRechargeRequestsInput = {
   bets?: Prisma.BetUpdateManyWithoutUserNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
@@ -1221,6 +1263,7 @@ export type UserUncheckedUpdateWithoutRechargeRequestsInput = {
   bets?: Prisma.BetUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUncheckedUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
@@ -1253,6 +1296,7 @@ export type UserUpdateWithoutRechargeFirstConfirmedInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUpdateManyWithoutUserNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
 }
@@ -1273,6 +1317,7 @@ export type UserUncheckedUpdateWithoutRechargeFirstConfirmedInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUncheckedUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedUpdateManyWithoutUserNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -1304,6 +1349,7 @@ export type UserUpdateWithoutRechargeCompletedInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUpdateManyWithoutFirstConfirmedByNestedInput
   audits?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
 }
@@ -1324,7 +1370,108 @@ export type UserUncheckedUpdateWithoutRechargeCompletedInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUncheckedUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedUpdateManyWithoutFirstConfirmedByNestedInput
+  audits?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+}
+
+export type UserCreateWithoutDailyCheckinsInput = {
+  id?: string
+  name: string
+  username: string
+  passwordHash: string
+  passwordChangedAt?: Date | string
+  role?: $Enums.UserRole
+  isReferee?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  team?: Prisma.TeamCreateNestedOneWithoutMembersInput
+  wallets?: Prisma.WalletCreateNestedManyWithoutUserInput
+  bets?: Prisma.BetCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  parlayEntries?: Prisma.ParlayEntryCreateNestedManyWithoutUserInput
+  rechargeRequests?: Prisma.RechargeRequestCreateNestedManyWithoutUserInput
+  rechargeFirstConfirmed?: Prisma.RechargeRequestCreateNestedManyWithoutFirstConfirmedByInput
+  rechargeCompleted?: Prisma.RechargeRequestCreateNestedManyWithoutCompletedByInput
+  audits?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+}
+
+export type UserUncheckedCreateWithoutDailyCheckinsInput = {
+  id?: string
+  name: string
+  username: string
+  passwordHash: string
+  passwordChangedAt?: Date | string
+  role?: $Enums.UserRole
+  isReferee?: boolean
+  teamId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  wallets?: Prisma.WalletUncheckedCreateNestedManyWithoutUserInput
+  bets?: Prisma.BetUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  parlayEntries?: Prisma.ParlayEntryUncheckedCreateNestedManyWithoutUserInput
+  rechargeRequests?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutUserInput
+  rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutFirstConfirmedByInput
+  rechargeCompleted?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutCompletedByInput
+  audits?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+}
+
+export type UserCreateOrConnectWithoutDailyCheckinsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDailyCheckinsInput, Prisma.UserUncheckedCreateWithoutDailyCheckinsInput>
+}
+
+export type UserUpsertWithoutDailyCheckinsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDailyCheckinsInput, Prisma.UserUncheckedUpdateWithoutDailyCheckinsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDailyCheckinsInput, Prisma.UserUncheckedCreateWithoutDailyCheckinsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDailyCheckinsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDailyCheckinsInput, Prisma.UserUncheckedUpdateWithoutDailyCheckinsInput>
+}
+
+export type UserUpdateWithoutDailyCheckinsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordChangedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isReferee?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneWithoutMembersNestedInput
+  wallets?: Prisma.WalletUpdateManyWithoutUserNestedInput
+  bets?: Prisma.BetUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  parlayEntries?: Prisma.ParlayEntryUpdateManyWithoutUserNestedInput
+  rechargeRequests?: Prisma.RechargeRequestUpdateManyWithoutUserNestedInput
+  rechargeFirstConfirmed?: Prisma.RechargeRequestUpdateManyWithoutFirstConfirmedByNestedInput
+  rechargeCompleted?: Prisma.RechargeRequestUpdateManyWithoutCompletedByNestedInput
+  audits?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDailyCheckinsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordChangedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isReferee?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  wallets?: Prisma.WalletUncheckedUpdateManyWithoutUserNestedInput
+  bets?: Prisma.BetUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  parlayEntries?: Prisma.ParlayEntryUncheckedUpdateManyWithoutUserNestedInput
+  rechargeRequests?: Prisma.RechargeRequestUncheckedUpdateManyWithoutUserNestedInput
+  rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedUpdateManyWithoutFirstConfirmedByNestedInput
+  rechargeCompleted?: Prisma.RechargeRequestUncheckedUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
 }
 
@@ -1343,6 +1490,7 @@ export type UserCreateWithoutParlayEntriesInput = {
   bets?: Prisma.BetCreateNestedManyWithoutUserInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogCreateNestedManyWithoutActorInput
@@ -1363,6 +1511,7 @@ export type UserUncheckedCreateWithoutParlayEntriesInput = {
   bets?: Prisma.BetUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutCompletedByInput
   audits?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
@@ -1399,6 +1548,7 @@ export type UserUpdateWithoutParlayEntriesInput = {
   bets?: Prisma.BetUpdateManyWithoutUserNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
@@ -1419,6 +1569,7 @@ export type UserUncheckedUpdateWithoutParlayEntriesInput = {
   bets?: Prisma.BetUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
@@ -1440,6 +1591,7 @@ export type UserCreateWithoutAuditsInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestCreateNestedManyWithoutCompletedByInput
 }
@@ -1460,6 +1612,7 @@ export type UserUncheckedCreateWithoutAuditsInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   parlayEntries?: Prisma.ParlayEntryUncheckedCreateNestedManyWithoutUserInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutUserInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedCreateNestedManyWithoutUserInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutFirstConfirmedByInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedCreateNestedManyWithoutCompletedByInput
 }
@@ -1496,6 +1649,7 @@ export type UserUpdateWithoutAuditsInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUpdateManyWithoutCompletedByNestedInput
 }
@@ -1516,6 +1670,7 @@ export type UserUncheckedUpdateWithoutAuditsInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUncheckedUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedUpdateManyWithoutCompletedByNestedInput
 }
@@ -1547,6 +1702,7 @@ export type UserUpdateWithoutTeamInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
@@ -1567,6 +1723,7 @@ export type UserUncheckedUpdateWithoutTeamInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   parlayEntries?: Prisma.ParlayEntryUncheckedUpdateManyWithoutUserNestedInput
   rechargeRequests?: Prisma.RechargeRequestUncheckedUpdateManyWithoutUserNestedInput
+  dailyCheckins?: Prisma.DailyCheckinUncheckedUpdateManyWithoutUserNestedInput
   rechargeFirstConfirmed?: Prisma.RechargeRequestUncheckedUpdateManyWithoutFirstConfirmedByNestedInput
   rechargeCompleted?: Prisma.RechargeRequestUncheckedUpdateManyWithoutCompletedByNestedInput
   audits?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
@@ -1595,6 +1752,7 @@ export type UserCountOutputType = {
   sessions: number
   parlayEntries: number
   rechargeRequests: number
+  dailyCheckins: number
   rechargeFirstConfirmed: number
   rechargeCompleted: number
   audits: number
@@ -1606,6 +1764,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   sessions?: boolean | UserCountOutputTypeCountSessionsArgs
   parlayEntries?: boolean | UserCountOutputTypeCountParlayEntriesArgs
   rechargeRequests?: boolean | UserCountOutputTypeCountRechargeRequestsArgs
+  dailyCheckins?: boolean | UserCountOutputTypeCountDailyCheckinsArgs
   rechargeFirstConfirmed?: boolean | UserCountOutputTypeCountRechargeFirstConfirmedArgs
   rechargeCompleted?: boolean | UserCountOutputTypeCountRechargeCompletedArgs
   audits?: boolean | UserCountOutputTypeCountAuditsArgs
@@ -1659,6 +1818,13 @@ export type UserCountOutputTypeCountRechargeRequestsArgs<ExtArgs extends runtime
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountDailyCheckinsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DailyCheckinWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountRechargeFirstConfirmedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.RechargeRequestWhereInput
 }
@@ -1695,6 +1861,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   parlayEntries?: boolean | Prisma.User$parlayEntriesArgs<ExtArgs>
   rechargeRequests?: boolean | Prisma.User$rechargeRequestsArgs<ExtArgs>
+  dailyCheckins?: boolean | Prisma.User$dailyCheckinsArgs<ExtArgs>
   rechargeFirstConfirmed?: boolean | Prisma.User$rechargeFirstConfirmedArgs<ExtArgs>
   rechargeCompleted?: boolean | Prisma.User$rechargeCompletedArgs<ExtArgs>
   audits?: boolean | Prisma.User$auditsArgs<ExtArgs>
@@ -1750,6 +1917,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   parlayEntries?: boolean | Prisma.User$parlayEntriesArgs<ExtArgs>
   rechargeRequests?: boolean | Prisma.User$rechargeRequestsArgs<ExtArgs>
+  dailyCheckins?: boolean | Prisma.User$dailyCheckinsArgs<ExtArgs>
   rechargeFirstConfirmed?: boolean | Prisma.User$rechargeFirstConfirmedArgs<ExtArgs>
   rechargeCompleted?: boolean | Prisma.User$rechargeCompletedArgs<ExtArgs>
   audits?: boolean | Prisma.User$auditsArgs<ExtArgs>
@@ -1771,6 +1939,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     sessions: Prisma.$SessionPayload<ExtArgs>[]
     parlayEntries: Prisma.$ParlayEntryPayload<ExtArgs>[]
     rechargeRequests: Prisma.$RechargeRequestPayload<ExtArgs>[]
+    dailyCheckins: Prisma.$DailyCheckinPayload<ExtArgs>[]
     rechargeFirstConfirmed: Prisma.$RechargeRequestPayload<ExtArgs>[]
     rechargeCompleted: Prisma.$RechargeRequestPayload<ExtArgs>[]
     audits: Prisma.$AuditLogPayload<ExtArgs>[]
@@ -2186,6 +2355,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   sessions<T extends Prisma.User$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   parlayEntries<T extends Prisma.User$parlayEntriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$parlayEntriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ParlayEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   rechargeRequests<T extends Prisma.User$rechargeRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$rechargeRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RechargeRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  dailyCheckins<T extends Prisma.User$dailyCheckinsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$dailyCheckinsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DailyCheckinPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   rechargeFirstConfirmed<T extends Prisma.User$rechargeFirstConfirmedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$rechargeFirstConfirmedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RechargeRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   rechargeCompleted<T extends Prisma.User$rechargeCompletedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$rechargeCompletedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RechargeRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   audits<T extends Prisma.User$auditsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$auditsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2763,6 +2933,30 @@ export type User$rechargeRequestsArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   distinct?: Prisma.RechargeRequestScalarFieldEnum | Prisma.RechargeRequestScalarFieldEnum[]
+}
+
+/**
+ * User.dailyCheckins
+ */
+export type User$dailyCheckinsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DailyCheckin
+   */
+  select?: Prisma.DailyCheckinSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DailyCheckin
+   */
+  omit?: Prisma.DailyCheckinOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DailyCheckinInclude<ExtArgs> | null
+  where?: Prisma.DailyCheckinWhereInput
+  orderBy?: Prisma.DailyCheckinOrderByWithRelationInput | Prisma.DailyCheckinOrderByWithRelationInput[]
+  cursor?: Prisma.DailyCheckinWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DailyCheckinScalarFieldEnum | Prisma.DailyCheckinScalarFieldEnum[]
 }
 
 /**

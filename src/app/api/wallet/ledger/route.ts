@@ -15,6 +15,7 @@ const reasonLabels: Record<string, string> = {
   PARLAY_REFUND: "过关竞猜退款",
   PARLAY_PRIZE: "过关竞猜奖励",
   REWARD: "比赛点券奖励",
+  DAILY_CHECKIN: "每日签到奖励",
   MARKET_INJECTION: "单场盘口注入",
   POINT_EXCHANGE: "点券兑换竞猜币",
   CORRECTION: "管理员调整",

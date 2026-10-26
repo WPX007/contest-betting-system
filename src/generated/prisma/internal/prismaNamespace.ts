@@ -408,6 +408,7 @@ export const ModelName = {
   Wallet: 'Wallet',
   LedgerEntry: 'LedgerEntry',
   RechargeRequest: 'RechargeRequest',
+  DailyCheckin: 'DailyCheckin',
   SettlementBatch: 'SettlementBatch',
   ParlayConfig: 'ParlayConfig',
   ParlayRound: 'ParlayRound',
@@ -430,7 +431,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "team" | "season" | "match" | "market" | "marketOption" | "bet" | "wallet" | "ledgerEntry" | "rechargeRequest" | "settlementBatch" | "parlayConfig" | "parlayRound" | "parlayRoundMarket" | "parlayEntry" | "parlayLeg" | "auditLog"
+    modelProps: "user" | "session" | "team" | "season" | "match" | "market" | "marketOption" | "bet" | "wallet" | "ledgerEntry" | "rechargeRequest" | "dailyCheckin" | "settlementBatch" | "parlayConfig" | "parlayRound" | "parlayRoundMarket" | "parlayEntry" | "parlayLeg" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1248,6 +1249,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    DailyCheckin: {
+      payload: Prisma.$DailyCheckinPayload<ExtArgs>
+      fields: Prisma.DailyCheckinFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DailyCheckinFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DailyCheckinFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload>
+        }
+        findFirst: {
+          args: Prisma.DailyCheckinFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DailyCheckinFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload>
+        }
+        findMany: {
+          args: Prisma.DailyCheckinFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload>[]
+        }
+        create: {
+          args: Prisma.DailyCheckinCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload>
+        }
+        createMany: {
+          args: Prisma.DailyCheckinCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DailyCheckinCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload>[]
+        }
+        delete: {
+          args: Prisma.DailyCheckinDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload>
+        }
+        update: {
+          args: Prisma.DailyCheckinUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload>
+        }
+        deleteMany: {
+          args: Prisma.DailyCheckinDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DailyCheckinUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DailyCheckinUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload>[]
+        }
+        upsert: {
+          args: Prisma.DailyCheckinUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DailyCheckinPayload>
+        }
+        aggregate: {
+          args: Prisma.DailyCheckinAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDailyCheckin>
+        }
+        groupBy: {
+          args: Prisma.DailyCheckinGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DailyCheckinGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DailyCheckinCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DailyCheckinCountAggregateOutputType> | number
+        }
+      }
+    }
     SettlementBatch: {
       payload: Prisma.$SettlementBatchPayload<ExtArgs>
       fields: Prisma.SettlementBatchFieldRefs
@@ -1975,6 +2050,17 @@ export const RechargeRequestScalarFieldEnum = {
 export type RechargeRequestScalarFieldEnum = (typeof RechargeRequestScalarFieldEnum)[keyof typeof RechargeRequestScalarFieldEnum]
 
 
+export const DailyCheckinScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  dayKey: 'dayKey',
+  amount: 'amount',
+  createdAt: 'createdAt'
+} as const
+
+export type DailyCheckinScalarFieldEnum = (typeof DailyCheckinScalarFieldEnum)[keyof typeof DailyCheckinScalarFieldEnum]
+
+
 export const SettlementBatchScalarFieldEnum = {
   id: 'id',
   marketId: 'marketId',
@@ -1995,6 +2081,7 @@ export const ParlayConfigScalarFieldEnum = {
   basePool5: 'basePool5',
   basePool6Plus: 'basePool6Plus',
   ticketPoolBonusBps: 'ticketPoolBonusBps',
+  dailyCheckinReward: 'dailyCheckinReward',
   weeklyTicketStake: 'weeklyTicketStake',
   weeklyBasePool: 'weeklyBasePool',
   weeklyTicketPoolBonusBps: 'weeklyTicketPoolBonusBps',
@@ -2389,6 +2476,7 @@ export type GlobalOmitConfig = {
   wallet?: Prisma.WalletOmit
   ledgerEntry?: Prisma.LedgerEntryOmit
   rechargeRequest?: Prisma.RechargeRequestOmit
+  dailyCheckin?: Prisma.DailyCheckinOmit
   settlementBatch?: Prisma.SettlementBatchOmit
   parlayConfig?: Prisma.ParlayConfigOmit
   parlayRound?: Prisma.ParlayRoundOmit

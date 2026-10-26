@@ -73,6 +73,11 @@ export type LedgerEntry = Prisma.LedgerEntryModel
  */
 export type RechargeRequest = Prisma.RechargeRequestModel
 /**
+ * Model DailyCheckin
+ *
+ */
+export type DailyCheckin = Prisma.DailyCheckinModel
+/**
  * Model SettlementBatch
  * 
  */

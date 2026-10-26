@@ -20,6 +20,7 @@ const parlayPeriodLabel = (scope: "DAILY" | "WEEKLY" | "WEEKLY_A" | "WEEKLY_B", 
 type RankingSortKey = "team" | "allianceTeams" | "value" | "points" | "hits" | "predictions" | "rate";
 type MatchOverride = { week: number; track: "A" | "B"; home: string; away: string; time: string };
 type RatioConfig = { returnPercent: number; recoveryPercent: number; prizePercent: number };
+type DailyCheckinStatus = { dayKey: string; eligible: boolean; claimed: boolean; reward: number };
 type WeeklyParlayConfig = { ticket: number; basePool: number; bonusMultiplier: number };
 type MatchSchedule = {
   id: string; week: number; track: "A" | "B"; slotIndex: number | null;
@@ -292,6 +293,9 @@ export function Dashboard() {
   const [weeklyBParlayJoined, setWeeklyBParlayJoined] = useState(false);
   const [weeklyBParlaySelections, setWeeklyBParlaySelections] = useState<Record<string, string>>({});
   const [ratios, setRatios] = useState<RatioConfig>({ returnPercent: 25, recoveryPercent: 5, prizePercent: 70 });
+  const [dailyCheckinReward, setDailyCheckinReward] = useState(400);
+  const [dailyCheckinStatus, setDailyCheckinStatus] = useState<DailyCheckinStatus | null>(null);
+  const [checkingIn, setCheckingIn] = useState(false);
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
   const [adminTeams, setAdminTeams] = useState<AdminTeam[]>([]);
   const [betRecords, setBetRecords] = useState<BetRecord[]>([]);
@@ -383,6 +387,7 @@ export function Dashboard() {
     const dataTimer = window.setInterval(() => void Promise.all([
       loadMarkets(),
       loadParlayStatus(),
+      loadDailyCheckinStatus(),
       ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.role === "SCOREKEEPER" || sessionUser.isReferee || sessionUser.isAdmin ? [loadMatchSchedules()] : []),
       ...(sessionUser.isAdmin ? [loadAdminParlays(), loadAdminRecharges(), loadAdminTreasury()] : []),
     ]), 30_000);
@@ -582,10 +587,14 @@ export function Dashboard() {
     setAdminTreasury(await apiRequest<AdminTreasury>("/api/admin/treasury"));
   }
 
+  async function loadDailyCheckinStatus() {
+    setDailyCheckinStatus(await apiRequest<DailyCheckinStatus>("/api/checkin"));
+  }
+
   async function refreshData(isAdmin = sessionUser?.isAdmin ?? false) {
     setLoadingData(true);
     try {
-      const [marketData, betData, wallet, entries, parlays, offer, weeklyAOffer, weeklyBOffer, rankingData, achievements, userRecharges] = await Promise.all([
+      const [marketData, betData, wallet, entries, parlays, offer, weeklyAOffer, weeklyBOffer, rankingData, achievements, userRecharges, checkin] = await Promise.all([
         apiRequest<Market[]>("/api/markets"),
         apiRequest<BetOrder[]>("/api/bets/me?pageSize=50"),
         apiRequest<{ balance: number; points: number; treasury: HouseTreasury | null }>("/api/wallet"),
@@ -597,6 +606,7 @@ export function Dashboard() {
         apiRequest<RankingEntry[]>("/api/rankings"),
         apiRequest<AchievementData>("/api/achievements"),
         apiRequest<RechargeRequest[]>("/api/recharges"),
+        apiRequest<DailyCheckinStatus>("/api/checkin"),
       ]);
       setServerMarkets(marketData);
       setMarketStatus(Object.fromEntries(marketData.map((market) => [market.id, market.state])));
@@ -630,6 +640,7 @@ export function Dashboard() {
       setRankingEntries(rankingData);
       setAchievementData(achievements);
       setRechargeRequests(userRecharges);
+      setDailyCheckinStatus(checkin);
       setParlayTicket(offer.ticketStake);
       setParlayPool(offer.pool);
       setParlayTicketContribution(offer.ticketPoolContribution);
@@ -659,7 +670,7 @@ export function Dashboard() {
         const [adminUsers, adminBets, settings, parlayRounds, rechargeData, treasuryData] = await Promise.all([
           apiRequest<{ users: Array<{ id: string; name: string; username: string; role: string; isReferee: boolean; team: { id: string; name: string } | null; balance: number }>; teams: AdminTeam[] }>("/api/admin/users"),
           apiRequest<BetRecord[]>("/api/admin/bets"),
-          apiRequest<{ parlayTicket: number; parlayBasePools: ParlayBasePools; ticketPoolBonusMultiplier: number; weeklyParlayA: WeeklyParlayConfig; weeklyParlayB: WeeklyParlayConfig; ratios: RatioConfig }>("/api/admin/settings"),
+          apiRequest<{ parlayTicket: number; parlayBasePools: ParlayBasePools; ticketPoolBonusMultiplier: number; dailyCheckinReward: number; weeklyParlayA: WeeklyParlayConfig; weeklyParlayB: WeeklyParlayConfig; ratios: RatioConfig }>("/api/admin/settings"),
           apiRequest<AdminParlayRound[]>("/api/admin/parlays"),
           apiRequest<AdminRechargeData>("/api/admin/recharges"),
           apiRequest<AdminTreasury>("/api/admin/treasury"),
@@ -670,6 +681,7 @@ export function Dashboard() {
         setParlayTicket(settings.parlayTicket);
         setParlayBasePools(settings.parlayBasePools);
         setTicketPoolBonusMultiplier(settings.ticketPoolBonusMultiplier);
+        setDailyCheckinReward(settings.dailyCheckinReward);
         setWeeklyParlayConfig(settings.weeklyParlayA);
         setWeeklyBParlayConfig(settings.weeklyParlayB);
         setRatios(settings.ratios);
@@ -766,6 +778,22 @@ export function Dashboard() {
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "点券兑换失败");
       return false;
+    }
+  }
+
+  async function submitDailyCheckin() {
+    if (!dailyCheckinStatus?.eligible || dailyCheckinStatus.claimed || checkingIn) return;
+    setCheckingIn(true);
+    try {
+      const result = await apiRequest<DailyCheckinStatus & { balance: number }>("/api/checkin", { method: "POST" });
+      setDailyCheckinStatus(result);
+      setBalance(result.balance);
+      await loadFinancialState(false);
+      setNotice(`签到成功，已获得 ${money.format(result.reward)} 竞猜币。`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "签到失败");
+    } finally {
+      setCheckingIn(false);
     }
   }
 
@@ -1191,6 +1219,19 @@ export function Dashboard() {
     }
   }
 
+  async function saveDailyCheckinReward(reward: number) {
+    try {
+      await apiRequest("/api/admin/settings", {
+        method: "PATCH",
+        body: JSON.stringify({ dailyCheckinReward: reward }),
+      });
+      await refreshData(true);
+      setNotice(`每日签到奖励已调整为 ${money.format(reward)} 竞猜币，下次签到起生效。`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "保存签到奖励失败");
+    }
+  }
+
   async function saveClosedOdds(marketId: string, odds: Record<string, number>, reason: string) {
     const market = allConfiguredMarkets.find((item) => item.id === marketId);
     if (!market) return;
@@ -1421,6 +1462,15 @@ export function Dashboard() {
             <h1>{activeTab}</h1>
           </div>
           <div className="balances">
+            {!isAdminSession && <button
+              className={`checkin-card${dailyCheckinStatus?.claimed ? " claimed" : ""}`}
+              disabled={!dailyCheckinStatus?.eligible || dailyCheckinStatus.claimed || checkingIn}
+              onClick={() => void submitDailyCheckin()}
+            >
+              <span>每日签到</span>
+              <strong>{checkingIn ? "签到中…" : dailyCheckinStatus?.claimed ? "今日已签到" : dailyCheckinStatus?.eligible ? `领取 ${money.format(dailyCheckinStatus.reward)}` : dailyCheckinStatus ? "周末暂停" : "读取中…"}</strong>
+              <small>{dailyCheckinStatus?.eligible ? "周一至周五开放" : "仅工作日可签到"}</small>
+            </button>}
             <div><span>{isAdminSession ? "后台净额" : "竞猜币"}</span><strong>{money.format(balance)}</strong></div>
             <div><span>点券</span><strong>{money.format(sessionPoints)}</strong></div>
             <div className="total-value"><span>总价值</span><strong>{(balance / 50 + sessionPoints / 10).toFixed(1)}</strong></div>
@@ -1635,13 +1685,14 @@ export function Dashboard() {
         {activeTab === "排行榜" && <Ranking entries={rankingEntries} loading={loadingData} />}
         {activeTab === "成就奖" && <Achievements data={achievementData} loading={loadingData} />}
         {sessionUser.isAdmin && activeTab === "后台管理设置" && <Admin
-          key={`${adminTeams.map((team) => team.id).join(",")}:${parlayTicket}:${parlayBasePools.three}:${parlayBasePools.four}:${parlayBasePools.five}:${parlayBasePools.sixPlus}:${ticketPoolBonusMultiplier}:${weeklyParlayConfig.ticket}:${weeklyParlayConfig.basePool}:${weeklyParlayConfig.bonusMultiplier}:${weeklyBParlayConfig.ticket}:${weeklyBParlayConfig.basePool}:${weeklyBParlayConfig.bonusMultiplier}:${ratios.returnPercent}:${ratios.recoveryPercent}:${ratios.prizePercent}`}
+          key={`${adminTeams.map((team) => team.id).join(",")}:${parlayTicket}:${parlayBasePools.three}:${parlayBasePools.four}:${parlayBasePools.five}:${parlayBasePools.sixPlus}:${ticketPoolBonusMultiplier}:${dailyCheckinReward}:${weeklyParlayConfig.ticket}:${weeklyParlayConfig.basePool}:${weeklyParlayConfig.bonusMultiplier}:${weeklyBParlayConfig.ticket}:${weeklyBParlayConfig.basePool}:${weeklyBParlayConfig.bonusMultiplier}:${ratios.returnPercent}:${ratios.recoveryPercent}:${ratios.prizePercent}`}
           statuses={marketStatus}
           adminMarkets={currentAdminMarkets}
           allAdminMarkets={allConfiguredMarkets}
           parlayTicket={parlayTicket}
           parlayBasePools={parlayBasePools}
           ticketPoolBonusMultiplier={ticketPoolBonusMultiplier}
+          dailyCheckinReward={dailyCheckinReward}
           weeklyParlayConfig={weeklyParlayConfig}
           weeklyBParlayConfig={weeklyBParlayConfig}
           ratios={ratios}
@@ -1663,6 +1714,7 @@ export function Dashboard() {
           onSaveParlay={saveParlaySettings}
           onSaveWeeklyParlay={saveWeeklyParlaySettings}
           onSaveRatios={saveRatios}
+          onSaveDailyCheckinReward={saveDailyCheckinReward}
           onSaveOdds={saveClosedOdds}
           onInjectLiquidity={injectMarketLiquidity}
           onImportTeams={importTeamWorkbook}
@@ -1951,6 +2003,7 @@ type AdminProps = {
   parlayTicket: number;
   parlayBasePools: ParlayBasePools;
   ticketPoolBonusMultiplier: number;
+  dailyCheckinReward: number;
   weeklyParlayConfig: WeeklyParlayConfig;
   weeklyBParlayConfig: WeeklyParlayConfig;
   ratios: RatioConfig;
@@ -1972,6 +2025,7 @@ type AdminProps = {
   onSaveParlay: (ticket: number, basePools: ParlayBasePools, bonusMultiplier: number) => void;
   onSaveWeeklyParlay: (track: "A" | "B", config: WeeklyParlayConfig) => void;
   onSaveRatios: (config: RatioConfig) => void;
+  onSaveDailyCheckinReward: (reward: number) => void;
   onSaveOdds: (marketId: string, odds: Record<string, number>, reason: string) => void;
   onInjectLiquidity: (marketId: string, injections: Array<{ optionId: string; amount: number }>) => Promise<boolean>;
   onImportTeams: (file: File, action: "preview" | "apply") => Promise<TeamImportPreview>;
@@ -1990,6 +2044,7 @@ function Admin({
   parlayTicket,
   parlayBasePools,
   ticketPoolBonusMultiplier,
+  dailyCheckinReward,
   weeklyParlayConfig,
   weeklyBParlayConfig,
   ratios,
@@ -2011,6 +2066,7 @@ function Admin({
   onSaveParlay,
   onSaveWeeklyParlay,
   onSaveRatios,
+  onSaveDailyCheckinReward,
   onSaveOdds,
   onInjectLiquidity,
   onImportTeams,
@@ -2044,6 +2100,7 @@ function Admin({
   const [ticket, setTicket] = useState(parlayTicket);
   const [basePools, setBasePools] = useState(parlayBasePools);
   const [bonusMultiplier, setBonusMultiplier] = useState(ticketPoolBonusMultiplier);
+  const [dailyCheckinRewardForm, setDailyCheckinRewardForm] = useState(dailyCheckinReward);
   const [weeklyParlayForm, setWeeklyParlayForm] = useState(weeklyParlayConfig);
   const [weeklyBParlayForm, setWeeklyBParlayForm] = useState(weeklyBParlayConfig);
   const [ratioForm, setRatioForm] = useState(ratios);
@@ -2265,6 +2322,14 @@ function Admin({
       return;
     }
     onSaveRatios(ratioForm);
+  }
+
+  function submitDailyCheckinReward() {
+    if (!Number.isInteger(dailyCheckinRewardForm) || dailyCheckinRewardForm <= 0) {
+      onNotify("每日签到奖励必须为大于 0 的整数。");
+      return;
+    }
+    onSaveDailyCheckinReward(dailyCheckinRewardForm);
   }
 
   function submitParlaySettings() {
@@ -2717,6 +2782,14 @@ function Admin({
           <div className="parlay-ticket-preview"><span>每张门票计入 B 组奖池</span><strong>{money.format(ticketPoolContribution(weeklyBParlayForm.ticket, Math.round(weeklyBParlayForm.bonusMultiplier * 10_000)))} 竞猜币</strong><small>与其他过关独立计算</small></div>
         </div>
         <button className="admin-primary" onClick={() => submitWeeklyParlaySettings("B")}>保存本周 B 组参数</button>
+      </section>
+      <section className="admin-card">
+        <div className="admin-card-head"><div><small>用户福利</small><h3>每日签到奖励</h3></div><span>仅周一至周五开放</span></div>
+        <div className="form-grid">
+          <label>每次奖励<input type="number" min="1" step="1" value={dailyCheckinRewardForm} onChange={(event) => setDailyCheckinRewardForm(Number(event.target.value))} /><em>竞猜币</em></label>
+        </div>
+        <div className="admin-warning">每位用户每天只能签到一次，奖励直接进入竞猜币钱包并生成独立流水。修改后从下一次签到起生效。</div>
+        <button className="admin-primary" onClick={submitDailyCheckinReward}>保存签到奖励</button>
       </section>
       <section className="admin-card">
         <div className="admin-card-head"><div><small>动态奖池</small><h3>结算比例</h3></div><span className={ratioForm.returnPercent + ratioForm.recoveryPercent + ratioForm.prizePercent === 100 ? "ratio-ok" : "ratio-error"}>合计 {ratioForm.returnPercent + ratioForm.recoveryPercent + ratioForm.prizePercent}%</span></div>

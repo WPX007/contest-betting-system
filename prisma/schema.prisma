@@ -60,6 +60,7 @@ enum LedgerReason {
   PARLAY_REFUND
   PARLAY_PRIZE
   REWARD
+  DAILY_CHECKIN
   MARKET_INJECTION
   POINT_EXCHANGE
   CORRECTION
@@ -128,6 +129,7 @@ model User {
   sessions          Session[]
   parlayEntries     ParlayEntry[]
   rechargeRequests  RechargeRequest[] @relation("RechargeRequester")
+  dailyCheckins     DailyCheckin[]
   rechargeFirstConfirmed RechargeRequest[] @relation("RechargeFirstConfirmer")
   rechargeCompleted RechargeRequest[] @relation("RechargeCompleter")
   audits            AuditLog[]    @relation("AuditActor")
@@ -312,6 +314,18 @@ model RechargeRequest {
   @@index([status, createdAt])
 }
 
+model DailyCheckin {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayKey    String
+  amount    Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dayKey])
+  @@index([dayKey])
+}
+
 model SettlementBatch {
   id         String                @id @default(cuid())
   marketId   String
@@ -332,6 +346,7 @@ model ParlayConfig {
   basePool5              Int      @default(50000)
   basePool6Plus          Int      @default(50000)
   ticketPoolBonusBps     Int      @default(5000)
+  dailyCheckinReward     Int      @default(400)
   weeklyTicketStake      Int      @default(100)
   weeklyBasePool         Int      @default(12000)
   weeklyTicketPoolBonusBps Int    @default(5000)

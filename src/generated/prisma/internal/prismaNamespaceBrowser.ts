@@ -62,6 +62,7 @@ export const ModelName = {
   Wallet: 'Wallet',
   LedgerEntry: 'LedgerEntry',
   RechargeRequest: 'RechargeRequest',
+  DailyCheckin: 'DailyCheckin',
   SettlementBatch: 'SettlementBatch',
   ParlayConfig: 'ParlayConfig',
   ParlayRound: 'ParlayRound',
@@ -257,6 +258,17 @@ export const RechargeRequestScalarFieldEnum = {
 export type RechargeRequestScalarFieldEnum = (typeof RechargeRequestScalarFieldEnum)[keyof typeof RechargeRequestScalarFieldEnum]
 
 
+export const DailyCheckinScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  dayKey: 'dayKey',
+  amount: 'amount',
+  createdAt: 'createdAt'
+} as const
+
+export type DailyCheckinScalarFieldEnum = (typeof DailyCheckinScalarFieldEnum)[keyof typeof DailyCheckinScalarFieldEnum]
+
+
 export const SettlementBatchScalarFieldEnum = {
   id: 'id',
   marketId: 'marketId',
@@ -277,6 +289,7 @@ export const ParlayConfigScalarFieldEnum = {
   basePool5: 'basePool5',
   basePool6Plus: 'basePool6Plus',
   ticketPoolBonusBps: 'ticketPoolBonusBps',
+  dailyCheckinReward: 'dailyCheckinReward',
   weeklyTicketStake: 'weeklyTicketStake',
   weeklyBasePool: 'weeklyBasePool',
   weeklyTicketPoolBonusBps: 'weeklyTicketPoolBonusBps',
