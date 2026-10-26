@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { weekOptions, type Market } from "@/lib/demo-data";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import { ticketPoolContribution, type ParlayBasePools } from "@/lib/parlay-pool";
@@ -10,7 +10,7 @@ import { MyBetsPanel, type BetOrder, type ParlayOrder } from "@/components/my-be
 import { WalletPanel, type HouseTreasury, type WalletEntry } from "@/components/wallet-panel";
 
 type Tab = "竞猜大厅" | "赛程确认" | "比赛结算" | "我的竞猜" | "竞猜币充值" | "钱包流水" | "排行榜" | "成就奖" | "后台管理设置";
-type AdminTab = "MATCH" | "BETS" | "PARLAYS" | "USERS" | "ASSET" | "RECHARGES" | "TREASURY" | "RULES";
+type AdminTab = "MATCH" | "BETS" | "PARLAYS" | "USERS" | "ASSET" | "RECHARGES" | "CHECKINS" | "TREASURY" | "RULES";
 type AssetTargetType = "USER" | "TEAM" | "REFEREE" | "ALL";
 type StatusFilter = "ALL" | "DRAFT" | "OPEN" | "CLOSED" | "SETTLED";
 type MatchScope = "TODAY" | "WEEK";
@@ -87,6 +87,18 @@ type AdminRechargeData = {
   totalCompletedAmount: number;
   pendingCount: number;
   requests: AdminRechargeRequest[];
+};
+type AdminCheckinData = {
+  totalCount: number;
+  totalAmount: number;
+  userCount: number;
+  records: Array<{
+    id: string;
+    dayKey: string;
+    amount: number;
+    createdAt: string;
+    user: { id: string; name: string; username: string; team: string };
+  }>;
 };
 type AdminTreasury = HouseTreasury & {
   rakeEntries: Array<{ id: string; amount: number; note: string | null; reference: string; createdAt: string }>;
@@ -189,7 +201,7 @@ const emptyMarket: Market = {
   state: "CLOSED",
 };
 const tabs: Tab[] = ["竞猜大厅", "赛程确认", "比赛结算", "我的竞猜", "竞猜币充值", "钱包流水", "排行榜", "成就奖", "后台管理设置"];
-const adminTabs: AdminTab[] = ["MATCH", "BETS", "PARLAYS", "USERS", "ASSET", "RECHARGES", "TREASURY", "RULES"];
+const adminTabs: AdminTab[] = ["MATCH", "BETS", "PARLAYS", "USERS", "ASSET", "RECHARGES", "CHECKINS", "TREASURY", "RULES"];
 const stateLabels: Record<string, string> = {
   DRAFT: "时间待定",
   OPEN: "开盘中",
@@ -243,6 +255,59 @@ function currentCompetitionWeek() {
   const [year, month, day] = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" }).split("-").map(Number);
   const daysSinceSeasonStart = Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(2026, 9, 12)) / 86_400_000);
   return Math.min(weekOptions.length, Math.max(1, Math.floor(daysSinceSeasonStart / 7) + 1));
+}
+
+type SearchableOption = { value: string; label: string };
+
+function SearchableSelect({
+  value,
+  options,
+  onChange,
+  disabled = false,
+  className = "",
+  placeholder = "输入关键词搜索",
+  ariaLabel,
+}: {
+  value: string;
+  options: SearchableOption[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  className?: string;
+  placeholder?: string;
+  ariaLabel?: string;
+}) {
+  const listId = useId();
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? "";
+  const [query, setQuery] = useState("");
+  const [editing, setEditing] = useState(false);
+
+  return <>
+    <input
+      aria-label={ariaLabel}
+      className={`searchable-select-input ${className}`.trim()}
+      disabled={disabled}
+      list={listId}
+      onBlur={() => {
+        setEditing(false);
+        setQuery("");
+      }}
+      onChange={(event) => {
+        const nextQuery = event.target.value;
+        setQuery(nextQuery);
+        const exact = options.find((option) => option.label.toLocaleLowerCase("zh-CN") === nextQuery.trim().toLocaleLowerCase("zh-CN"));
+        if (exact) onChange(exact.value);
+      }}
+      onFocus={(event) => {
+        setQuery(selectedLabel);
+        setEditing(true);
+        event.currentTarget.select();
+      }}
+      placeholder={placeholder}
+      title="可输入关键词搜索"
+      value={editing ? query : selectedLabel}
+    />
+    <datalist id={listId}>{options.map((option) => <option value={option.label} key={`${option.value}-${option.label}`} />)}</datalist>
+  </>;
 }
 
 export function Dashboard() {
@@ -312,6 +377,7 @@ export function Dashboard() {
   const [parlayJoinedCount, setParlayJoinedCount] = useState(0);
   const [adminParlayRounds, setAdminParlayRounds] = useState<AdminParlayRound[]>([]);
   const [adminRecharges, setAdminRecharges] = useState<AdminRechargeData>({ totalCompletedAmount: 0, pendingCount: 0, requests: [] });
+  const [adminCheckins, setAdminCheckins] = useState<AdminCheckinData>({ totalCount: 0, totalAmount: 0, userCount: 0, records: [] });
   const [adminTreasury, setAdminTreasury] = useState<AdminTreasury | null>(null);
   const [matchSchedules, setMatchSchedules] = useState<MatchSchedule[]>([]);
   const [rosterMarket, setRosterMarket] = useState<Market | null>(null);
@@ -389,7 +455,7 @@ export function Dashboard() {
       loadParlayStatus(),
       loadDailyCheckinStatus(),
       ...(sessionUser.role === "PLAYER" || sessionUser.role === "CAPTAIN" || sessionUser.role === "SCOREKEEPER" || sessionUser.isReferee || sessionUser.isAdmin ? [loadMatchSchedules()] : []),
-      ...(sessionUser.isAdmin ? [loadAdminParlays(), loadAdminRecharges(), loadAdminTreasury()] : []),
+      ...(sessionUser.isAdmin ? [loadAdminParlays(), loadAdminRecharges(), loadAdminCheckins(), loadAdminTreasury()] : []),
     ]), 30_000);
     const walletTimer = window.setInterval(() => void loadFinancialState(sessionUser.isAdmin), 5_000);
     return () => {
@@ -583,6 +649,10 @@ export function Dashboard() {
     setAdminRecharges(await apiRequest<AdminRechargeData>("/api/admin/recharges"));
   }
 
+  async function loadAdminCheckins() {
+    setAdminCheckins(await apiRequest<AdminCheckinData>("/api/admin/checkins"));
+  }
+
   async function loadAdminTreasury() {
     setAdminTreasury(await apiRequest<AdminTreasury>("/api/admin/treasury"));
   }
@@ -667,12 +737,13 @@ export function Dashboard() {
       setWeeklyParlayJoined(parlays.some((order) => order.scope === "WEEKLY_A" && order.dayKey === `week-${currentCompetitionWeek()}-A` && order.status === "ACTIVE"));
       setWeeklyBParlayJoined(parlays.some((order) => order.scope === "WEEKLY_B" && order.dayKey === `week-${currentCompetitionWeek()}-B` && order.status === "ACTIVE"));
       if (isAdmin) {
-        const [adminUsers, adminBets, settings, parlayRounds, rechargeData, treasuryData] = await Promise.all([
+        const [adminUsers, adminBets, settings, parlayRounds, rechargeData, checkinData, treasuryData] = await Promise.all([
           apiRequest<{ users: Array<{ id: string; name: string; username: string; role: string; isReferee: boolean; team: { id: string; name: string } | null; balance: number }>; teams: AdminTeam[] }>("/api/admin/users"),
           apiRequest<BetRecord[]>("/api/admin/bets"),
           apiRequest<{ parlayTicket: number; parlayBasePools: ParlayBasePools; ticketPoolBonusMultiplier: number; dailyCheckinReward: number; weeklyParlayA: WeeklyParlayConfig; weeklyParlayB: WeeklyParlayConfig; ratios: RatioConfig }>("/api/admin/settings"),
           apiRequest<AdminParlayRound[]>("/api/admin/parlays"),
           apiRequest<AdminRechargeData>("/api/admin/recharges"),
+          apiRequest<AdminCheckinData>("/api/admin/checkins"),
           apiRequest<AdminTreasury>("/api/admin/treasury"),
         ]);
         setManagedUsers(adminUsers.users.map((user) => ({ id: user.id, chineseName: user.name, englishName: user.username, role: user.role, isReferee: user.isReferee, team: user.team?.name ?? "无", teamId: user.team?.id, initialCoins: user.balance })));
@@ -687,6 +758,7 @@ export function Dashboard() {
         setRatios(settings.ratios);
         setAdminParlayRounds(parlayRounds);
         setAdminRecharges(rechargeData);
+        setAdminCheckins(checkinData);
         setAdminTreasury(treasuryData);
         setMatchSchedules(await apiRequest<MatchSchedule[]>("/api/match-schedules"));
       } else if (sessionUser) {
@@ -1543,11 +1615,12 @@ export function Dashboard() {
               </div>
               <div className="parlay-mode-selector">
                 <label>过关模式
-                  <select value={parlayMode} onChange={(event) => setParlayMode(event.target.value as ParlayMode)}>
-                    <option value="DAILY">今日过关</option>
-                    <option value="WEEKLY_A">本周 A 组过关</option>
-                    <option value="WEEKLY_B">本周 B 组过关</option>
-                  </select>
+                  <SearchableSelect
+                    ariaLabel="搜索过关模式"
+                    onChange={(value) => setParlayMode(value as ParlayMode)}
+                    options={[{ value: "DAILY", label: "今日过关" }, { value: "WEEKLY_A", label: "本周 A 组过关" }, { value: "WEEKLY_B", label: "本周 B 组过关" }]}
+                    value={parlayMode}
+                  />
                 </label>
               </div>
               {parlayMode !== "DAILY" && (
@@ -1563,10 +1636,13 @@ export function Dashboard() {
                       {activeWeeklyMarkets.map((market, index) => <label className="parlay-match" key={market.id}>
                         <span className="parlay-number">{index + 1}</span>
                         <span className="parlay-versus"><strong>{market.home} vs {market.away}</strong><small>{market.time} · {market.track} 赛道</small></span>
-                        <select disabled={isBettingRestrictedSession || activeWeeklyJoined || activeWeeklyClosed} value={activeWeeklySelections[market.id] ?? ""} onChange={(event) => parlayMode === "WEEKLY_B" ? setWeeklyBParlaySelections((current) => ({ ...current, [market.id]: event.target.value })) : setWeeklyParlaySelections((current) => ({ ...current, [market.id]: event.target.value }))}>
-                          <option value="">选择结果</option>
-                          {market.options.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
-                        </select>
+                        <SearchableSelect
+                          ariaLabel={`搜索 ${market.home} 对阵 ${market.away} 的预测结果`}
+                          disabled={isBettingRestrictedSession || activeWeeklyJoined || activeWeeklyClosed}
+                          onChange={(value) => parlayMode === "WEEKLY_B" ? setWeeklyBParlaySelections((current) => ({ ...current, [market.id]: value })) : setWeeklyParlaySelections((current) => ({ ...current, [market.id]: value }))}
+                          options={[{ value: "", label: "选择结果" }, ...market.options.map((option) => ({ value: option.id, label: option.label }))]}
+                          value={activeWeeklySelections[market.id] ?? ""}
+                        />
                       </label>)}
                     </div> : <div className="empty-matches">本周 {activeWeeklyTrack} 组 6 场比赛须全部由双方队长确认时间后，才会开放该组过关。</div>}
                     <div className="parlay-submit">
@@ -1589,14 +1665,13 @@ export function Dashboard() {
                         <label className="parlay-match" key={market.id}>
                           <span className="parlay-number">{index + 1}</span>
                           <span className="parlay-versus"><strong>{market.home} vs {market.away}</strong><small>{market.time} · {market.track} 赛道</small></span>
-                          <select
+                          <SearchableSelect
+                            ariaLabel={`搜索 ${market.home} 对阵 ${market.away} 的预测结果`}
                             disabled={isBettingRestrictedSession || parlayJoined || parlayClosed || (marketStatus[market.id] ?? market.state) !== "OPEN"}
+                            onChange={(value) => setParlaySelections((current) => ({ ...current, [market.id]: value }))}
+                            options={[{ value: "", label: "选择结果" }, ...market.options.map((option) => ({ value: option.id, label: option.label }))]}
                             value={parlaySelections[market.id] ?? ""}
-                            onChange={(event) => setParlaySelections((current) => ({ ...current, [market.id]: event.target.value }))}
-                          >
-                            <option value="">选择结果</option>
-                            {market.options.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
-                          </select>
+                          />
                         </label>
                       ))}
                     </div>
@@ -1702,6 +1777,7 @@ export function Dashboard() {
           betRecords={betRecords}
           parlayRounds={adminParlayRounds}
           rechargeData={adminRecharges}
+          checkinData={adminCheckins}
           treasury={adminTreasury}
           onUpdate={updateMarket}
           onSettle={settleAdminMarket}
@@ -1866,15 +1942,15 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, officia
     return local.toISOString().slice(0, 16);
   })();
   return <section className="panel schedule-panel">
-    <div className="section-heading"><div><p className="eyebrow">{admin ? "管理员先设置对阵，队长再确认时间" : official ? "裁判权限 · 可直接设置或修改比赛时间" : readOnly ? "队员只读查看 · 时间操作由队长完成" : "双方队长共同确认"}</p><h2>{admin ? "前 11 周固定场次" : official ? "裁判赛程管理" : readOnly ? "我的战队赛程" : "我的赛程确认"}</h2></div>{admin || official ? <div className="schedule-filter"><label>查看周次<select value={scheduleWeek} onChange={(event) => setScheduleWeek(Number(event.target.value))}>{availableWeeks.map((week) => <option value={week} key={week}>第 {week} 周　{weekCompactRange(week)}</option>)}</select></label><span className="pill">{official ? `${visibleSchedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / ${visibleSchedules.length} 已确认时间` : `${visibleSchedules.filter((item) => item.pairingConfigured).length} / ${visibleSchedules.length} 已设置对阵`}</span></div> : <span className="pill">{schedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / {schedules.length} 已确认时间</span>}</div>
+    <div className="section-heading"><div><p className="eyebrow">{admin ? "管理员先设置对阵，队长再确认时间" : official ? "裁判权限 · 可直接设置或修改比赛时间" : readOnly ? "队员只读查看 · 时间操作由队长完成" : "双方队长共同确认"}</p><h2>{admin ? "前 11 周固定场次" : official ? "裁判赛程管理" : readOnly ? "我的战队赛程" : "我的赛程确认"}</h2></div>{admin || official ? <div className="schedule-filter"><label>查看周次<SearchableSelect ariaLabel="搜索赛程周次" value={String(scheduleWeek)} onChange={(value) => setScheduleWeek(Number(value))} options={availableWeeks.map((week) => ({ value: String(week), label: `第 ${week} 周　${weekCompactRange(week)}` }))} /></label><span className="pill">{official ? `${visibleSchedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / ${visibleSchedules.length} 已确认时间` : `${visibleSchedules.filter((item) => item.pairingConfigured).length} / ${visibleSchedules.length} 已设置对阵`}</span></div> : <span className="pill">{schedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / {schedules.length} 已确认时间</span>}</div>
     <div className="schedule-list">
       {visibleSchedules.map((schedule) => <article className={`schedule-row schedule-${schedule.scheduleStatus.toLowerCase()}`} key={schedule.id}>
         <div className="schedule-match"><span>第 {schedule.week} 周 · {weekCompactRange(schedule.week)} · {schedule.track} 赛道 · 第 {schedule.slotIndex ?? "-"} 场</span><strong>{schedule.pairingConfigured ? `${schedule.home} vs ${schedule.away}` : "等待管理员设置对阵"}</strong><small>{!schedule.pairingConfigured ? "管理员设置双方后，队长方可确认时间" : schedule.scheduleStatus === "CONFIRMED" ? `已生效：${new Date(schedule.scheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : schedule.scheduleStatus === "PROPOSED" ? `${schedule.proposedByTeamName} 提议：${new Date(schedule.proposedScheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : "对阵已设置，等待双方队长确认时间"}</small></div>
         <div className="schedule-actions">
           {admin && schedule.canConfigurePairing && <div className="schedule-pairing-controls">
-            <select value={pairings[schedule.id]?.homeTeamId ?? schedule.homeTeamId} onChange={(event) => setPairings((current) => ({ ...current, [schedule.id]: { homeTeamId: event.target.value, awayTeamId: current[schedule.id]?.awayTeamId ?? schedule.awayTeamId } }))}>{teams.filter((team) => team.track === schedule.track).map((team) => <option value={team.id} key={team.id}>{team.name}</option>)}</select>
+            <SearchableSelect ariaLabel="搜索主队" value={pairings[schedule.id]?.homeTeamId ?? schedule.homeTeamId} onChange={(value) => setPairings((current) => ({ ...current, [schedule.id]: { homeTeamId: value, awayTeamId: current[schedule.id]?.awayTeamId ?? schedule.awayTeamId } }))} options={teams.filter((team) => team.track === schedule.track).map((team) => ({ value: team.id, label: team.name }))} />
             <span>vs</span>
-            <select value={pairings[schedule.id]?.awayTeamId ?? schedule.awayTeamId} onChange={(event) => setPairings((current) => ({ ...current, [schedule.id]: { homeTeamId: current[schedule.id]?.homeTeamId ?? schedule.homeTeamId, awayTeamId: event.target.value } }))}>{teams.filter((team) => team.track === schedule.track).map((team) => <option value={team.id} key={team.id}>{team.name}</option>)}</select>
+            <SearchableSelect ariaLabel="搜索客队" value={pairings[schedule.id]?.awayTeamId ?? schedule.awayTeamId} onChange={(value) => setPairings((current) => ({ ...current, [schedule.id]: { homeTeamId: current[schedule.id]?.homeTeamId ?? schedule.homeTeamId, awayTeamId: value } }))} options={teams.filter((team) => team.track === schedule.track).map((team) => ({ value: team.id, label: team.name }))} />
             <button className="admin-primary" onClick={() => onConfigurePairing?.(schedule.id, pairings[schedule.id]?.homeTeamId ?? schedule.homeTeamId, pairings[schedule.id]?.awayTeamId ?? schedule.awayTeamId)}>{schedule.pairingConfigured ? "修改对阵" : "保存对阵"}</button>
           </div>}
           {admin && !schedule.canConfigurePairing && schedule.pairingLockReason && <small className="schedule-lock-reason">{schedule.pairingLockReason}</small>}
@@ -1914,7 +1990,7 @@ function RefereeSettlementPanel({ markets, statuses, onSettle }: {
   return <section className="panel referee-settlement-panel">
     <div className="section-heading"><div><p className="eyebrow">裁判权限</p><h2>比赛结果结算</h2></div><span className="pill">仅显示已封盘比赛</span></div>
     <div className="settlement-form">
-      <label className="settlement-match">选择比赛<select value={market?.id ?? ""} onChange={(event) => setMarketId(event.target.value)}>{settlementMarkets.map((item) => <option value={item.id} key={item.id}>第 {item.week ?? 4} 周 · {item.time} · {item.home} vs {item.away}</option>)}</select></label>
+      <label className="settlement-match">选择比赛<SearchableSelect ariaLabel="搜索待结算比赛" value={market?.id ?? ""} onChange={setMarketId} options={settlementMarkets.map((item) => ({ value: item.id, label: `第 ${item.week ?? 4} 周 · ${item.time} · ${item.home} vs ${item.away}` }))} /></label>
       <label>主队比分<input type="number" min="0" step="1" value={homeScore} onChange={(event) => setHomeScore(Number(event.target.value))} /></label>
       <label>客队比分<input type="number" min="0" step="1" value={awayScore} onChange={(event) => setAwayScore(Number(event.target.value))} /></label>
       <div className="settlement-auto-result"><span>系统自动判定</span><strong>{resultLabel}</strong></div>
@@ -2013,6 +2089,7 @@ type AdminProps = {
   betRecords: BetRecord[];
   parlayRounds: AdminParlayRound[];
   rechargeData: AdminRechargeData;
+  checkinData: AdminCheckinData;
   treasury: AdminTreasury | null;
   onUpdate: (id: string, status: string) => void;
   onSettle: (marketId: string, homeScore: number, awayScore: number) => void;
@@ -2054,6 +2131,7 @@ function Admin({
   betRecords,
   parlayRounds,
   rechargeData,
+  checkinData,
   treasury,
   onUpdate,
   onSettle,
@@ -2093,7 +2171,6 @@ function Admin({
   const [away, setAway] = useState(initialTrackTeams[1]?.name ?? "");
   const [targetType, setTargetType] = useState<AssetTargetType>("USER");
   const [target, setTarget] = useState(managedUsers[0]?.id ?? "");
-  const [assetTargetSearch, setAssetTargetSearch] = useState("");
   const [assetAction, setAssetAction] = useState<"GRANT" | "DEDUCT">("GRANT");
   const [assetAmount, setAssetAmount] = useState(100);
   const [assetReason, setAssetReason] = useState("运营调整");
@@ -2127,6 +2204,7 @@ function Admin({
   const [deleteUserId, setDeleteUserId] = useState(managedUsers[0]?.id ?? "");
   const [detailMarketId, setDetailMarketId] = useState(allAdminMarkets[0]?.id ?? "");
   const [detailUserId, setDetailUserId] = useState(managedUsers[0]?.id ?? "");
+  const [checkinUserId, setCheckinUserId] = useState("ALL");
   const [settlementMarketId, setSettlementMarketId] = useState(settlementMarkets[0]?.id ?? "");
   const [settlementHomeScore, setSettlementHomeScore] = useState(2);
   const [settlementAwayScore, setSettlementAwayScore] = useState(0);
@@ -2135,26 +2213,23 @@ function Admin({
   const refereeUsers = managedUsers.filter((user) => user.isReferee || user.role === "SCOREKEEPER");
   const isBulkAssetTarget = targetType === "ALL" || targetType === "REFEREE";
   const bulkAssetTargetUsers = targetType === "REFEREE" ? refereeUsers : targetType === "ALL" ? managedUsers : [];
-  const normalizedAssetSearch = assetTargetSearch.trim().toLocaleLowerCase("zh-CN").replace(/\s+/g, "");
   const assetTargetOptions = (isBulkAssetTarget
     ? []
     : targetType === "USER"
     ? managedUsers.map((user) => ({
-        id: user.id,
-        label: `${user.chineseName} / ${user.englishName}`,
-        searchText: `${user.chineseName}${user.englishName}${user.team}`,
+        value: user.id,
+        label: `${user.chineseName} / ${user.englishName} · ${user.team}`,
       }))
     : availableTeams.map((team) => ({
-        id: team.id,
+        value: team.id,
         label: `${team.track}组 · ${team.name}`,
-        searchText: `${team.track}组${team.name}`,
-      })))
-    .filter((option) => option.searchText.toLocaleLowerCase("zh-CN").replace(/\s+/g, "").includes(normalizedAssetSearch));
+      })));
   const detailMarket = allAdminMarkets.find((market) => market.id === detailMarketId) ?? allAdminMarkets[0];
   const detailBets = betRecords.filter((record) => record.marketId === detailMarket?.id);
   const activeDetailBets = detailBets.filter((record) => record.recordStatus === "ACTIVE");
   const detailUser = managedUsers.find((user) => user.id === detailUserId) ?? managedUsers[0];
   const detailUserBets = betRecords.filter((record) => record.userId === detailUser?.id);
+  const filteredCheckins = checkinUserId === "ALL" ? checkinData.records : checkinData.records.filter((record) => record.user.id === checkinUserId);
   const operableMarkets = allAdminMarkets.filter((market) => (statuses[market.id] ?? market.state) !== "DRAFT");
   const operationMarkets = operableMarkets.filter((market) => (market.week ?? 4) === operationWeek);
   const settlementMarket = settlementMarkets.find((market) => market.id === settlementMarketId) ?? settlementMarkets[0];
@@ -2226,17 +2301,6 @@ function Admin({
       if (!window.confirm(`确认向${targetLabel}共 ${bulkAssetTargetUsers.length} 人每人发放 ${money.format(assetAmount)} 竞猜币？合计发放 ${money.format(bulkAssetTargetUsers.length * assetAmount)} 竞猜币。`)) return;
     }
     onAdjustCoins(targetType, isBulkAssetTarget ? targetType : target, assetAction, assetAmount, assetReason.trim());
-  }
-
-  function searchAssetTarget(query: string) {
-    if (isBulkAssetTarget) return;
-    setAssetTargetSearch(query);
-    const normalizedQuery = query.trim().toLocaleLowerCase("zh-CN").replace(/\s+/g, "");
-    const options = (targetType === "USER"
-      ? managedUsers.map((user) => ({ id: user.id, searchText: `${user.chineseName}${user.englishName}${user.team}` }))
-      : availableTeams.map((team) => ({ id: team.id, searchText: `${team.track}组${team.name}` })))
-      .filter((option) => option.searchText.toLocaleLowerCase("zh-CN").replace(/\s+/g, "").includes(normalizedQuery));
-    if (!options.some((option) => option.id === target)) setTarget(options[0]?.id ?? "");
   }
 
   async function previewTeamImport() {
@@ -2425,6 +2489,7 @@ function Admin({
       <button className={adminTab === "USERS" ? "active" : ""} onClick={() => changeAdminTab("USERS")}>用户管理</button>
       <button className={adminTab === "ASSET" ? "active" : ""} onClick={() => changeAdminTab("ASSET")}>竞猜币操作</button>
       <button className={adminTab === "RECHARGES" ? "active" : ""} onClick={() => changeAdminTab("RECHARGES")}>充值审核{rechargeData.pendingCount > 0 ? ` (${rechargeData.pendingCount})` : ""}</button>
+      <button className={adminTab === "CHECKINS" ? "active" : ""} onClick={() => changeAdminTab("CHECKINS")}>签到明细</button>
       <button className={adminTab === "TREASURY" ? "active" : ""} onClick={() => changeAdminTab("TREASURY")}>后台净额明细</button>
       <button className={adminTab === "RULES" ? "active" : ""} onClick={() => changeAdminTab("RULES")}>过关与结算参数</button>
     </div>
@@ -2434,13 +2499,13 @@ function Admin({
       <section className="admin-card">
         <div className="admin-card-head"><div><small>第 12–15 周</small><h3>管理员配置后续对战</h3></div><span>前 11 周请在上方逐场设置对阵</span></div>
         <div className="form-grid">
-          <label className="wide">选择场次<select value={matchId} onChange={(event) => selectMatch(event.target.value)}><option value="blank">空白场次（新建）</option>{allAdminMarkets.filter((market) => (market.week ?? 4) > 11).map((market) => <option value={market.id} key={market.id}>第 {market.week ?? 4} 周 · {market.home} vs {market.away}</option>)}</select></label>
-          <label>比赛周次<select value={matchWeek} onChange={(event) => setMatchWeek(Number(event.target.value))}>{weekOptions.filter((option) => option.week > 11).map((option) => <option value={option.week} key={option.week}>第 {option.week} 周 · {option.range}</option>)}</select></label>
-          <label>比赛日<select value={matchDay} onChange={(event) => setMatchDay(Number(event.target.value))}>{weekDays.map((day, index) => <option value={index + 1} key={day}>{day}</option>)}</select></label>
+          <label className="wide">选择场次<SearchableSelect ariaLabel="搜索比赛场次" value={matchId} onChange={selectMatch} options={[{ value: "blank", label: "空白场次（新建）" }, ...allAdminMarkets.filter((market) => (market.week ?? 4) > 11).map((market) => ({ value: market.id, label: `第 ${market.week ?? 4} 周 · ${market.home} vs ${market.away}` }))]} /></label>
+          <label>比赛周次<SearchableSelect ariaLabel="搜索比赛周次" value={String(matchWeek)} onChange={(value) => setMatchWeek(Number(value))} options={weekOptions.filter((option) => option.week > 11).map((option) => ({ value: String(option.week), label: `第 ${option.week} 周 · ${option.range}` }))} /></label>
+          <label>比赛日<SearchableSelect ariaLabel="搜索比赛日" value={String(matchDay)} onChange={(value) => setMatchDay(Number(value))} options={weekDays.map((day, index) => ({ value: String(index + 1), label: day }))} /></label>
           <label>开赛时间<input type="time" value={matchStartTime} onChange={(event) => setMatchStartTime(event.target.value)} /></label>
-          <label>赛道<select value={track} onChange={(event) => changeTrack(event.target.value as "A" | "B")}><option value="A">A 赛道</option><option value="B">B 赛道</option></select></label>
-          <label>主队<select value={home} onChange={(event) => setHome(event.target.value)}>{teamOptions.length === 0 && <option value="">该组暂无队伍</option>}{teamOptions.map((team) => <option value={team.name} key={team.id}>{team.name}</option>)}</select></label>
-          <label>客队<select value={away} onChange={(event) => setAway(event.target.value)}>{teamOptions.length === 0 && <option value="">该组暂无队伍</option>}{teamOptions.map((team) => <option value={team.name} key={team.id}>{team.name}</option>)}</select></label>
+          <label>赛道<SearchableSelect ariaLabel="搜索赛道" value={track} onChange={(value) => changeTrack(value as "A" | "B")} options={[{ value: "A", label: "A 赛道" }, { value: "B", label: "B 赛道" }]} /></label>
+          <label>主队<SearchableSelect ariaLabel="搜索主队" value={home} onChange={setHome} options={teamOptions.length === 0 ? [{ value: "", label: "该组暂无队伍" }] : teamOptions.map((team) => ({ value: team.name, label: team.name }))} /></label>
+          <label>客队<SearchableSelect ariaLabel="搜索客队" value={away} onChange={setAway} options={teamOptions.length === 0 ? [{ value: "", label: "该组暂无队伍" }] : teamOptions.map((team) => ({ value: team.name, label: team.name }))} /></label>
         </div>
         <div className="admin-warning">已有盘口被重新配置时，旧盘口立即作废，所有已押注竞猜币原路退回并生成冲正流水。</div>
         <button className="admin-primary" onClick={submitMatch}>{matchId === "blank" ? "创建比赛" : "保存修改并执行退款"}</button>
@@ -2449,27 +2514,21 @@ function Admin({
       <section className="admin-card">
         <div className="admin-card-head"><div><small>赛程状态</small><h3>盘口快速操作</h3></div><span>第 {operationWeek} 周 · {operationMarkets.length} 场</span></div>
         <div className="admin-batch-controls">
-          <select value={operationWeek} onChange={(event) => setOperationWeek(Number(event.target.value))}>
-            {weekOptions.map((option) => <option value={option.week} key={option.week}>第 {option.week} 周 · {option.range}</option>)}
-          </select>
-          <select value={batchStatus} onChange={(event) => setBatchStatus(event.target.value)}>
-            <option value="OPEN">开盘中</option>
-            <option value="CLOSED">已封盘</option>
-            <option value="PENDING_REVIEW">待复核</option>
-          </select>
+          <SearchableSelect ariaLabel="搜索操作周次" value={String(operationWeek)} onChange={(value) => setOperationWeek(Number(value))} options={weekOptions.map((option) => ({ value: String(option.week), label: `第 ${option.week} 周 · ${option.range}` }))} />
+          <SearchableSelect ariaLabel="搜索盘口状态" value={batchStatus} onChange={setBatchStatus} options={[{ value: "OPEN", label: "开盘中" }, { value: "CLOSED", label: "已封盘" }, { value: "PENDING_REVIEW", label: "待复核" }]} />
           <button disabled={operationMarkets.length === 0} onClick={() => onBatchUpdate(operationMarkets.map((market) => market.id), batchStatus, `第 ${operationWeek} 周`)}>应用到第 {operationWeek} 周</button>
           <button disabled={operableMarkets.length === 0} onClick={() => onBatchUpdate(operableMarkets.map((market) => market.id), batchStatus, "全部赛程")}>应用到全部已确认时间的比赛</button>
         </div>
         <div className="admin-market-list">{operationMarkets.map((market, index) => {
           const status = statuses[market.id] ?? market.state;
           const isClosed = status === "CLOSED";
-          return <div className={isClosed ? "is-closed" : ""} key={market.id}><span><strong>第 {operationWeek} 周 · 第 {index + 1} 场｜{market.home} vs {market.away}</strong><small>{market.time} · {market.track} 赛道 · 奖池 {money.format(market.pool)}</small></span><b className={`admin-market-status state-${status.toLowerCase().replace("_", "-")}`}>{stateLabels[status] ?? status}</b>{status === "SETTLED" ? <span className="settled-lock">已结算锁定</span> : <select className="market-state-select" value={status} onChange={(event) => onUpdate(market.id, event.target.value)}><option value="OPEN">解封 / 开盘</option><option value="CLOSED">封盘</option><option value="PENDING_REVIEW">待复核</option></select>}</div>;
+          return <div className={isClosed ? "is-closed" : ""} key={market.id}><span><strong>第 {operationWeek} 周 · 第 {index + 1} 场｜{market.home} vs {market.away}</strong><small>{market.time} · {market.track} 赛道 · 奖池 {money.format(market.pool)}</small></span><b className={`admin-market-status state-${status.toLowerCase().replace("_", "-")}`}>{stateLabels[status] ?? status}</b>{status === "SETTLED" ? <span className="settled-lock">已结算锁定</span> : <SearchableSelect ariaLabel={`搜索 ${market.home} 对阵 ${market.away} 的盘口状态`} className="market-state-select" value={status} onChange={(value) => onUpdate(market.id, value)} options={[{ value: "OPEN", label: "解封 / 开盘" }, { value: "CLOSED", label: "封盘" }, { value: "PENDING_REVIEW", label: "待复核" }]} />}</div>;
         })}{operationMarkets.length === 0 && <div className="admin-market-empty">第 {operationWeek} 周尚未配置比赛</div>}</div>
       </section>
 
       <section className="admin-card admin-wide liquidity-card">
         <div className="admin-card-head"><div><small>未封盘盘口</small><h3>按结果注入竞猜币</h3></div><span>注入后立即更新奖池与动态赔率</span></div>
-        <label className="liquidity-market-select">选择比赛<select value={liquidityMarket?.id ?? ""} onChange={(event) => setLiquidityMarketId(event.target.value)}>{openMarkets.map((market) => <option value={market.id} key={market.id}>第 {market.week ?? 4} 周 · {market.time} · {market.home} vs {market.away}</option>)}</select></label>
+        <label className="liquidity-market-select">选择比赛<SearchableSelect ariaLabel="搜索注入比赛" value={liquidityMarket?.id ?? ""} onChange={setLiquidityMarketId} options={openMarkets.map((market) => ({ value: market.id, label: `第 ${market.week ?? 4} 周 · ${market.time} · ${market.home} vs ${market.away}` }))} /></label>
         {liquidityMarket ? <div className="liquidity-option-grid">
           {(["home", "draw", "away"] as const).map((result) => {
             const option = liquidityMarket.options.find((item) => item.key === result);
@@ -2487,7 +2546,7 @@ function Admin({
       <section className="admin-card admin-wide settlement-card">
         <div className="admin-card-head"><div><small>赛果与派奖</small><h3>比赛结果结算</h3></div><span>管理员只需填写比分</span></div>
         <div className="settlement-form">
-          <label className="settlement-match">选择比赛<select value={settlementMarket?.id ?? ""} onChange={(event) => setSettlementMarketId(event.target.value)}>{settlementMarkets.map((market) => <option value={market.id} key={market.id}>第 {market.week ?? 4} 周 · {market.time} · {market.home} vs {market.away}</option>)}</select></label>
+          <label className="settlement-match">选择比赛<SearchableSelect ariaLabel="搜索结算比赛" value={settlementMarket?.id ?? ""} onChange={setSettlementMarketId} options={settlementMarkets.map((market) => ({ value: market.id, label: `第 ${market.week ?? 4} 周 · ${market.time} · ${market.home} vs ${market.away}` }))} /></label>
           <label>主队比分<input type="number" min="0" step="1" value={settlementHomeScore} onChange={(event) => setSettlementHomeScore(Number(event.target.value))} /></label>
           <label>客队比分<input type="number" min="0" step="1" value={settlementAwayScore} onChange={(event) => setSettlementAwayScore(Number(event.target.value))} /></label>
           <div className="settlement-auto-result"><span>系统自动判定</span><strong>{settlementResultLabel}</strong></div>
@@ -2504,7 +2563,7 @@ function Admin({
       <section className="admin-card admin-wide">
         <div className="admin-card-head"><div><small>封盘后配置</small><h3>调整锁定赔率</h3></div><span>必须记录调整原因</span></div>
         <div className="form-grid odds-form">
-          <label>已封盘比赛<select value={oddsMarketId} onChange={(event) => setOddsMarketId(event.target.value)}>{closedMarkets.map((market) => <option value={market.id} key={market.id}>第 {market.week ?? 4} 周 · {market.time} · {market.home} vs {market.away}</option>)}</select></label>
+          <label>已封盘比赛<SearchableSelect ariaLabel="搜索已封盘比赛" value={oddsMarketId} onChange={setOddsMarketId} options={closedMarkets.map((market) => ({ value: market.id, label: `第 ${market.week ?? 4} 周 · ${market.time} · ${market.home} vs ${market.away}` }))} /></label>
           <label>主胜赔率<input type="number" min="1" step="0.01" value={homeOdds} onChange={(event) => setHomeOdds(Number(event.target.value))} /></label>
           <label>平局赔率<input type="number" min="1" step="0.01" value={drawOdds} onChange={(event) => setDrawOdds(Number(event.target.value))} /></label>
           <label>客胜赔率<input type="number" min="1" step="0.01" value={awayOdds} onChange={(event) => setAwayOdds(Number(event.target.value))} /></label>
@@ -2519,9 +2578,7 @@ function Admin({
         <div className="admin-card-head"><div><small>用户核对</small><h3>按用户查看下注流水</h3></div><span>{detailUser ? `${detailUser.chineseName} · ${detailUserBets.length} 笔` : "暂无用户"}</span></div>
         <div className="bet-detail-filter user-bet-filter">
           <label>选择用户
-            <select value={detailUser?.id ?? ""} onChange={(event) => setDetailUserId(event.target.value)}>
-              {managedUsers.map((user) => <option value={user.id} key={user.id}>{user.chineseName} / {user.englishName} · {user.team}</option>)}
-            </select>
+            <SearchableSelect ariaLabel="搜索下注用户" value={detailUser?.id ?? ""} onChange={setDetailUserId} options={managedUsers.map((user) => ({ value: user.id, label: `${user.chineseName} / ${user.englishName} · ${user.team}` }))} />
           </label>
           {detailUser && <div className="bet-detail-market-state"><span>当前竞猜币</span><b>{money.format(detailUser.initialCoins)}</b></div>}
         </div>
@@ -2552,9 +2609,7 @@ function Admin({
         <div className="admin-card-head"><div><small>订单核对</small><h3>每场比赛下注明细</h3></div><span>共 {betRecords.length} 笔下注记录</span></div>
         <div className="bet-detail-filter">
           <label>选择比赛
-            <select value={detailMarket?.id ?? ""} onChange={(event) => setDetailMarketId(event.target.value)}>
-              {allAdminMarkets.map((market) => <option value={market.id} key={market.id}>第 {market.week ?? 4} 周 · {market.time} · {market.home} vs {market.away}</option>)}
-            </select>
+            <SearchableSelect ariaLabel="搜索下注比赛" value={detailMarket?.id ?? ""} onChange={setDetailMarketId} options={allAdminMarkets.map((market) => ({ value: market.id, label: `第 ${market.week ?? 4} 周 · ${market.time} · ${market.home} vs ${market.away}` }))} />
           </label>
           {detailMarket && <div className="bet-detail-market-state"><span>当前状态</span><b className={`state-${(statuses[detailMarket.id] ?? detailMarket.state).toLowerCase().replace("_", "-")}`}>{stateLabels[statuses[detailMarket.id] ?? detailMarket.state]}</b></div>}
         </div>
@@ -2652,7 +2707,7 @@ function Admin({
         <div className="form-grid user-form">
           <label>中文名<input value={userChineseName} onChange={(event) => setUserChineseName(event.target.value)} placeholder="例如：张三" /></label>
           <label>英文名<input value={userEnglishName} onChange={(event) => setUserEnglishName(event.target.value)} placeholder="例如：Alex" /></label>
-          <label>队伍名<select value={userTeam} onChange={(event) => setUserTeam(event.target.value)}><option value="">请选择队伍</option><option value="无">无</option>{availableTeams.map((team) => <option value={team.name} key={team.id}>{team.track}组 · {team.name}</option>)}</select></label>
+          <label>队伍名<SearchableSelect ariaLabel="搜索用户队伍" value={userTeam} onChange={setUserTeam} options={[{ value: "", label: "请选择队伍" }, { value: "无", label: "无" }, ...availableTeams.map((team) => ({ value: team.name, label: `${team.track}组 · ${team.name}` }))]} /></label>
           <label>初始竞猜币<input type="number" min="0" step="1" value={userInitialCoins} onChange={(event) => setUserInitialCoins(Number(event.target.value))} /></label>
         </div>
         <button className="admin-primary" onClick={submitUser}>添加用户并发放初始竞猜币</button>
@@ -2660,7 +2715,7 @@ function Admin({
       <section className="admin-card admin-wide">
         <div className="admin-card-head"><div><small>用户列表</small><h3>已添加用户</h3></div><span>删除操作不可撤销</span></div>
         <div className="user-delete-controls">
-          <label>选择删除用户<select value={deleteUserId} onChange={(event) => setDeleteUserId(event.target.value)}><option value="">请选择用户</option>{managedUsers.map((user) => <option value={user.id} key={user.id}>{user.chineseName} / {user.englishName} · {user.team}</option>)}</select></label>
+          <label>选择删除用户<SearchableSelect ariaLabel="搜索待删除用户" value={deleteUserId} onChange={setDeleteUserId} options={[{ value: "", label: "请选择用户" }, ...managedUsers.map((user) => ({ value: user.id, label: `${user.chineseName} / ${user.englishName} · ${user.team}` }))]} /></label>
           <button disabled={!deleteUserId} onClick={submitDeleteUser}>删除所选用户</button>
         </div>
         <div className="managed-user-table">
@@ -2674,9 +2729,9 @@ function Admin({
       <section className="admin-card admin-wide">
         <div className="admin-card-head"><div><small>资产中心</small><h3>竞猜币发放与扣除</h3></div><span>禁止直接修改数据库余额</span></div>
         <div className="form-grid asset-form">
-          <label>目标类型<select value={targetType} onChange={(event) => { const type = event.target.value as AssetTargetType; const bulk = type === "ALL" || type === "REFEREE"; setTargetType(type); setAssetTargetSearch(""); setAssetAction(bulk ? "GRANT" : assetAction); setTarget(bulk ? type : type === "USER" ? (managedUsers[0]?.id ?? "") : (availableTeams[0]?.id ?? "")); }}><option value="USER">指定用户</option><option value="TEAM">指定队伍</option><option value="REFEREE">所有裁判</option><option value="ALL">所有用户</option></select></label>
-          <label>目标{isBulkAssetTarget ? <input value={`${targetType === "REFEREE" ? "全部裁判" : "全部用户"} ${bulkAssetTargetUsers.length} 人（每人发放）`} disabled /> : <div className="asset-target-picker"><input type="search" value={assetTargetSearch} placeholder={targetType === "USER" ? "搜索姓名/账号/队伍" : "搜索队伍"} onChange={(event) => searchAssetTarget(event.target.value)} /><select value={target} onChange={(event) => setTarget(event.target.value)}>{assetTargetOptions.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}{assetTargetOptions.length === 0 && <option value="">无匹配结果</option>}</select></div>}</label>
-          <label>操作<select value={assetAction} onChange={(event) => { const action = event.target.value as "GRANT" | "DEDUCT"; setAssetAction(action); if (action === "DEDUCT" && isBulkAssetTarget) { setTargetType("USER"); setTarget(managedUsers[0]?.id ?? ""); } }}><option value="GRANT">发放竞猜币</option><option value="DEDUCT">扣除竞猜币</option></select></label>
+          <label>目标类型<SearchableSelect ariaLabel="搜索目标类型" value={targetType} onChange={(value) => { const type = value as AssetTargetType; const bulk = type === "ALL" || type === "REFEREE"; setTargetType(type); setAssetAction(bulk ? "GRANT" : assetAction); setTarget(bulk ? type : type === "USER" ? (managedUsers[0]?.id ?? "") : (availableTeams[0]?.id ?? "")); }} options={[{ value: "USER", label: "指定用户" }, { value: "TEAM", label: "指定队伍" }, { value: "REFEREE", label: "所有裁判" }, { value: "ALL", label: "所有用户" }]} /></label>
+          <label>目标{isBulkAssetTarget ? <input value={`${targetType === "REFEREE" ? "全部裁判" : "全部用户"} ${bulkAssetTargetUsers.length} 人（每人发放）`} disabled /> : <SearchableSelect ariaLabel={targetType === "USER" ? "搜索姓名、账号或队伍" : "搜索队伍"} value={target} onChange={setTarget} options={assetTargetOptions} />}</label>
+          <label>操作<SearchableSelect ariaLabel="搜索竞猜币操作" value={assetAction} onChange={(value) => { const action = value as "GRANT" | "DEDUCT"; setAssetAction(action); if (action === "DEDUCT" && isBulkAssetTarget) { setTargetType("USER"); setTarget(managedUsers[0]?.id ?? ""); } }} options={[{ value: "GRANT", label: "发放竞猜币" }, { value: "DEDUCT", label: "扣除竞猜币" }]} /></label>
           <label>金额<input type="number" min="1" step="1" value={assetAmount} onChange={(event) => setAssetAmount(Number(event.target.value))} /></label>
           <label className="wide">操作原因<input value={assetReason} onChange={(event) => setAssetReason(event.target.value)} /></label>
         </div>
@@ -2707,6 +2762,39 @@ function Admin({
           {rechargeData.requests.length === 0 && <div className="bet-detail-empty">暂无充值申请</div>}
         </div>
         <div className="admin-warning">可使用“一键审核并发放”直接完成审核与到账，也可保留首次、二次确认流程。充值金额仅在本页单独统计，不纳入后台净额。</div>
+      </section>
+    </div>}
+
+    {adminTab === "CHECKINS" && <div className="admin-grid">
+      <section className="admin-card admin-wide">
+        <div className="admin-card-head"><div><small>用户福利</small><h3>每日签到明细</h3></div><span>当前每次奖励 {money.format(dailyCheckinReward)} 竞猜币</span></div>
+        <div className="recharge-audit-summary">
+          <div><span>签到总次数</span><strong>{checkinData.totalCount}</strong></div>
+          <div><span>签到用户数</span><strong>{checkinData.userCount}</strong></div>
+          <div><span>累计发放</span><strong>{money.format(checkinData.totalAmount)}</strong></div>
+        </div>
+        <div className="bet-detail-filter checkin-detail-filter">
+          <label>筛选用户
+            <SearchableSelect
+              ariaLabel="搜索签到用户"
+              onChange={setCheckinUserId}
+              options={[{ value: "ALL", label: "全部用户" }, ...managedUsers.map((user) => ({ value: user.id, label: `${user.chineseName} / ${user.englishName} · ${user.team}` }))]}
+              value={checkinUserId}
+            />
+          </label>
+          <div className="bet-detail-market-state"><span>当前显示</span><b>{filteredCheckins.length} 条</b></div>
+        </div>
+        <div className="checkin-detail-list">
+          <div className="checkin-detail-row header"><span>用户</span><span>所属队伍</span><span>签到日期</span><span>奖励</span><span>签到时间</span></div>
+          {filteredCheckins.map((record) => <div className="checkin-detail-row" key={record.id}>
+            <span><strong>{record.user.name}</strong><small>{record.user.username}</small></span>
+            <span>{record.user.team}</span>
+            <span>{record.dayKey}</span>
+            <span className="positive">+{money.format(record.amount)}</span>
+            <span>{new Date(record.createdAt).toLocaleString("zh-CN", { hour12: false })}</span>
+          </div>)}
+          {filteredCheckins.length === 0 && <div className="bet-detail-empty">暂无符合条件的签到记录</div>}
+        </div>
       </section>
     </div>}
 
