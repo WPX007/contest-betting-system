@@ -297,10 +297,12 @@ function SearchableSelect({
         const exact = options.find((option) => option.label.toLocaleLowerCase("zh-CN") === nextQuery.trim().toLocaleLowerCase("zh-CN"));
         if (exact) onChange(exact.value);
       }}
-      onFocus={(event) => {
-        setQuery(selectedLabel);
+      onFocus={() => {
+        setQuery("");
         setEditing(true);
-        event.currentTarget.select();
+      }}
+      onMouseDown={() => {
+        if (!editing || query === selectedLabel) setQuery("");
       }}
       placeholder={placeholder}
       title="可输入关键词搜索"
