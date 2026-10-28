@@ -2082,6 +2082,7 @@ export const ParlayConfigScalarFieldEnum = {
   basePool6Plus: 'basePool6Plus',
   ticketPoolBonusBps: 'ticketPoolBonusBps',
   dailyCheckinReward: 'dailyCheckinReward',
+  marketOpeningStake: 'marketOpeningStake',
   weeklyTicketStake: 'weeklyTicketStake',
   weeklyBasePool: 'weeklyBasePool',
   weeklyTicketPoolBonusBps: 'weeklyTicketPoolBonusBps',

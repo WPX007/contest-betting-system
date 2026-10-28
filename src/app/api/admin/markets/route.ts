@@ -3,7 +3,7 @@ import { z } from "zod";
 import { LedgerReason, MatchScheduleStatus, MarketStatus, MatchStatus, Track } from "@/generated/prisma/enums";
 import { authErrorResponse, requireAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
-import { debitHouseWallet } from "@/lib/services/house-wallet";
+import { debitHouseWallet, seedMarketOpeningLiquidity } from "@/lib/services/house-wallet";
 import { listMarkets } from "@/lib/services/market-service";
 import { adminClearMatchTime, adminConfigureMatchPairing, adminRescheduleMatch } from "@/lib/services/match-schedule-service";
 import { refundMarket, settleMarket } from "@/lib/services/settlement-service";
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
           },
         },
       });
+      await seedMarketOpeningLiquidity(tx, created.id);
       await tx.auditLog.create({
         data: { actorId: admin.id, action: "MARKET_CREATE", target: created.id, after: JSON.stringify(input) },
       });
@@ -103,12 +104,17 @@ export async function PATCH(request: Request) {
         },
       });
       if (unconfirmedCount > 0) throw new Error("比赛时间尚未由双方确认，不能修改盘口状态");
-      await prisma.market.updateMany({
-        where: { id: { in: input.ids } },
-        data: { status, closedAt: status === MarketStatus.OPEN ? null : new Date() },
-      });
-      await prisma.auditLog.create({
-        data: { actorId: admin.id, action: "MARKET_STATUS_BATCH", target: input.ids.join(","), after: status },
+      await prisma.$transaction(async (tx) => {
+        await tx.market.updateMany({
+          where: { id: { in: input.ids } },
+          data: { status, closedAt: status === MarketStatus.OPEN ? null : new Date() },
+        });
+        if (status === MarketStatus.OPEN) {
+          for (const marketId of input.ids) await seedMarketOpeningLiquidity(tx, marketId);
+        }
+        await tx.auditLog.create({
+          data: { actorId: admin.id, action: "MARKET_STATUS_BATCH", target: input.ids.join(","), after: status },
+        });
       });
       return NextResponse.json({ data: { updated: input.ids.length } });
     }
@@ -246,6 +252,7 @@ export async function PATCH(request: Request) {
           prisma.marketOption.update({ where: { id: options[2].id }, data: { label: `${away.name} 胜（0:2）`, isWinner: false } }),
         ]);
       }
+      await prisma.$transaction((tx) => seedMarketOpeningLiquidity(tx, market.id));
       return NextResponse.json({ data: { configured: true, refundedBets: activeBets } });
     }
     return NextResponse.json({ error: "不支持的盘口操作" }, { status: 400 });

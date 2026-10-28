@@ -1,6 +1,7 @@
 import { MatchScheduleStatus, MarketStatus, UserRole } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { seedMarketOpeningLiquidity } from "@/lib/services/house-wallet";
 
 async function syncOpenParlayDeadlines(tx: Prisma.TransactionClient, marketId: string) {
   const rounds = await tx.parlayRound.findMany({
@@ -18,8 +19,7 @@ async function syncOpenParlayDeadlines(tx: Prisma.TransactionClient, marketId: s
 function assertFutureWeekTime(match: { weekNumber: number; season: { startsAt: Date } }, scheduledAt: Date) {
   if (Number.isNaN(scheduledAt.getTime()) || scheduledAt <= new Date()) throw new Error("比赛时间必须晚于当前时间");
   const weekStart = new Date(match.season.startsAt.getTime() + (match.weekNumber - 1) * 7 * 86_400_000);
-  const weekEnd = new Date(weekStart.getTime() + 7 * 86_400_000);
-  if (scheduledAt < weekStart || scheduledAt >= weekEnd) throw new Error(`比赛时间必须在第 ${match.weekNumber} 周范围内`);
+  if (scheduledAt < weekStart) throw new Error(`比赛时间不能早于第 ${match.weekNumber} 周开始时间，可安排在该周或之后`);
 }
 
 type ScheduleActor = { id: string; role: UserRole; teamId: string | null; isReferee: boolean };
@@ -240,6 +240,7 @@ export async function confirmMatchTime(actor: ScheduleActor, matchId: string) {
             },
           },
         });
+    await seedMarketOpeningLiquidity(tx, market.id);
     await tx.match.update({
       where: { id: match.id },
       data: {
@@ -305,6 +306,7 @@ async function rescheduleMatch(actorId: string, matchId: string, scheduledAt: Da
       });
       marketId = market.id;
     }
+    await seedMarketOpeningLiquidity(tx, marketId);
     await syncOpenParlayDeadlines(tx, marketId);
     await tx.auditLog.create({
       data: { actorId, action: auditAction, target: match.id, after: scheduledAt.toISOString() },

@@ -1,0 +1,1 @@
+ALTER TABLE "ParlayConfig" ADD COLUMN "marketOpeningStake" INTEGER NOT NULL DEFAULT 500;

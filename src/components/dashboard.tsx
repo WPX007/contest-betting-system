@@ -251,10 +251,18 @@ function weekCompactRange(week: number) {
   return `${start.getMonth() + 1}.${start.getDate()}-${end.getMonth() + 1}.${end.getDate()}`;
 }
 
-function currentCompetitionWeek() {
-  const [year, month, day] = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" }).split("-").map(Number);
+function competitionWeekForDate(value: Date | string) {
+  const [year, month, day] = new Date(value).toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" }).split("-").map(Number);
   const daysSinceSeasonStart = Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(2026, 9, 12)) / 86_400_000);
   return Math.min(weekOptions.length, Math.max(1, Math.floor(daysSinceSeasonStart / 7) + 1));
+}
+
+function currentCompetitionWeek() {
+  return competitionWeekForDate(new Date());
+}
+
+function marketDisplayWeek(market: Market) {
+  return market.scheduledAt ? competitionWeekForDate(market.scheduledAt) : market.week ?? 4;
 }
 
 type SearchableOption = { value: string; label: string };
@@ -361,6 +369,7 @@ export function Dashboard() {
   const [weeklyBParlaySelections, setWeeklyBParlaySelections] = useState<Record<string, string>>({});
   const [ratios, setRatios] = useState<RatioConfig>({ returnPercent: 25, recoveryPercent: 5, prizePercent: 70 });
   const [dailyCheckinReward, setDailyCheckinReward] = useState(400);
+  const [marketOpeningStake, setMarketOpeningStake] = useState(500);
   const [dailyCheckinStatus, setDailyCheckinStatus] = useState<DailyCheckinStatus | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
@@ -485,7 +494,7 @@ export function Dashboard() {
 
   const visibleMarkets = useMemo(() => {
     return serverMarkets
-      .filter((market) => (market.week ?? 4) === selectedWeek)
+      .filter((market) => marketDisplayWeek(market) === selectedWeek)
       .sort((first, second) => (first.scheduledAt ?? "").localeCompare(second.scheduledAt ?? ""));
   }, [selectedWeek, serverMarkets]);
   const allConfiguredMarkets = useMemo(
@@ -563,7 +572,7 @@ export function Dashboard() {
       setServerMarkets(data);
       setMarketStatus(Object.fromEntries(data.map((market) => [market.id, market.state])));
       const current = data.find((market) => market.id === selectedMarketIdRef.current)
-        ?? data.find((market) => (market.week ?? 4) === selectedWeekRef.current)
+        ?? data.find((market) => marketDisplayWeek(market) === selectedWeekRef.current)
         ?? data[0];
       if (current) {
         if (current.id !== selectedMarketIdRef.current) setSelectedMarketId(current.id);
@@ -691,10 +700,10 @@ export function Dashboard() {
           (market) => market.scheduledAt
             && new Date(market.scheduledAt).toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" }) === todayKey,
         );
-        const initialWeek = initialTodayMarkets[0]?.week ?? currentCompetitionWeek();
+        const initialWeek = initialTodayMarkets[0] ? marketDisplayWeek(initialTodayMarkets[0]) : currentCompetitionWeek();
         const initialMarkets = initialTodayMarkets.length > 0
           ? initialTodayMarkets
-          : marketData.filter((market) => (market.week ?? 4) === initialWeek);
+          : marketData.filter((market) => marketDisplayWeek(market) === initialWeek);
         setSelectedWeek(initialWeek);
         setMatchScope(initialTodayMarkets.length > 0 ? "TODAY" : "WEEK");
         setParlayMode(dailyParlayAvailable ? "DAILY" : "WEEKLY_A");
@@ -742,7 +751,7 @@ export function Dashboard() {
         const [adminUsers, adminBets, settings, parlayRounds, rechargeData, checkinData, treasuryData] = await Promise.all([
           apiRequest<{ users: Array<{ id: string; name: string; username: string; role: string; isReferee: boolean; team: { id: string; name: string } | null; balance: number }>; teams: AdminTeam[] }>("/api/admin/users"),
           apiRequest<BetRecord[]>("/api/admin/bets"),
-          apiRequest<{ parlayTicket: number; parlayBasePools: ParlayBasePools; ticketPoolBonusMultiplier: number; dailyCheckinReward: number; weeklyParlayA: WeeklyParlayConfig; weeklyParlayB: WeeklyParlayConfig; ratios: RatioConfig }>("/api/admin/settings"),
+          apiRequest<{ parlayTicket: number; parlayBasePools: ParlayBasePools; ticketPoolBonusMultiplier: number; dailyCheckinReward: number; marketOpeningStake: number; weeklyParlayA: WeeklyParlayConfig; weeklyParlayB: WeeklyParlayConfig; ratios: RatioConfig }>("/api/admin/settings"),
           apiRequest<AdminParlayRound[]>("/api/admin/parlays"),
           apiRequest<AdminRechargeData>("/api/admin/recharges"),
           apiRequest<AdminCheckinData>("/api/admin/checkins"),
@@ -755,6 +764,7 @@ export function Dashboard() {
         setParlayBasePools(settings.parlayBasePools);
         setTicketPoolBonusMultiplier(settings.ticketPoolBonusMultiplier);
         setDailyCheckinReward(settings.dailyCheckinReward);
+        setMarketOpeningStake(settings.marketOpeningStake);
         setWeeklyParlayConfig(settings.weeklyParlayA);
         setWeeklyBParlayConfig(settings.weeklyParlayB);
         setRatios(settings.ratios);
@@ -932,7 +942,7 @@ export function Dashboard() {
 
   function changeWeek(week: number) {
     const nextWeek = Math.min(weekOptions.length, Math.max(1, week));
-    const nextMarkets = serverMarkets.filter((market) => (market.week ?? 4) === nextWeek);
+    const nextMarkets = serverMarkets.filter((market) => marketDisplayWeek(market) === nextWeek);
     setSelectedWeek(nextWeek);
     setMatchScope("WEEK");
     setStatusFilter("ALL");
@@ -1303,6 +1313,21 @@ export function Dashboard() {
       setNotice(`每日签到奖励已调整为 ${money.format(reward)} 竞猜币，下次签到起生效。`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "保存签到奖励失败");
+    }
+  }
+
+  async function saveMarketOpeningStake(stake: number) {
+    try {
+      await apiRequest("/api/admin/settings", {
+        method: "PATCH",
+        body: JSON.stringify({ marketOpeningStake: stake }),
+      });
+      await refreshData(true);
+      setNotice(stake > 0
+        ? `开盘默认注入已调整为每个结果 ${money.format(stake)} 竞猜币，下次首次开盘起生效。`
+        : "已关闭开盘默认注入。");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "保存开盘默认注入失败");
     }
   }
 
@@ -1762,7 +1787,7 @@ export function Dashboard() {
         {activeTab === "排行榜" && <Ranking entries={rankingEntries} loading={loadingData} />}
         {activeTab === "成就奖" && <Achievements data={achievementData} loading={loadingData} />}
         {sessionUser.isAdmin && activeTab === "后台管理设置" && <Admin
-          key={`${adminTeams.map((team) => team.id).join(",")}:${parlayTicket}:${parlayBasePools.three}:${parlayBasePools.four}:${parlayBasePools.five}:${parlayBasePools.sixPlus}:${ticketPoolBonusMultiplier}:${dailyCheckinReward}:${weeklyParlayConfig.ticket}:${weeklyParlayConfig.basePool}:${weeklyParlayConfig.bonusMultiplier}:${weeklyBParlayConfig.ticket}:${weeklyBParlayConfig.basePool}:${weeklyBParlayConfig.bonusMultiplier}:${ratios.returnPercent}:${ratios.recoveryPercent}:${ratios.prizePercent}`}
+          key={`${adminTeams.map((team) => team.id).join(",")}:${parlayTicket}:${parlayBasePools.three}:${parlayBasePools.four}:${parlayBasePools.five}:${parlayBasePools.sixPlus}:${ticketPoolBonusMultiplier}:${dailyCheckinReward}:${marketOpeningStake}:${weeklyParlayConfig.ticket}:${weeklyParlayConfig.basePool}:${weeklyParlayConfig.bonusMultiplier}:${weeklyBParlayConfig.ticket}:${weeklyBParlayConfig.basePool}:${weeklyBParlayConfig.bonusMultiplier}:${ratios.returnPercent}:${ratios.recoveryPercent}:${ratios.prizePercent}`}
           statuses={marketStatus}
           adminMarkets={currentAdminMarkets}
           allAdminMarkets={allConfiguredMarkets}
@@ -1770,6 +1795,7 @@ export function Dashboard() {
           parlayBasePools={parlayBasePools}
           ticketPoolBonusMultiplier={ticketPoolBonusMultiplier}
           dailyCheckinReward={dailyCheckinReward}
+          marketOpeningStake={marketOpeningStake}
           weeklyParlayConfig={weeklyParlayConfig}
           weeklyBParlayConfig={weeklyBParlayConfig}
           ratios={ratios}
@@ -1793,6 +1819,7 @@ export function Dashboard() {
           onSaveWeeklyParlay={saveWeeklyParlaySettings}
           onSaveRatios={saveRatios}
           onSaveDailyCheckinReward={saveDailyCheckinReward}
+          onSaveMarketOpeningStake={saveMarketOpeningStake}
           onSaveOdds={saveClosedOdds}
           onInjectLiquidity={injectMarketLiquidity}
           onImportTeams={importTeamWorkbook}
@@ -1947,7 +1974,7 @@ function SchedulePanel({ schedules, onPropose, onConfirm, admin = false, officia
     <div className="section-heading"><div><p className="eyebrow">{admin ? "管理员先设置对阵，队长再确认时间" : official ? "裁判权限 · 可直接设置或修改比赛时间" : readOnly ? "队员只读查看 · 时间操作由队长完成" : "双方队长共同确认"}</p><h2>{admin ? "前 11 周固定场次" : official ? "裁判赛程管理" : readOnly ? "我的战队赛程" : "我的赛程确认"}</h2></div>{admin || official ? <div className="schedule-filter"><label>查看周次<SearchableSelect ariaLabel="搜索赛程周次" value={String(scheduleWeek)} onChange={(value) => setScheduleWeek(Number(value))} options={availableWeeks.map((week) => ({ value: String(week), label: `第 ${week} 周　${weekCompactRange(week)}` }))} /></label><span className="pill">{official ? `${visibleSchedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / ${visibleSchedules.length} 已确认时间` : `${visibleSchedules.filter((item) => item.pairingConfigured).length} / ${visibleSchedules.length} 已设置对阵`}</span></div> : <span className="pill">{schedules.filter((item) => item.scheduleStatus === "CONFIRMED").length} / {schedules.length} 已确认时间</span>}</div>
     <div className="schedule-list">
       {visibleSchedules.map((schedule) => <article className={`schedule-row schedule-${schedule.scheduleStatus.toLowerCase()}`} key={schedule.id}>
-        <div className="schedule-match"><span>第 {schedule.week} 周 · {weekCompactRange(schedule.week)} · {schedule.track} 赛道 · 第 {schedule.slotIndex ?? "-"} 场</span><strong>{schedule.pairingConfigured ? `${schedule.home} vs ${schedule.away}` : "等待管理员设置对阵"}</strong><small>{!schedule.pairingConfigured ? "管理员设置双方后，队长方可确认时间" : schedule.scheduleStatus === "CONFIRMED" ? `已生效：${new Date(schedule.scheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : schedule.scheduleStatus === "PROPOSED" ? `${schedule.proposedByTeamName} 提议：${new Date(schedule.proposedScheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : "对阵已设置，等待双方队长确认时间"}</small></div>
+        <div className="schedule-match"><span>第 {schedule.week} 周 · {weekCompactRange(schedule.week)} · {schedule.track} 赛道 · 第 {schedule.slotIndex ?? "-"} 场</span><strong>{schedule.pairingConfigured ? `${schedule.home} vs ${schedule.away}` : "等待管理员设置对阵"}</strong><small>{!schedule.pairingConfigured ? "管理员设置双方后，队长方可确认时间" : schedule.scheduleStatus === "CONFIRMED" ? `已生效：${new Date(schedule.scheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : schedule.scheduleStatus === "PROPOSED" ? `${schedule.proposedByTeamName} 提议：${new Date(schedule.proposedScheduledAt!).toLocaleString("zh-CN", { hour12: false })}` : `优先安排在第 ${schedule.week} 周，如需延期也可选择之后日期`}</small></div>
         <div className="schedule-actions">
           {admin && schedule.canConfigurePairing && <div className="schedule-pairing-controls">
             <SearchableSelect ariaLabel="搜索主队" value={pairings[schedule.id]?.homeTeamId ?? schedule.homeTeamId} onChange={(value) => setPairings((current) => ({ ...current, [schedule.id]: { homeTeamId: value, awayTeamId: current[schedule.id]?.awayTeamId ?? schedule.awayTeamId } }))} options={teams.filter((team) => team.track === schedule.track).map((team) => ({ value: team.id, label: team.name }))} />
@@ -2082,6 +2109,7 @@ type AdminProps = {
   parlayBasePools: ParlayBasePools;
   ticketPoolBonusMultiplier: number;
   dailyCheckinReward: number;
+  marketOpeningStake: number;
   weeklyParlayConfig: WeeklyParlayConfig;
   weeklyBParlayConfig: WeeklyParlayConfig;
   ratios: RatioConfig;
@@ -2105,6 +2133,7 @@ type AdminProps = {
   onSaveWeeklyParlay: (track: "A" | "B", config: WeeklyParlayConfig) => void;
   onSaveRatios: (config: RatioConfig) => void;
   onSaveDailyCheckinReward: (reward: number) => void;
+  onSaveMarketOpeningStake: (stake: number) => void;
   onSaveOdds: (marketId: string, odds: Record<string, number>, reason: string) => void;
   onInjectLiquidity: (marketId: string, injections: Array<{ optionId: string; amount: number }>) => Promise<boolean>;
   onImportTeams: (file: File, action: "preview" | "apply") => Promise<TeamImportPreview>;
@@ -2124,6 +2153,7 @@ function Admin({
   parlayBasePools,
   ticketPoolBonusMultiplier,
   dailyCheckinReward,
+  marketOpeningStake,
   weeklyParlayConfig,
   weeklyBParlayConfig,
   ratios,
@@ -2147,6 +2177,7 @@ function Admin({
   onSaveWeeklyParlay,
   onSaveRatios,
   onSaveDailyCheckinReward,
+  onSaveMarketOpeningStake,
   onSaveOdds,
   onInjectLiquidity,
   onImportTeams,
@@ -2180,6 +2211,7 @@ function Admin({
   const [basePools, setBasePools] = useState(parlayBasePools);
   const [bonusMultiplier, setBonusMultiplier] = useState(ticketPoolBonusMultiplier);
   const [dailyCheckinRewardForm, setDailyCheckinRewardForm] = useState(dailyCheckinReward);
+  const [marketOpeningStakeForm, setMarketOpeningStakeForm] = useState(marketOpeningStake);
   const [weeklyParlayForm, setWeeklyParlayForm] = useState(weeklyParlayConfig);
   const [weeklyBParlayForm, setWeeklyBParlayForm] = useState(weeklyBParlayConfig);
   const [ratioForm, setRatioForm] = useState(ratios);
@@ -2396,6 +2428,14 @@ function Admin({
       return;
     }
     onSaveDailyCheckinReward(dailyCheckinRewardForm);
+  }
+
+  function submitMarketOpeningStake() {
+    if (!Number.isInteger(marketOpeningStakeForm) || marketOpeningStakeForm < 0) {
+      onNotify("每个结果的开盘默认注入必须为不小于 0 的整数。");
+      return;
+    }
+    onSaveMarketOpeningStake(marketOpeningStakeForm);
   }
 
   function submitParlaySettings() {
@@ -2880,6 +2920,14 @@ function Admin({
         </div>
         <div className="admin-warning">每位用户每天只能签到一次，奖励直接进入竞猜币钱包并生成独立流水。修改后从下一次签到起生效。</div>
         <button className="admin-primary" onClick={submitDailyCheckinReward}>保存签到奖励</button>
+      </section>
+      <section className="admin-card">
+        <div className="admin-card-head"><div><small>盘口初始奖池</small><h3>开盘默认注入</h3></div><span>当前每个结果 {money.format(marketOpeningStake)} 竞猜币</span></div>
+        <div className="form-grid">
+          <label>每个结果注入<input type="number" min="0" max="1000000" step="1" value={marketOpeningStakeForm} onChange={(event) => setMarketOpeningStakeForm(Number(event.target.value))} /><em>竞猜币</em></label>
+        </div>
+        <div className="admin-warning">盘口首次开盘时，主胜、平局、客胜各自动注入该金额，共注入 {money.format(marketOpeningStakeForm * 3)} 竞猜币，并计入奖池、动态赔率和后台净额。设置为 0 可关闭。</div>
+        <button className="admin-primary" onClick={submitMarketOpeningStake}>保存开盘默认注入</button>
       </section>
       <section className="admin-card">
         <div className="admin-card-head"><div><small>动态奖池</small><h3>结算比例</h3></div><span className={ratioForm.returnPercent + ratioForm.recoveryPercent + ratioForm.prizePercent === 100 ? "ratio-ok" : "ratio-error"}>合计 {ratioForm.returnPercent + ratioForm.recoveryPercent + ratioForm.prizePercent}%</span></div>

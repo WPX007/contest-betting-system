@@ -347,6 +347,7 @@ model ParlayConfig {
   basePool6Plus          Int      @default(50000)
   ticketPoolBonusBps     Int      @default(5000)
   dailyCheckinReward     Int      @default(400)
+  marketOpeningStake     Int      @default(500)
   weeklyTicketStake      Int      @default(100)
   weeklyBasePool         Int      @default(12000)
   weeklyTicketPoolBonusBps Int    @default(5000)

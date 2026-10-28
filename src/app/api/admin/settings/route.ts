@@ -21,6 +21,7 @@ export async function GET() {
         },
         ticketPoolBonusMultiplier: config.ticketPoolBonusBps / 10_000,
         dailyCheckinReward: config.dailyCheckinReward,
+        marketOpeningStake: config.marketOpeningStake,
         weeklyParlayA: {
           ticket: config.weeklyTicketStake,
           basePool: config.weeklyBasePool,
@@ -58,6 +59,7 @@ export async function PATCH(request: Request) {
       }).optional(),
       ticketPoolBonusMultiplier: z.number().min(0).max(100).optional(),
       dailyCheckinReward: z.number().int().positive().max(100_000).optional(),
+      marketOpeningStake: z.number().int().min(0).max(1_000_000).optional(),
       weeklyParlayA: z.object({
         ticket: z.number().int().positive(),
         basePool: z.number().int().min(0),
@@ -78,7 +80,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "结算比例合计必须为 100%" }, { status: 400 });
     }
     await prisma.$transaction(async (tx) => {
-      if (input.parlayTicket !== undefined || input.parlayBasePools !== undefined || input.ticketPoolBonusMultiplier !== undefined || input.dailyCheckinReward !== undefined || input.weeklyParlayA !== undefined || input.weeklyParlayB !== undefined) {
+      if (input.parlayTicket !== undefined || input.parlayBasePools !== undefined || input.ticketPoolBonusMultiplier !== undefined || input.dailyCheckinReward !== undefined || input.marketOpeningStake !== undefined || input.weeklyParlayA !== undefined || input.weeklyParlayB !== undefined) {
         await tx.parlayConfig.update({
           where: { id: "default" },
           data: {
@@ -93,6 +95,7 @@ export async function PATCH(request: Request) {
               ticketPoolBonusBps: Math.round(input.ticketPoolBonusMultiplier * 10_000),
             } : {}),
             ...(input.dailyCheckinReward !== undefined ? { dailyCheckinReward: input.dailyCheckinReward } : {}),
+            ...(input.marketOpeningStake !== undefined ? { marketOpeningStake: input.marketOpeningStake } : {}),
             ...(input.weeklyParlayA ? {
               weeklyTicketStake: input.weeklyParlayA.ticket,
               weeklyBasePool: input.weeklyParlayA.basePool,

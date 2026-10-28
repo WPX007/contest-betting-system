@@ -162,6 +162,7 @@ async function main() {
       basePool5: 50_000,
       basePool6Plus: 50_000,
       ticketPoolBonusBps: 5_000,
+      marketOpeningStake: 500,
       weeklyTicketStake: 100,
       weeklyBasePool: 12_000,
       weeklyTicketPoolBonusBps: 5_000,

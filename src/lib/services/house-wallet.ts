@@ -112,6 +112,37 @@ export async function debitHouseWallet(
   return amount;
 }
 
+export async function seedMarketOpeningLiquidity(db: Prisma.TransactionClient, marketId: string) {
+  const reference = `market-opening-seed:${marketId}`;
+  const existing = await db.ledgerEntry.findFirst({ where: { reference } });
+  if (existing) return 0;
+  const [config, market] = await Promise.all([
+    db.parlayConfig.findUniqueOrThrow({ where: { id: "default" } }),
+    db.market.findUniqueOrThrow({
+      where: { id: marketId },
+      include: { options: true, match: { include: { homeTeam: true, awayTeam: true } } },
+    }),
+  ]);
+  const stake = config.marketOpeningStake;
+  if (stake <= 0) return 0;
+  if (market.options.length !== 3) throw new Error("盘口必须包含主胜、平局、客胜三个结果");
+  for (const option of market.options) {
+    await db.marketOption.update({
+      where: { id: option.id },
+      data: { injectedAmount: { increment: stake } },
+    });
+  }
+  const total = stake * market.options.length;
+  await debitHouseWallet(
+    db,
+    total,
+    LedgerReason.MARKET_INJECTION,
+    reference,
+    `${market.match.homeTeam.name} vs ${market.match.awayTeam.name} 开盘默认注入（每个结果 ${stake}）`,
+  );
+  return total;
+}
+
 export async function syncSettledHouseRake(db: DbClient = prisma) {
   const markets = await db.market.findMany({
     where: { status: MarketStatus.SETTLED },
