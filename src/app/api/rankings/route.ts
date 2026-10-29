@@ -26,8 +26,8 @@ export async function GET() {
     ]);
     const data = users.map((user) => {
       const settled = user.bets.filter((bet) => bet.status === BetStatus.SETTLED);
-      const hits = settled.filter((bet) => bet.option.isWinner).length;
-      const predictions = user.bets.length;
+      const hits = new Set(settled.filter((bet) => bet.option.isWinner).map((bet) => bet.marketId)).size;
+      const predictions = new Set(user.bets.map((bet) => bet.marketId)).size;
       const availableCoins = user.wallets.find((wallet) => wallet.asset === AssetType.BET_COIN)?.balance ?? 0;
       const pendingSingleStake = user.bets.filter((bet) => bet.status === BetStatus.ACTIVE).reduce((total, bet) => total + bet.stake, 0);
       const pendingParlayStake = user.parlayEntries.reduce((total, entry) => total + entry.stake, 0);
