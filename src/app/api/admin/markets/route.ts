@@ -208,8 +208,8 @@ export async function PATCH(request: Request) {
     }
     if (action === "CLEAR_SCHEDULE") {
       const input = z.object({ matchId: z.string().min(1) }).parse(body);
-      await adminClearMatchTime(admin.id, input.matchId);
-      return NextResponse.json({ data: { cleared: true } });
+      const result = await adminClearMatchTime(admin.id, input.matchId);
+      return NextResponse.json({ data: { cleared: true, ...result } });
     }
     if (action === "PAIRING") {
       const input = z.object({

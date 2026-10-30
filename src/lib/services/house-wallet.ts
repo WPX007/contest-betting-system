@@ -113,9 +113,6 @@ export async function debitHouseWallet(
 }
 
 export async function seedMarketOpeningLiquidity(db: Prisma.TransactionClient, marketId: string) {
-  const reference = `market-opening-seed:${marketId}`;
-  const existing = await db.ledgerEntry.findFirst({ where: { reference } });
-  if (existing) return 0;
   const [config, market] = await Promise.all([
     db.parlayConfig.findUniqueOrThrow({ where: { id: "default" } }),
     db.market.findUniqueOrThrow({
@@ -126,6 +123,10 @@ export async function seedMarketOpeningLiquidity(db: Prisma.TransactionClient, m
   const stake = config.marketOpeningStake;
   if (stake <= 0) return 0;
   if (market.options.length !== 3) throw new Error("盘口必须包含主胜、平局、客胜三个结果");
+  if (market.options.some((option) => option.injectedAmount > 0)) return 0;
+  const reference = `market-opening-seed:${marketId}:${market.opensAt.getTime()}`;
+  const existing = await db.ledgerEntry.findFirst({ where: { reference } });
+  if (existing) return 0;
   for (const option of market.options) {
     await db.marketOption.update({
       where: { id: option.id },
@@ -139,6 +140,27 @@ export async function seedMarketOpeningLiquidity(db: Prisma.TransactionClient, m
     LedgerReason.MARKET_INJECTION,
     reference,
     `${market.match.homeTeam.name} vs ${market.match.awayTeam.name} 开盘默认注入（每个结果 ${stake}）`,
+  );
+  return total;
+}
+
+export async function reverseMarketLiquidity(db: Prisma.TransactionClient, marketId: string, note: string) {
+  const market = await db.market.findUniqueOrThrow({
+    where: { id: marketId },
+    include: { options: true, match: { include: { homeTeam: true, awayTeam: true } } },
+  });
+  const total = market.options.reduce((sum, option) => sum + option.injectedAmount, 0);
+  if (total <= 0) return 0;
+  await db.marketOption.updateMany({
+    where: { marketId },
+    data: { injectedAmount: 0, manualOddsBps: null, oddsReason: null, isWinner: false },
+  });
+  await creditHouseWallet(
+    db,
+    total,
+    LedgerReason.MARKET_INJECTION,
+    `market-injection-refund:${marketId}:${market.opensAt.getTime()}`,
+    `${market.match.homeTeam.name} vs ${market.match.awayTeam.name} ${note}`,
   );
   return total;
 }

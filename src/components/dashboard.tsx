@@ -1152,14 +1152,14 @@ export function Dashboard() {
   }
 
   async function adminClearSchedule(matchId: string) {
-    if (!window.confirm("确认撤销该场已生效的比赛时间？撤销后将回到双方队长重新提议并确认时间的状态。")) return;
+    if (!window.confirm("确认撤销该场已生效的比赛时间？用户的单场下注及加注将全部原路退款，后台盘口注入也会撤销；过关订单会保留，并等待重新约赛后的最终赛果结算。")) return;
     try {
-      await apiRequest("/api/admin/markets", {
+      const result = await apiRequest<{ cleared: boolean; refundedBets: number; reversedLiquidity: number }>("/api/admin/markets", {
         method: "PATCH",
         body: JSON.stringify({ action: "CLEAR_SCHEDULE", matchId }),
       });
       await Promise.all([refreshData(true), loadMatchSchedules()]);
-      setNotice("比赛时间已撤销，盘口已恢复为时间待定，双方队长可重新确认时间。");
+      setNotice(`比赛时间已撤销，已退款 ${result.refundedBets} 笔单场下注，并撤销 ${money.format(result.reversedLiquidity)} 竞猜币后台注入；过关订单保持有效并等待后续赛果。`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "撤销比赛时间失败");
     }

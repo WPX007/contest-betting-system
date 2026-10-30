@@ -1,7 +1,8 @@
 import { MatchScheduleStatus, MarketStatus, UserRole } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { seedMarketOpeningLiquidity } from "@/lib/services/house-wallet";
+import { reverseMarketLiquidity, seedMarketOpeningLiquidity } from "@/lib/services/house-wallet";
+import { refundActiveMarketBets } from "@/lib/services/settlement-service";
 
 async function syncOpenParlayDeadlines(tx: Prisma.TransactionClient, marketId: string) {
   const rounds = await tx.parlayRound.findMany({
@@ -284,7 +285,7 @@ async function rescheduleMatch(actorId: string, matchId: string, scheduledAt: Da
     if (match.markets[0]) {
       const market = await tx.market.update({
         where: { id: match.markets[0].id },
-        data: { closesAt: scheduledAt, status: MarketStatus.OPEN, closedAt: null },
+        data: { closesAt: scheduledAt, status: MarketStatus.OPEN, opensAt: new Date(), closedAt: null },
       });
       marketId = market.id;
     } else {
@@ -339,9 +340,6 @@ export async function adminClearMatchTime(adminId: string, matchId: string) {
     if (market?.status === MarketStatus.SETTLED || market?.status === MarketStatus.VOIDED) {
       throw new Error("已结算或已作废比赛不能撤销时间");
     }
-    if (market && (market._count.bets > 0 || market._count.parlayLegs > 0)) {
-      throw new Error("该场已有竞猜或过关订单，不能撤销时间");
-    }
     const previousTime = match.scheduledAt;
     const weekEnd = new Date(match.season.startsAt.getTime() + match.weekNumber * 7 * 86_400_000);
     await tx.match.update({
@@ -357,7 +355,11 @@ export async function adminClearMatchTime(adminId: string, matchId: string) {
         confirmedAt: null,
       },
     });
+    let refundedBets = 0;
+    let reversedLiquidity = 0;
     if (market) {
+      refundedBets = await refundActiveMarketBets(tx, market.id, "管理员撤销比赛时间，竞猜币原路退回");
+      reversedLiquidity = await reverseMarketLiquidity(tx, market.id, "撤销比赛时间，退回盘口注入");
       await tx.market.update({
         where: { id: market.id },
         data: { status: MarketStatus.DRAFT, closesAt: weekEnd, closedAt: null },
@@ -370,8 +372,9 @@ export async function adminClearMatchTime(adminId: string, matchId: string) {
         action: "MATCH_TIME_ADMIN_CLEAR",
         target: match.id,
         before: previousTime.toISOString(),
-        after: JSON.stringify({ scheduleStatus: MatchScheduleStatus.UNSET }),
+        after: JSON.stringify({ scheduleStatus: MatchScheduleStatus.UNSET, refundedBets, reversedLiquidity }),
       },
     });
+    return { refundedBets, reversedLiquidity };
   });
 }

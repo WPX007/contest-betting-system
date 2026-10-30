@@ -10,42 +10,48 @@ import {
   ParlayRoundStatus,
   SettlementBatchStatus,
 } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 import { calculateParlayPool, ticketPoolContribution } from "@/lib/parlay-pool";
 import { prisma } from "@/lib/prisma";
 import { creditHouseWallet } from "@/lib/services/house-wallet";
 
+export async function refundActiveMarketBets(tx: Prisma.TransactionClient, marketId: string, note: string) {
+  const bets = await tx.bet.findMany({ where: { marketId, status: BetStatus.ACTIVE } });
+  for (const bet of bets) {
+    const wallet = await tx.wallet.findUniqueOrThrow({
+      where: { userId_asset: { userId: bet.userId, asset: AssetType.BET_COIN } },
+    });
+    const balanceAfter = wallet.balance + bet.stake;
+    await tx.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: balanceAfter, version: { increment: 1 } },
+    });
+    await tx.ledgerEntry.create({
+      data: {
+        walletId: wallet.id,
+        amount: bet.stake,
+        balanceAfter,
+        reason: LedgerReason.BET_REFUND,
+        reference: `bet:${bet.id}`,
+        note,
+      },
+    });
+    await tx.bet.update({
+      where: { id: bet.id },
+      data: { status: BetStatus.REFUNDED, refundedAt: new Date(), payout: bet.stake },
+    });
+  }
+  return bets.length;
+}
+
 export async function refundMarket(marketId: string, note: string) {
   return prisma.$transaction(async (tx) => {
-    const bets = await tx.bet.findMany({ where: { marketId, status: BetStatus.ACTIVE } });
-    for (const bet of bets) {
-      const wallet = await tx.wallet.findUniqueOrThrow({
-        where: { userId_asset: { userId: bet.userId, asset: AssetType.BET_COIN } },
-      });
-      const balanceAfter = wallet.balance + bet.stake;
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: balanceAfter, version: { increment: 1 } },
-      });
-      await tx.ledgerEntry.create({
-        data: {
-          walletId: wallet.id,
-          amount: bet.stake,
-          balanceAfter,
-          reason: LedgerReason.BET_REFUND,
-          reference: `bet:${bet.id}`,
-          note,
-        },
-      });
-      await tx.bet.update({
-        where: { id: bet.id },
-        data: { status: BetStatus.REFUNDED, refundedAt: new Date(), payout: bet.stake },
-      });
-    }
+    const refundedBets = await refundActiveMarketBets(tx, marketId, note);
     await tx.market.update({
       where: { id: marketId },
       data: { status: MarketStatus.VOIDED, closedAt: new Date() },
     });
-    return bets.length;
+    return refundedBets;
   });
 }
 
