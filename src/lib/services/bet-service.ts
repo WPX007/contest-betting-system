@@ -1,5 +1,5 @@
 import { AssetType, BetStatus, LedgerReason } from "@/generated/prisma/enums";
-import { assertBetAllowed, assertSameMarketOption, placeBetSchema } from "@/lib/betting-service";
+import { assertBetAllowed, assertOwnTeamBetOption, assertSameMarketOption, placeBetSchema } from "@/lib/betting-service";
 import { prisma } from "@/lib/prisma";
 import { closeDueMarkets } from "@/lib/services/market-service";
 
@@ -32,6 +32,12 @@ export async function placeBet(userId: string, rawInput: unknown) {
     ]);
     const option = market.options.find((item) => item.id === input.optionId);
     if (!option) throw new Error("竞猜选项不属于该盘口");
+    const optionKey = option.label.startsWith(market.match.homeTeam.name)
+      ? "home"
+      : option.label.includes("平局")
+        ? "draw"
+        : "away";
+    assertOwnTeamBetOption(user.teamId, market.match, optionKey);
     const existingBets = await tx.bet.findMany({
       where: {
         userId,

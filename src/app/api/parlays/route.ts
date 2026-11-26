@@ -31,10 +31,16 @@ function offerView(offer: Awaited<ReturnType<typeof getParlayOffer>>) {
       matchup: `${market.match.homeTeam.name} vs ${market.match.awayTeam.name}`,
       home: market.match.homeTeam.name,
       away: market.match.awayTeam.name,
+      homeTeamId: market.match.homeTeamId,
+      awayTeamId: market.match.awayTeamId,
       track: market.match.track,
       scheduledAt: market.match.scheduledAt?.toISOString() ?? null,
       status: market.status,
-      options: market.options.map((option) => ({ id: option.id, label: option.label })),
+      options: market.options.map((option) => ({
+        id: option.id,
+        label: option.label,
+        key: option.label.startsWith(market.match.homeTeam.name) ? "home" : option.label.includes("平局") ? "draw" : "away",
+      })),
     })),
   };
 }

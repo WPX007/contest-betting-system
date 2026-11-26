@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertBetAllowed, assertSameMarketOption, reconciliation } from "./betting-service";
+import { assertBetAllowed, assertOwnTeamBetOption, assertSameMarketOption, reconciliation } from "./betting-service";
 import { calculatePoolOddsBps, calculateSettlement, validateStake } from "./settlement";
 
 describe("dynamic pool settlement", () => {
@@ -57,5 +57,18 @@ describe("dynamic pool settlement", () => {
     expect(() => assertSameMarketOption([], "home")).not.toThrow();
     expect(() => assertSameMarketOption(["home", "home"], "home")).not.toThrow();
     expect(() => assertSameMarketOption(["home"], "away")).toThrow("同一场比赛只能选择一种结果");
+  });
+
+  it("only allows players in the match to bet on their own team winning 2:0", () => {
+    const match = { homeTeamId: "home-team", awayTeamId: "away-team" };
+    expect(() => assertOwnTeamBetOption("home-team", match, "home")).not.toThrow();
+    expect(() => assertOwnTeamBetOption("home-team", match, "draw")).toThrow("只能竞猜本队 2:0");
+    expect(() => assertOwnTeamBetOption("home-team", match, "away")).toThrow("只能竞猜本队 2:0");
+    expect(() => assertOwnTeamBetOption("away-team", match, "away")).not.toThrow();
+    expect(() => assertOwnTeamBetOption("away-team", match, "home")).toThrow("只能竞猜本队 2:0");
+    expect(() => assertOwnTeamBetOption("away-team", match, "draw")).toThrow("只能竞猜本队 2:0");
+    expect(() => assertOwnTeamBetOption("allied-team", match, "home")).not.toThrow();
+    expect(() => assertOwnTeamBetOption("allied-team", match, "draw")).not.toThrow();
+    expect(() => assertOwnTeamBetOption(null, match, "away")).not.toThrow();
   });
 });

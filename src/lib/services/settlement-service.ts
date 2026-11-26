@@ -15,8 +15,11 @@ import { calculateParlayPool, ticketPoolContribution } from "@/lib/parlay-pool";
 import { prisma } from "@/lib/prisma";
 import { creditHouseWallet } from "@/lib/services/house-wallet";
 
-export async function refundActiveMarketBets(tx: Prisma.TransactionClient, marketId: string, note: string) {
-  const bets = await tx.bet.findMany({ where: { marketId, status: BetStatus.ACTIVE } });
+async function refundBetRecords(
+  tx: Prisma.TransactionClient,
+  bets: Array<{ id: string; userId: string; stake: number }>,
+  note: string,
+) {
   for (const bet of bets) {
     const wallet = await tx.wallet.findUniqueOrThrow({
       where: { userId_asset: { userId: bet.userId, asset: AssetType.BET_COIN } },
@@ -42,6 +45,32 @@ export async function refundActiveMarketBets(tx: Prisma.TransactionClient, marke
     });
   }
   return bets.length;
+}
+
+export async function refundActiveMarketBets(tx: Prisma.TransactionClient, marketId: string, note: string) {
+  const bets = await tx.bet.findMany({
+    where: { marketId, status: BetStatus.ACTIVE },
+    select: { id: true, userId: true, stake: true },
+  });
+  return refundBetRecords(tx, bets, note);
+}
+
+export async function refundUserMarketBets(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  marketId: string,
+  note: string,
+) {
+  const bets = await tx.bet.findMany({
+    where: { userId, marketId, status: BetStatus.ACTIVE },
+    select: { id: true, userId: true, stake: true },
+  });
+  if (bets.length === 0) throw new Error("该用户在这场比赛没有可撤销的进行中竞猜");
+  await refundBetRecords(tx, bets, note);
+  return {
+    refundedBets: bets.length,
+    refundedAmount: bets.reduce((total, bet) => total + bet.stake, 0),
+  };
 }
 
 export async function refundMarket(marketId: string, note: string) {

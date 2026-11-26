@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { weekOptions, type Market } from "@/lib/demo-data";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import { ticketPoolContribution, type ParlayBasePools } from "@/lib/parlay-pool";
@@ -151,10 +152,12 @@ type ParlayOffer = {
     id: string;
     home: string;
     away: string;
+    homeTeamId: string;
+    awayTeamId: string;
     track: "A" | "B";
     scheduledAt: string | null;
     status: string;
-    options: Array<{ id: string; label: string }>;
+    options: Array<{ id: string; label: string; key: "home" | "draw" | "away" }>;
   }>;
 };
 type AdminParlayRound = {
@@ -265,7 +268,24 @@ function marketDisplayWeek(market: Market) {
   return market.scheduledAt ? competitionWeekForDate(market.scheduledAt) : market.week ?? 4;
 }
 
-type SearchableOption = { value: string; label: string };
+function ownTeamRequiredOption(
+  teamId: string | undefined,
+  market: { homeTeamId?: string; awayTeamId?: string },
+) {
+  if (!teamId) return null;
+  return teamId === market.homeTeamId ? "home" : teamId === market.awayTeamId ? "away" : null;
+}
+
+function ownTeamOptionIsRestricted(
+  teamId: string | undefined,
+  market: { homeTeamId?: string; awayTeamId?: string },
+  option: { key?: "home" | "draw" | "away" },
+) {
+  const required = ownTeamRequiredOption(teamId, market);
+  return Boolean(required && option.key !== required);
+}
+
+type SearchableOption = { value: string; label: string; disabled?: boolean };
 
 function SearchableSelect({
   value,
@@ -285,38 +305,119 @@ function SearchableSelect({
   ariaLabel?: string;
 }) {
   const listId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const selectedLabel = options.find((option) => option.value === value)?.label ?? "";
   const [query, setQuery] = useState("");
-  const [editing, setEditing] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, bottom: 0, left: 0, width: 0, maxHeight: 320, above: false });
+  const normalizedQuery = query.trim().toLocaleLowerCase("zh-CN");
+  const filteredOptions = normalizedQuery
+    ? options.filter((option) => option.label.toLocaleLowerCase("zh-CN").includes(normalizedQuery))
+    : options;
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const input = inputRef.current;
+      if (!input) return;
+      const rect = input.getBoundingClientRect();
+      const viewportPadding = 12;
+      const width = Math.min(Math.max(rect.width, 420), window.innerWidth - viewportPadding * 2);
+      const left = Math.min(Math.max(viewportPadding, rect.left), window.innerWidth - width - viewportPadding);
+      const belowSpace = window.innerHeight - rect.bottom - viewportPadding;
+      const aboveSpace = rect.top - viewportPadding;
+      const above = belowSpace < 180 && aboveSpace > belowSpace;
+      setMenuPosition({
+        top: rect.bottom + 4,
+        bottom: window.innerHeight - rect.top + 4,
+        left,
+        width,
+        maxHeight: Math.max(120, Math.min(320, (above ? aboveSpace : belowSpace) - 6)),
+        above,
+      });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
+
+  const selectOption = (option: SearchableOption) => {
+    if (option.disabled) return;
+    onChange(option.value);
+    setQuery("");
+    setOpen(false);
+  };
 
   return <>
     <input
+      ref={inputRef}
       aria-label={ariaLabel}
+      aria-controls={listId}
+      aria-expanded={open}
+      aria-haspopup="listbox"
+      autoComplete="off"
       className={`searchable-select-input ${className}`.trim()}
       disabled={disabled}
-      list={listId}
       onBlur={() => {
-        setEditing(false);
+        setOpen(false);
         setQuery("");
       }}
       onChange={(event) => {
-        const nextQuery = event.target.value;
-        setQuery(nextQuery);
-        const exact = options.find((option) => option.label.toLocaleLowerCase("zh-CN") === nextQuery.trim().toLocaleLowerCase("zh-CN"));
-        if (exact) onChange(exact.value);
+        setQuery(event.target.value);
+        setOpen(true);
       }}
       onFocus={() => {
         setQuery("");
-        setEditing(true);
+        setOpen(true);
       }}
-      onMouseDown={() => {
-        if (!editing || query === selectedLabel) setQuery("");
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setOpen(false);
+          setQuery("");
+          event.currentTarget.blur();
+        }
+        if (event.key === "Enter" && open && filteredOptions.length > 0) {
+          event.preventDefault();
+          const exact = filteredOptions.find((option) => !option.disabled && option.label.toLocaleLowerCase("zh-CN") === normalizedQuery);
+          const firstEnabled = filteredOptions.find((option) => !option.disabled);
+          if (exact ?? firstEnabled) selectOption((exact ?? firstEnabled)!);
+        }
       }}
       placeholder={placeholder}
-      title="可输入关键词搜索"
-      value={editing ? query : selectedLabel}
+      role="combobox"
+      title={selectedLabel || "可输入关键词搜索"}
+      value={open ? query : selectedLabel}
     />
-    <datalist id={listId}>{options.map((option) => <option value={option.label} key={`${option.value}-${option.label}`} />)}</datalist>
+    {open && typeof document !== "undefined" && createPortal(
+      <div
+        className="searchable-select-menu"
+        id={listId}
+        role="listbox"
+        style={{
+          ...(menuPosition.above ? { bottom: menuPosition.bottom } : { top: menuPosition.top }),
+          left: menuPosition.left,
+          width: menuPosition.width,
+          maxHeight: menuPosition.maxHeight,
+        }}
+      >
+        {filteredOptions.map((option) => <button
+          aria-selected={option.value === value}
+          className={`searchable-select-option${option.value === value ? " selected" : ""}`}
+          disabled={option.disabled}
+          key={`${option.value}-${option.label}`}
+          onClick={() => selectOption(option)}
+          onMouseDown={(event) => event.preventDefault()}
+          role="option"
+          type="button"
+        >{option.label}</button>)}
+        {filteredOptions.length === 0 && <div className="searchable-select-empty">无匹配结果</div>}
+      </div>,
+      document.body,
+    )}
   </>;
 }
 
@@ -548,7 +649,10 @@ export function Dashboard() {
   const selectedMarket = displayedMarkets.find((market) => market.id === selectedMarketId) ?? displayedMarkets[0] ?? scopeMarkets[0] ?? visibleMarkets[0] ?? emptyMarket;
   const selectedMarketBets = myBets.filter((bet) => bet.marketId === selectedMarket.id && bet.status === "ACTIVE");
   const lockedOptionId = selectedMarketBets[0]?.optionId;
-  const selectedOption = selectedMarket.options.find((option) => option.id === (lockedOptionId ?? optionId)) ?? selectedMarket.options[0];
+  const ownTeamRequiredOptionKey = ownTeamRequiredOption(sessionUser?.teamId, selectedMarket);
+  const ownTeamOptionId = selectedMarket.options.find((option) => option.key === ownTeamRequiredOptionKey)?.id;
+  const selectedOption = selectedMarket.options.find((option) => option.id === (lockedOptionId ?? ownTeamOptionId ?? optionId)) ?? selectedMarket.options[0];
+  const selectedOptionRestrictedByOwnMatch = ownTeamOptionIsRestricted(sessionUser?.teamId, selectedMarket, selectedOption);
   const existingMarketStake = selectedMarketBets.reduce((total, bet) => total + bet.stake, 0);
   const selectedState = marketStatus[selectedMarket.id] ?? selectedMarket.state;
   const potential = useMemo(
@@ -1165,6 +1269,28 @@ export function Dashboard() {
     }
   }
 
+  async function adminRefundUserMarketBets(userId: string, marketId: string) {
+    const user = managedUsers.find((item) => item.id === userId);
+    const market = serverMarkets.find((item) => item.id === marketId);
+    const activeOrders = betRecords.filter((record) => record.userId === userId && record.marketId === marketId && record.status === "ACTIVE");
+    const total = activeOrders.reduce((sum, record) => sum + record.amount, 0);
+    if (activeOrders.length === 0) {
+      setNotice("该用户在这场比赛没有可撤销的进行中竞猜。");
+      return;
+    }
+    if (!window.confirm(`确认撤销 ${user?.chineseName ?? "该用户"} 在“${market ? `${market.home} vs ${market.away}` : "该场比赛"}”的全部竞猜？共 ${activeOrders.length} 笔、${money.format(total)} 竞猜币，将原路退回。`)) return;
+    try {
+      const result = await apiRequest<{ refundedBets: number; refundedAmount: number; userName: string }>("/api/admin/bets", {
+        method: "PATCH",
+        body: JSON.stringify({ action: "REFUND_USER_MARKET", userId, marketId }),
+      });
+      await refreshData(true);
+      setNotice(`已撤销 ${result.userName} 的本场竞猜，共退款 ${result.refundedBets} 笔、${money.format(result.refundedAmount)} 竞猜币。`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "撤销个人竞猜失败");
+    }
+  }
+
   async function adminConfigurePairing(matchId: string, homeTeamId: string, awayTeamId: string) {
     try {
       await apiRequest("/api/admin/markets", {
@@ -1667,7 +1793,7 @@ export function Dashboard() {
                           ariaLabel={`搜索 ${market.home} 对阵 ${market.away} 的预测结果`}
                           disabled={isBettingRestrictedSession || activeWeeklyJoined || activeWeeklyClosed}
                           onChange={(value) => parlayMode === "WEEKLY_B" ? setWeeklyBParlaySelections((current) => ({ ...current, [market.id]: value })) : setWeeklyParlaySelections((current) => ({ ...current, [market.id]: value }))}
-                          options={[{ value: "", label: "选择结果" }, ...market.options.map((option) => ({ value: option.id, label: option.label }))]}
+                          options={[{ value: "", label: "选择结果" }, ...market.options.map((option) => ({ value: option.id, label: option.label, disabled: ownTeamOptionIsRestricted(sessionUser.teamId, market, option) }))]}
                           value={activeWeeklySelections[market.id] ?? ""}
                         />
                       </label>)}
@@ -1696,7 +1822,7 @@ export function Dashboard() {
                             ariaLabel={`搜索 ${market.home} 对阵 ${market.away} 的预测结果`}
                             disabled={isBettingRestrictedSession || parlayJoined || parlayClosed || (marketStatus[market.id] ?? market.state) !== "OPEN"}
                             onChange={(value) => setParlaySelections((current) => ({ ...current, [market.id]: value }))}
-                            options={[{ value: "", label: "选择结果" }, ...market.options.map((option) => ({ value: option.id, label: option.label }))]}
+                            options={[{ value: "", label: "选择结果" }, ...market.options.map((option) => ({ value: option.id, label: option.label, disabled: ownTeamOptionIsRestricted(sessionUser.teamId, market, option) }))]}
                             value={parlaySelections[market.id] ?? ""}
                           />
                         </label>
@@ -1762,19 +1888,21 @@ export function Dashboard() {
               <div className="options">
                 {selectedMarket.options.map((option) => {
                   const multiplier = option.oddsBps ? option.oddsBps / 10000 : ratios.returnPercent / 100 + (ratios.prizePercent / 100 * (selectedMarket.pool + stake)) / (option.amount + stake);
-                  const lockedOut = Boolean(lockedOptionId && option.id !== lockedOptionId);
-                  return <button disabled={isBettingRestrictedSession || selectedState !== "OPEN" || lockedOut} key={option.id} className={`${option.id === selectedOption.id ? "option active" : "option"}${lockedOut ? " option-locked" : ""}`} onClick={() => setOptionId(option.id)}>
+                  const restrictedByOwnMatch = ownTeamOptionIsRestricted(sessionUser.teamId, selectedMarket, option);
+                  const lockedOut = Boolean((lockedOptionId && option.id !== lockedOptionId) || restrictedByOwnMatch);
+                  return <button disabled={isBettingRestrictedSession || selectedState !== "OPEN" || lockedOut} key={option.id} className={`${option.id === selectedOption.id ? "option active" : "option"}${lockedOut ? " option-locked" : ""}`} onClick={() => setOptionId(option.id)} title={restrictedByOwnMatch ? "自己上场只能竞猜本队 2:0 获胜" : undefined}>
                     <span>{option.label}</span><strong>约 {multiplier.toFixed(2)}×</strong><small>当前 {money.format(option.amount)}</small>
                   </button>;
                 })}
               </div>
               {lockedOptionId && <div className="selection-lock">已锁定结果：<strong>{selectedOption.label}</strong><span>本场已下注 {money.format(existingMarketStake)}，只能继续加注该结果</span></div>}
+              {ownTeamRequiredOptionKey && <div className="selection-lock own-team-bet-rule">本队参赛限制：<strong>仅可竞猜本队 2:0 获胜</strong><span>客队获胜选项在比分中显示为 0:2；同盟队伍不受影响</span></div>}
               <label className="stake-label">下注额 <span>可用 {money.format(balance)}</span></label>
-              <div className="stake-input"><input disabled={isBettingRestrictedSession || selectedState !== "OPEN"} value={stake} type="number" min="50" max={validation.cap} onChange={(event) => setStake(Math.max(0, Number(event.target.value)))} /><span>竞猜币</span></div>
-              <div className="quick-stakes">{[50, 100, validation.cap].map((value, index) => <button disabled={isBettingRestrictedSession || selectedState !== "OPEN" || value < 50} key={`${value}-${index}`} onClick={() => setStake(value)}>{index === 2 ? "最大" : value}</button>)}</div>
+              <div className="stake-input"><input disabled={isBettingRestrictedSession || selectedState !== "OPEN" || selectedOptionRestrictedByOwnMatch} value={stake} type="number" min="50" max={validation.cap} onChange={(event) => setStake(Math.max(0, Number(event.target.value)))} /><span>竞猜币</span></div>
+              <div className="quick-stakes">{[50, 100, validation.cap].map((value, index) => <button disabled={isBettingRestrictedSession || selectedState !== "OPEN" || selectedOptionRestrictedByOwnMatch || value < 50} key={`${value}-${index}`} onClick={() => setStake(value)}>{index === 2 ? "最大" : value}</button>)}</div>
               <div className="estimate"><span>预估到账</span><strong>{money.format(potential.payout)} <small>竞猜币</small></strong><p>包含本金返还 {potential.returnedStake} + 奖池奖励 {potential.prize}</p></div>
-              <button disabled={submittingBet || isBettingRestrictedSession || selectedState !== "OPEN"} className="primary" onClick={placeBet}>{submittingBet ? "订单提交中…" : isBettingRestrictedSession ? `${sessionUser.role === "SCOREKEEPER" ? "裁判" : "管理员"}账号不可下注` : selectedState === "OPEN" ? `${lockedOptionId ? "确认加注" : "确认下注"} ${stake > 0 ? `${money.format(stake)} 竞猜币` : ""}` : stateLabels[selectedState]}</button>
-              <p className="fine-print">{isBettingRestrictedSession ? `${sessionUser.role === "SCOREKEEPER" ? "裁判" : "管理员"}账号仅用于赛事操作和信息核对。` : "所有参赛队员均可竞猜任意队伍；首次下注后结果锁定，只能继续加注，封盘后不可撤单。"}</p>
+              <button disabled={submittingBet || isBettingRestrictedSession || selectedState !== "OPEN" || selectedOptionRestrictedByOwnMatch} className="primary" onClick={placeBet}>{submittingBet ? "订单提交中…" : isBettingRestrictedSession ? `${sessionUser.role === "SCOREKEEPER" ? "裁判" : "管理员"}账号不可下注` : selectedOptionRestrictedByOwnMatch ? "本队参赛仅可选择本队 2:0" : selectedState === "OPEN" ? `${lockedOptionId ? "确认加注" : "确认下注"} ${stake > 0 ? `${money.format(stake)} 竞猜币` : ""}` : stateLabels[selectedState]}</button>
+              <p className="fine-print">{isBettingRestrictedSession ? `${sessionUser.role === "SCOREKEEPER" ? "裁判" : "管理员"}账号仅用于赛事操作和信息核对。` : "自己上场只能竞猜本队 2:0 获胜；同盟队伍不受影响。首次下注后结果锁定，只能继续加注。"}</p>
             </aside> : <aside className="bet-panel empty-bet-panel"><span>暂无比赛</span><h2>第 {selectedWeek} 周尚未配置赛程</h2><p>管理员创建并设置本周比赛后，竞猜盘口将在这里展示。</p>{sessionUser.isAdmin && <button onClick={() => setActiveTab("后台管理设置")}>前往后台管理设置</button>}</aside>}
           </div>
         )}
@@ -1814,6 +1942,7 @@ export function Dashboard() {
           onConfigurePairing={adminConfigurePairing}
           onAdminReschedule={adminReschedule}
           onAdminClearSchedule={adminClearSchedule}
+          onRefundUserMarketBets={adminRefundUserMarketBets}
           onAdjustCoins={adjustCoins}
           onSaveParlay={saveParlaySettings}
           onSaveWeeklyParlay={saveWeeklyParlaySettings}
@@ -2128,6 +2257,7 @@ type AdminProps = {
   onConfigurePairing: (matchId: string, homeTeamId: string, awayTeamId: string) => void;
   onAdminReschedule: (matchId: string, scheduledAt: string) => void;
   onAdminClearSchedule: (matchId: string) => void;
+  onRefundUserMarketBets: (userId: string, marketId: string) => void;
   onAdjustCoins: (targetType: AssetTargetType, target: string, action: "GRANT" | "DEDUCT", amount: number, reason: string) => void;
   onSaveParlay: (ticket: number, basePools: ParlayBasePools, bonusMultiplier: number) => void;
   onSaveWeeklyParlay: (track: "A" | "B", config: WeeklyParlayConfig) => void;
@@ -2172,6 +2302,7 @@ function Admin({
   onConfigurePairing,
   onAdminReschedule,
   onAdminClearSchedule,
+  onRefundUserMarketBets,
   onAdjustCoins,
   onSaveParlay,
   onSaveWeeklyParlay,
@@ -2632,15 +2763,17 @@ function Admin({
             <div><span>累计到账</span><strong>{money.format(detailUserBets.reduce((total, record) => total + (record.payout ?? 0), 0))}</strong></div>
           </div>
           <div className="user-bet-ledger">
-            <div className="user-bet-ledger-row header"><span>比赛 / 下单时间</span><span>预测选项</span><span>下注金额</span><span>状态 / 到账</span></div>
+            <div className="user-bet-ledger-row header"><span>比赛 / 下单时间</span><span>预测选项</span><span>下注金额</span><span>状态 / 到账</span><span>操作</span></div>
             {detailUserBets.map((record) => {
               const market = allAdminMarkets.find((item) => item.id === record.marketId);
               const statusLabel = record.status === "ACTIVE" ? "进行中" : record.status === "SETTLED" ? "已结算" : record.status === "REFUNDED" ? "已退款" : "已作废";
+              const isFirstActiveOrderForMarket = record.status === "ACTIVE" && detailUserBets.find((item) => item.marketId === record.marketId && item.status === "ACTIVE")?.id === record.id;
               return <div className="user-bet-ledger-row" key={record.id}>
                 <span><strong>{market ? `${market.home} vs ${market.away}` : `第 ${record.week} 周比赛`}</strong><small>{new Date(record.createdAt).toLocaleString("zh-CN", { hour12: false })}</small></span>
                 <span><strong>{record.optionLabel}</strong><small>第 {record.week} 周</small></span>
                 <span><strong>{money.format(record.amount)}</strong><small>竞猜币</small></span>
                 <span><b className={`user-bet-status status-${record.status.toLowerCase()}`}>{statusLabel}</b><small>{record.payout === null ? "尚未到账" : `到账 ${money.format(record.payout)}`}</small></span>
+                <span>{isFirstActiveOrderForMarket ? <button className="bet-refund-button" onClick={() => onRefundUserMarketBets(record.userId, record.marketId)}>撤销本场竞猜</button> : record.status === "ACTIVE" ? <small>随本场一起撤销</small> : <small>不可撤销</small>}</span>
               </div>;
             })}
             {detailUserBets.length === 0 && <div className="bet-detail-empty">该用户暂无单场下注记录</div>}

@@ -41,6 +41,18 @@ export function assertSameMarketOption(existingOptionIds: string[], nextOptionId
   }
 }
 
+export function assertOwnTeamBetOption(
+  teamId: string | null,
+  match: { homeTeamId: string; awayTeamId: string },
+  optionKey: "home" | "draw" | "away",
+) {
+  if (!teamId) return;
+  const requiredOption = teamId === match.homeTeamId ? "home" : teamId === match.awayTeamId ? "away" : null;
+  if (requiredOption && optionKey !== requiredOption) {
+    throw new Error("自己上场的比赛只能竞猜本队 2:0 获胜（客队显示为 0:2）");
+  }
+}
+
 export function reconciliation(totalPool: number, returned: number, prizes: number, recovery: number) {
   return {
     isBalanced: totalPool === returned + prizes + recovery,

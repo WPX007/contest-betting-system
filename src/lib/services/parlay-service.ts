@@ -11,6 +11,7 @@ import {
   Track,
   UserRole,
 } from "@/generated/prisma/enums";
+import { assertOwnTeamBetOption } from "@/lib/betting-service";
 import { currentCompetitionWeek, weeklyParlayKey } from "@/lib/competition-week";
 import { prisma } from "@/lib/prisma";
 import { basePoolForMarketCount } from "@/lib/parlay-pool";
@@ -198,6 +199,21 @@ export async function joinParlay(userId: string, rawInput: unknown) {
       },
     });
     if (validOptions.length !== input.selections.length) throw new Error("过关选项无效");
+    const selectedMarkets = await tx.market.findMany({
+      where: { id: { in: roundMarketIds } },
+      include: { match: { include: { homeTeam: true, awayTeam: true } } },
+    });
+    for (const selection of input.selections) {
+      const market = selectedMarkets.find((item) => item.id === selection.marketId);
+      const option = validOptions.find((item) => item.id === selection.optionId);
+      if (!market || !option) throw new Error("过关选项无效");
+      const optionKey = option.label.startsWith(market.match.homeTeam.name)
+        ? "home"
+        : option.label.includes("平局")
+          ? "draw"
+          : "away";
+      assertOwnTeamBetOption(user.teamId, market.match, optionKey);
+    }
 
     const wallet = await tx.wallet.findUniqueOrThrow({
       where: { userId_asset: { userId, asset: AssetType.BET_COIN } },
